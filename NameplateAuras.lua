@@ -1,6 +1,6 @@
 ﻿local _, addonTable = ...;
 local L = addonTable.L;
-local StandartSpells = addonTable.StandartSpells;
+local StandardSpells = addonTable.StandardSpells;
 
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", "Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
@@ -54,7 +54,6 @@ local ShowCDIcon;
 local OnUpdate;
 
 local PLAYER_ENTERING_WORLD;
-local COMBAT_LOG_EVENT_UNFILTERED;
 local NAME_PLATE_UNIT_ADDED;
 local NAME_PLATE_UNIT_REMOVED;
 local UNIT_AURA;
@@ -86,24 +85,41 @@ do
 
 	function OnStartup()
 		InitializeDB();
-		-- // Convert standart spell IDs to spell names
-		for spellID, enabledState in pairs(StandartSpells) do
+		-- // Convert standard spell IDs to spell names
+		for spellID, enabledState in pairs(StandardSpells) do
 			local spellName = GetSpellInfo(spellID);
 			if (spellName ~= nil and Spells[spellName] == nil) then
 				Spells[spellName] = enabledState;
 				if (enabledState ~= "disable") then
 					SpellsEnabledCache[spellName] = enabledState;
 				end
-				if (db.StandartSpells[spellID] == nil) then
-					db.StandartSpells[spellID] = enabledState;
+				if (db.StandardSpells[spellID] == nil) then
+					db.StandardSpells[spellID] = enabledState;
 				end
 			end
 		end
-		for spellID, enabledState in pairs(db.StandartSpells) do
+		for spellID, enabledState in pairs(db.StandardSpells) do
+			local spellName = GetSpellInfo(spellID);
+			if (StandardSpells[spellID] ~= nil) then
+				if (spellName == nil) then
+					Print("<"..spellName.."> isn't exist. Removing from database...");
+					db.StandardSpells[spellID] = nil;
+				else
+					Spells[spellName] = enabledState;
+					if (enabledState ~= "disable") then
+						SpellsEnabledCache[spellName] = enabledState;
+					end
+				end
+			else
+				Print("<"..spellName.."> isn't standard spell. Removing from database...");
+				db.StandardSpells[spellID] = nil;
+			end
+		end
+		for spellID, enabledState in pairs(db.CustomSpells) do
 			local spellName = GetSpellInfo(spellID);
 			if (spellName == nil) then
 				Print("<"..spellName.."> isn't exist. Removing from database...");
-				db.StandartSpells[spellID] = nil;
+				db.CustomSpells[spellID] = nil;
 			else
 				Spells[spellName] = enabledState;
 				if (enabledState ~= "disable") then
@@ -120,7 +136,6 @@ do
 			end
 		end);
 		-- // starting listening for events
-		EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
@@ -142,7 +157,7 @@ do
 			NameplateAurasDB[LocalPlayerFullName] = { };
 		end
 		local defaults = {
-			StandartSpells = { },
+			StandardSpells = { },
 			CustomSpells = { },
 			IconSize = 26,
 			IconXOffset = 0,
@@ -364,16 +379,10 @@ end
 -------------------------------------------------------------------------------------------------
 do
 	
-	local COMBATLOG_OBJECT_IS_HOSTILE = COMBATLOG_OBJECT_REACTION_HOSTILE;
-	
 	function PLAYER_ENTERING_WORLD()
 		if (OnStartup) then
 			OnStartup();
 		end
-	end
-	
-	function COMBAT_LOG_EVENT_UNFILTERED(...)
-		
 	end
 
 	function NAME_PLATE_UNIT_ADDED(...)
@@ -396,7 +405,9 @@ do
 		local unitID = ...;
 		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
 		NameplatesVisible[nameplate] = nil;
-		wipe(nameplateAuras[nameplate]);
+		if (nameplateAuras[nameplate] ~= nil) then
+			wipe(nameplateAuras[nameplate]);
+		end
 		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 			nameplate.NAurasFrame:Hide();
 		end
@@ -561,7 +572,7 @@ do
 	function InitializeGUI()
 		GUIFrame = CreateFrame("Frame", "NAuras_GUIFrame", UIParent);
 		GUIFrame:SetHeight(350);
-		GUIFrame:SetWidth(500);
+		GUIFrame:SetWidth(530);
 		GUIFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 80);
 		GUIFrame:SetBackdrop({
 			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -590,7 +601,7 @@ do
 		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 185);
 		header:SetText("NameplateAuras");
 		
-		GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame);
+		GUIFrame.outline = CreateFrame("Frame", "NAuras_GUI_GUIFrame_outline", GUIFrame);
 		GUIFrame.outline:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -603,7 +614,7 @@ do
 		GUIFrame.outline:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		GUIFrame.outline:SetPoint("TOPLEFT", 12, -12);
 		GUIFrame.outline:SetPoint("BOTTOMLEFT", 12, 12);
-		GUIFrame.outline:SetWidth(100);
+		GUIFrame.outline:SetWidth(130);
 		
 		local closeButton = CreateFrame("Button", "NAuras_GUICloseButton", GUIFrame, "UIPanelButtonTemplate");
 		closeButton:SetWidth(24);
@@ -622,7 +633,7 @@ do
 		GUIFrame.SpellIcons = {};
 		GUIFrame.CustomSpellsDropdowns = {};
 		
-		for index, value in pairs({L["General"], L["Profiles"], L["Standart spells"], L["User-defined spells"]}) do
+		for index, value in pairs({L["General"], L["Profiles"], L["Standard spells"], L["User-defined spells"]}) do
 			local b = CreateGUICategory();
 			b.index = index;
 			b.text:SetText(value);
@@ -654,7 +665,7 @@ do
 		local buttonSwitchTestMode = GUICreateButton("NAuras_GUIGeneralButtonSwitchTestMode", GUIFrame, L["Enable test mode (need at least one visible nameplate)"]);
 		buttonSwitchTestMode:SetWidth(340);
 		buttonSwitchTestMode:SetHeight(40);
-		buttonSwitchTestMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 130, -40);
+		buttonSwitchTestMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -40);
 		buttonSwitchTestMode:SetScript("OnClick", function(self, ...)
 			if (not TestFrame or not TestFrame:GetScript("OnUpdate")) then
 				EnableTestMode();
@@ -666,7 +677,7 @@ do
 		end);
 		table.insert(GUIFrame.Categories[index], buttonSwitchTestMode);
 		
-		local sliderIconSize = GUICreateSlider(GUIFrame, 130, -90, 340, "NAuras_GUIGeneralSliderIconSize");
+		local sliderIconSize = GUICreateSlider(GUIFrame, 160, -90, 340, "NAuras_GUIGeneralSliderIconSize");
 		sliderIconSize.label:SetText(L["Icon size"]);
 		sliderIconSize.slider:SetValueStep(1);
 		sliderIconSize.slider:SetMinMaxValues(1, 50);
@@ -699,7 +710,7 @@ do
 		sliderIconSize.hightext:SetText("50");
 		table.insert(GUIFrame.Categories[index], sliderIconSize);
 		
-		local sliderIconXOffset = GUICreateSlider(GUIFrame, 130, -150, 155, "NAuras_GUIGeneralSliderIconXOffset");
+		local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -150, 155, "NAuras_GUIGeneralSliderIconXOffset");
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
 		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -732,7 +743,7 @@ do
 		sliderIconXOffset.hightext:SetText("200");
 		table.insert(GUIFrame.Categories[index], sliderIconXOffset);
 		
-		local sliderIconYOffset = GUICreateSlider(GUIFrame, 315, -150, 155, "NAuras_GUIGeneralSliderIconYOffset");
+		local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -150, 155, "NAuras_GUIGeneralSliderIconYOffset");
 		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 		sliderIconYOffset.slider:SetValueStep(1);
 		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -765,7 +776,7 @@ do
 		sliderIconYOffset.hightext:SetText("200");
 		table.insert(GUIFrame.Categories[index], sliderIconYOffset);
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBox(130, -220, L["Always display CD icons at full opacity (ReloadUI is needed)"], function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -220, L["Always display CD icons at full opacity (ReloadUI is needed)"], function(this)
 			db.FullOpacityAlways = this:GetChecked();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
@@ -773,7 +784,7 @@ do
 		
 		local dropdownFont = CreateFrame("Frame", "NAuras_GUI_General_DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFont, 150);
-		dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 116, -310);
+		dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -310);
 		local info = {};
 		dropdownFont.initialize = function()
 			wipe(info);
@@ -798,13 +809,13 @@ do
 	
 	function GUICategory_2(index, value)
 		local textProfilesCurrentProfile = GUIFrame:CreateFontString("NAuras_GUIProfilesTextCurrentProfile", "OVERLAY", "GameFontNormal");
-		textProfilesCurrentProfile:SetPoint("CENTER", GUIFrame, "LEFT", 300, 130);
+		textProfilesCurrentProfile:SetPoint("CENTER", GUIFrame, "LEFT", 330, 130);
 		textProfilesCurrentProfile:SetText(format(L["Current profile: [%s]"], LocalPlayerFullName));
 		table.insert(GUIFrame.Categories[index], textProfilesCurrentProfile);
 		
 		local dropdownCopyProfile = CreateFrame("Frame", "NAuras_GUIProfilesDropdownCopyProfile", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownCopyProfile, 210);
-		dropdownCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 120, -80);
+		dropdownCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -80);
 		dropdownCopyProfile.text = dropdownCopyProfile:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownCopyProfile.text:SetPoint("LEFT", 20, 20);
 		dropdownCopyProfile.text:SetText(L["Copy other profile to current profile:"]);
@@ -813,7 +824,7 @@ do
 		local buttonCopyProfile = GUICreateButton("NAuras_GUIProfilesButtonCopyProfile", GUIFrame, L["Copy"]);
 		buttonCopyProfile:SetWidth(90);
 		buttonCopyProfile:SetHeight(24);
-		buttonCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 380, -82);
+		buttonCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 410, -82);
 		buttonCopyProfile:SetScript("OnClick", function(self, ...)
 			if (dropdownCopyProfile.myvalue ~= nil) then
 				NameplateAurasDB[LocalPlayerFullName] = deepcopy(NameplateAurasDB[dropdownCopyProfile.myvalue]);
@@ -839,7 +850,7 @@ do
 		
 		local dropdownDeleteProfile = CreateFrame("Frame", "NAuras_GUIProfilesDropdownDeleteProfile", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownDeleteProfile, 210);
-		dropdownDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 120, -120);
+		dropdownDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -120);
 		dropdownDeleteProfile.text = dropdownDeleteProfile:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownDeleteProfile.text:SetPoint("LEFT", 20, 20);
 		dropdownDeleteProfile.text:SetText(L["Delete profile:"]);
@@ -848,7 +859,7 @@ do
 		local buttonDeleteProfile = GUICreateButton("NAuras_GUIProfilesButtonDeleteProfile", GUIFrame, L["Delete"]);
 		buttonDeleteProfile:SetWidth(90);
 		buttonDeleteProfile:SetHeight(24);
-		buttonDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 380, -122);
+		buttonDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 410, -122);
 		buttonDeleteProfile:SetScript("OnClick", function(self, ...)
 			if (dropdownDeleteProfile.myvalue ~= nil) then
 				NameplateAurasDB[dropdownDeleteProfile.myvalue] = nil;
@@ -896,7 +907,7 @@ do
 	
 	function GUICategory_3(index, value)
 		local scrollAreaBackground = CreateFrame("Frame", "NAuras_GUIScrollFrameBackground_"..tostring(index - 1), GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 120, -60);
+		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -60);
 		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
 		scrollAreaBackground:SetBackdrop({
 			bgFile = "Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
@@ -922,7 +933,7 @@ do
 		scrollAreaChildFrame:SetHeight(288);
 		
 		local iterator = 1;
-		for spellID in pairs(StandartSpells) do
+		for spellID in pairs(StandardSpells) do
 			local n, _, icon = GetSpellInfo(spellID);
 			if (not n) then
 				Print(format(L["Unknown spell: %s"], spellID));
@@ -935,7 +946,7 @@ do
 						info.text = v;
 						info.value = v;
 						info.func = function(self)
-							db.StandartSpells[spellID] = self.value;
+							db.StandardSpells[spellID] = self.value;
 							if (self.value ~= "disable") then
 								SpellsEnabledCache[n] = self.value;
 							else
@@ -943,11 +954,11 @@ do
 							end
 							_G[dropdown:GetName().."Text"]:SetText(self:GetText());
 						end
-						info.checked = v == db.StandartSpells[spellID];
+						info.checked = v == db.StandardSpells[spellID];
 						UIDropDownMenu_AddButton(info);
 					end
 				end
-				_G[dropdown:GetName().."Text"]:SetText(db.StandartSpells[spellID]);
+				_G[dropdown:GetName().."Text"]:SetText(db.StandardSpells[spellID]);
 				text:SetText(n);
 				button.texture:SetTexture(icon);
 				button:SetScript("OnEnter", function(self, ...)
@@ -967,7 +978,7 @@ do
 	
 	function GUICategory_4(index, value)
 		local scrollAreaBackground = CreateFrame("Frame", "NAuras_GUIScrollFrameBackground_"..tostring(index - 1), GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 120, -60);
+		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -60);
 		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
 		scrollAreaBackground:SetBackdrop({
 			bgFile = "Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
@@ -1049,7 +1060,7 @@ do
 		local editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame);
 		editboxAddSpell:SetAutoFocus(false);
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
-		editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 220, -15);
+		editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 250, -12);
 		editboxAddSpell:SetHeight(20);
 		editboxAddSpell:SetWidth(150);
 		editboxAddSpell:SetJustifyH("LEFT");
@@ -1080,7 +1091,7 @@ do
 					Print(format(L["Unknown spell: %s"], text));
 				else
 					local alreadyExist = false;
-					for spellID in pairs(StandartSpells) do
+					for spellID in pairs(StandardSpells) do
 						local spellName = GetSpellInfo(spellID);
 						if (spellName == n) then
 							alreadyExist = true;
@@ -1107,37 +1118,18 @@ do
 		end);
 		table.insert(GUIFrame.Categories[index], buttonAddSpell);
 		
-		local editboxRemoveSpell = CreateFrame("EditBox", nil, GUIFrame);
-		editboxRemoveSpell:SetAutoFocus(false);
-		editboxRemoveSpell:SetFontObject(GameFontHighlightSmall);
-		editboxRemoveSpell:SetPoint("TOPLEFT", GUIFrame, 220, -40);
-		editboxRemoveSpell:SetHeight(20);
-		editboxRemoveSpell:SetWidth(150);
-		editboxRemoveSpell:SetJustifyH("LEFT");
-		editboxRemoveSpell:EnableMouse(true);
-		editboxRemoveSpell:SetBackdrop({
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			tile = true, edgeSize = 1, tileSize = 5,
-		});
-		editboxRemoveSpell:SetBackdropColor(0, 0, 0, 0.5);
-		editboxRemoveSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
-		editboxRemoveSpell:SetScript("OnEscapePressed", function() editboxRemoveSpell:ClearFocus(); end);
-		local text = editboxRemoveSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		text:SetPoint("RIGHT", -155, 0);
-		text:SetText("Remove spell: "); -- todo:localization
-		table.insert(GUIFrame.Categories[index], editboxRemoveSpell);
-		
-		local buttonRemoveSpell = GUICreateButton("ghggggggggggggggghghg", GUIFrame, "Remove spell"); -- todo:localization; todo:publicname
-		buttonRemoveSpell:SetWidth(90);
-		buttonRemoveSpell:SetHeight(20);
-		buttonRemoveSpell:SetPoint("LEFT", editboxRemoveSpell, "RIGHT", 10, 0);
-		buttonRemoveSpell:SetScript("OnClick", function(self, ...)
-			local text = editboxRemoveSpell:GetText();
-			for spellID, enabledState in pairs(db.CustomSpells) do
-				local spellName = GetSpellInfo(spellID);
-				if (spellName == text) then
-					db.CustomSpells[spellID] = nil;
+		local dropdownRemoveSpell = CreateFrame("Frame", "NAuras_GUI_Cat4_CmbboxRemoveSpell", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownRemoveSpell, 135);
+		dropdownRemoveSpell:SetPoint("TOPLEFT", GUIFrame, 233, -34);
+		local info = {};
+		dropdownRemoveSpell.initialize = function()
+			wipe(info);
+			for spellID in pairs(db.CustomSpells) do
+				info.text = GetSpellInfo(spellID);
+				info.value = spellID;
+				info.func = function(self)
+					local spellName = GetSpellInfo(spellID);
+					db.CustomSpells[self.value] = nil;
 					SpellsEnabledCache[spellName] = nil;
 					for _, dropdown in pairs(GUIFrame.CustomSpellsDropdowns) do
 						if (dropdown.spellName == spellName) then
@@ -1145,12 +1137,18 @@ do
 							dropdown.spellName = nil;
 						end
 					end
+					RebuildListOfDropdowns();
+					_G[dropdownRemoveSpell:GetName().."Text"]:SetText("");
+					--UIDropDownMenu_Initialize(dropdownRemoveSpell, dropdownRemoveSpell.initialize);
 				end
+				UIDropDownMenu_AddButton(info);
 			end
-			editboxRemoveSpell:SetText("");
-			RebuildListOfDropdowns();
-		end);
-		table.insert(GUIFrame.Categories[index], buttonRemoveSpell);
+		end
+		_G[dropdownRemoveSpell:GetName().."Text"]:SetText(db.CustomSpells[spellID]);
+		local text = dropdownRemoveSpell:CreateFontString("NAuras_GUI_Cat4_CmbboxRemoveSpell_Label", "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("RIGHT", -171, 0);
+		text:SetText("Remove spell: "); -- todo:localization
+		table.insert(GUIFrame.Categories[index], dropdownRemoveSpell);
 		
 		
 		for spellID in pairs(db.CustomSpells) do
@@ -1228,7 +1226,7 @@ do
 	
 	function CreateGUICategory()
 		local b = CreateFrame("Button", nil, GUIFrame.outline);
-		b:SetWidth(92);
+		b:SetWidth(GUIFrame.outline:GetWidth() - 8);
 		b:SetHeight(18);
 		b:SetScript("OnClick", OnGUICategoryClick);
 		b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
@@ -1384,9 +1382,7 @@ end
 EventFrame = CreateFrame("Frame");
 EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
 EventFrame:SetScript("OnEvent", function(self, event, ...)
-	if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-		COMBAT_LOG_EVENT_UNFILTERED(...);
-	elseif (event == "PLAYER_ENTERING_WORLD") then
+	if (event == "PLAYER_ENTERING_WORLD") then
 		PLAYER_ENTERING_WORLD();
 	elseif (event == "NAME_PLATE_UNIT_ADDED") then
 		NAME_PLATE_UNIT_ADDED(...);

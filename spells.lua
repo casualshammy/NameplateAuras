@@ -1,7 +1,34 @@
 local _, addonTable = ...;
 local L = addonTable.L;
 
-addonTable.StandartSpells = {
-	[58940] = "my", -- // Flame Shock
+addonTable.StandardSpells = {
 	[51514] = "all", -- // Hex
+	[6358] = "all",
+	[33786] = "all",
+	[5782] = "all", 
+	[5484] = "all", 
+	[45438] = "all", 
+	[642] = "all", 
+	[8122] = "all", 
+	[23335] = "all", 
+	[23333] = "all", 
+	[34976] = "all", 
+	[2094] = "all", 
+	[33206] = "all", 
+	[47585] = "all", 
+	[87204] = "all",
+	[108416] = "all", 
+	[104773] = "all", 
+	[871] = "all", 
+	[19263] = "all", 
+	[61336] = "all", 
+	[31230] = "all", 
+	[6940] = "all", 
+	[31821] = "all", 
+	[48707] = "all", 
+	[108271] = "all", 
+	[53480] = "all",
+	[15286] = "all", 
+	[122783] = "all", 
+	[122278] = "all",
 };

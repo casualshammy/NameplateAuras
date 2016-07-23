@@ -24,7 +24,7 @@
 		["Unknown spell: %s"] = "Unknown spell: %s",
 		["Value must be a number"] = "Value must be a number",
 		["Font:"] = "Font:",
-		["Standart spells"] = "Standart spells",
+		["Standard spells"] = "Standard spells",
 		["User-defined spells"] = "User-defined spells",
 	},
 	["deDE"] = {

@@ -34,6 +34,7 @@ local WorldFrame = WorldFrame;
 local string_match = strmatch;
 local string_gsub = gsub;
 local string_find = strfind;
+local string_format = format;
 local bit_band = bit.band;
 local GetTime = GetTime;
 local tContains = tContains;
@@ -302,7 +303,7 @@ do
 					if (last >= 60) then
 						icon.cooldown:SetText(math_floor(last/60).."m");
 					else
-						icon.cooldown:SetText(math_floor(last));
+						icon.cooldown:SetText(string_format("%.0f", last));
 					end
 					if (not icon.shown) then
 						ShowCDIcon(icon);
@@ -380,7 +381,7 @@ do
 						if (last >= 60) then
 							icon.cooldown:SetText(math_floor(last/60).."m");
 						else
-							icon.cooldown:SetText(math_floor(last));
+							icon.cooldown:SetText(string_format("%.0f", last));
 						end
 						-- // show icon if need
 						if (not icon.shown) then
@@ -411,6 +412,7 @@ do
 		if (OnStartup) then
 			OnStartup();
 		end
+		wipe(nameplateAuras);
 	end
 
 	function NAME_PLATE_UNIT_ADDED(...)
@@ -1143,7 +1145,7 @@ do
 					end
 					if (not alreadyExist) then
 						db.CustomSpells[textAsNumber] = "all";
-						SpellsEnabledCache[text] = "all";
+						SpellsEnabledCache[n] = "all";
 						CreateSpellEntry(textAsNumber);
 					else
 						Print("Spell is already exists ("..n..")"); -- todo:localization

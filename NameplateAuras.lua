@@ -76,7 +76,6 @@ local GUICreateButton;
 
 local Print;
 local deepcopy;
-local TextureCache;
 
 -------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -159,9 +158,9 @@ do
 		local defaults = {
 			StandardSpells = { },
 			CustomSpells = { },
-			IconSize = 26,
+			IconSize = 45,
 			IconXOffset = 0,
-			IconYOffset = 30,
+			IconYOffset = 50,
 			FullOpacityAlways = false,
 			Font = "NAuras_TeenBold",
 		};
@@ -218,6 +217,11 @@ do
 		texture.border:SetVertexColor(1, 0.35, 0);
 		texture.border:SetAllPoints(texture);
 		texture.border:Hide();
+		texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+		texture.stacks:SetTextColor(1, 0.1, 0.1);
+		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
+		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize / 4), "OUTLINE");
+		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.IconSize * frame.NAurasIconsCount);
 		tinsert(frame.NAurasIcons, texture);
@@ -234,6 +238,7 @@ do
 					icon:SetHeight(db.IconSize);
 					icon:SetPoint("LEFT", frame.NAurasFrame, counter * db.IconSize, 0);
 					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize - db.IconSize / 2), "OUTLINE");
+					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize / 4), "OUTLINE");
 					if (clearSpells) then
 						HideCDIcon(icon);
 					end
@@ -248,24 +253,32 @@ do
 	
 	function UpdateOnlyOneNameplate(frame, unitID)
 		for i = 1, 40 do
-			local buffName, _, _, _, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
+			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
+				if (textureCache[buffName] == nil) then
+					textureCache[buffName] = GetSpellTexture(buffSpellID);
+				end
 				if (SpellsEnabledCache[buffName] == "all" or (SpellsEnabledCache[buffName] == "my" and buffCaster == "player")) then
-					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires) then
+					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
 							["duration"] = buffDuration,
-							["expires"] = buffExpires
+							["expires"] = buffExpires,
+							["stacks"] = buffStack
 						};
 					end
 				end
 			end
-			local debuffName, _, _, _, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
+			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
+				if (textureCache[debuffName] == nil) then
+					textureCache[debuffName] = GetSpellTexture(debuffSpellID);
+				end
 				if (SpellsEnabledCache[debuffName] == "all" or (SpellsEnabledCache[debuffName] == "my" and debuffCaster == "player")) then
-					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires) then
+					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
 							["duration"] = debuffDuration,
-							["expires"] = debuffExpires
+							["expires"] = debuffExpires,
+							["stacks"] = debuffStack
 						};
 					end
 				end
@@ -283,7 +296,7 @@ do
 					end
 					local icon = frame.NAurasIcons[counter];
 					if (icon.spellID ~= spellID) then
-						icon:SetTexture(TextureCache(spellID));
+						icon:SetTexture(textureCache[spellID]);
 						icon.spellID = spellID;
 					end
 					if (last >= 60) then
@@ -298,6 +311,9 @@ do
 				end
 			end
 		end
+		if (frame.NAurasFrame ~= nil) then
+			frame.NAurasFrame:SetWidth(db.IconSize * (counter - 1));
+		end
 		for k = counter, frame.NAurasIconsCount do
 			local icon = frame.NAurasIcons[k];
 			if (icon.shown) then
@@ -310,13 +326,16 @@ do
 		icon.border:Hide();
 		icon.borderState = nil;
 		icon.cooldown:Hide();
+		icon.stacks:Hide();
 		icon:Hide();
 		icon.shown = false;
 		icon.spellID = 0;
+		icon.stackcount = 0;
 	end
 	
 	function ShowCDIcon(icon)
 		icon.cooldown:Show();
+		icon.stacks:Show();
 		icon:Show();
 		icon.shown = true;
 	end
@@ -345,8 +364,17 @@ do
 						local icon = frame.NAurasIcons[counter];
 						-- // setting texture if need
 						if (icon.spellID ~= spellID) then
-							icon:SetTexture(TextureCache(spellID));
+							icon:SetTexture(textureCache[spellID]);
 							icon.spellID = spellID;
+						end
+						-- // stacks
+						if (icon.stackcount ~= spellInfo.stacks) then
+							if (spellInfo.stacks > 1) then
+								icon.stacks:SetText(spellInfo.stacks);
+							else
+								icon.stacks:SetText("");
+							end
+							icon.stackcount = spellInfo.stacks;
 						end
 						-- // setting text
 						if (last >= 60) then
@@ -433,7 +461,6 @@ end
 do
 
 	local _t = 0;
-	local _nameplateAuras;
 	local _spellName = GetSpellInfo(51514);
 	
 	local function refreshCDs()
@@ -442,14 +469,14 @@ do
 			if (nameplateAuras[frame][_spellName] == nil or nameplateAuras[frame][_spellName].expires < cTime) then
 				nameplateAuras[frame][_spellName] = {
 					["duration"] = 30,
-					["expires"] = cTime + 10
+					["expires"] = cTime + 10,
+					["stacks"] = 7
 				};
 			end
 		end
 	end
 	
 	function EnableTestMode()
-		_nameplateAuras = deepcopy(nameplateAuras);
 		if (not TestFrame) then
 			TestFrame = CreateFrame("frame");
 		end
@@ -466,7 +493,16 @@ do
 	
 	function DisableTestMode()
 		TestFrame:SetScript("OnUpdate", nil);
-		nameplateAuras = deepcopy(_nameplateAuras);
+		local cTime = GetTime();
+		for frame in pairs(NameplatesVisible) do
+			if (nameplateAuras[frame][_spellName] ~= nil and nameplateAuras[frame][_spellName].expires > cTime) then
+				nameplateAuras[frame][_spellName] = {
+					["duration"] = 30,
+					["expires"] = cTime - 1,
+					["stacks"] = 7
+				};
+			end
+		end
 		OnUpdate();		-- // for instant start
 	end
 	
@@ -571,6 +607,8 @@ do
 	
 	function InitializeGUI()
 		GUIFrame = CreateFrame("Frame", "NAuras_GUIFrame", UIParent);
+		GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
+		GUIFrame:SetScript("OnEvent", function() GUIFrame:Hide(); end);
 		GUIFrame:SetHeight(350);
 		GUIFrame:SetWidth(530);
 		GUIFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 80);
@@ -680,7 +718,7 @@ do
 		local sliderIconSize = GUICreateSlider(GUIFrame, 160, -90, 340, "NAuras_GUIGeneralSliderIconSize");
 		sliderIconSize.label:SetText(L["Icon size"]);
 		sliderIconSize.slider:SetValueStep(1);
-		sliderIconSize.slider:SetMinMaxValues(1, 50);
+		sliderIconSize.slider:SetMinMaxValues(1, 75);
 		sliderIconSize.slider:SetValue(db.IconSize);
 		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
 			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
@@ -695,8 +733,8 @@ do
 					sliderIconSize.editbox:SetText(tostring(db.IconSize));
 					Print(L["Value must be a number"]);
 				else
-					if (v > 50) then
-						v = 50;
+					if (v > 75) then
+						v = 75;
 					end
 					if (v < 1) then
 						v = 1;
@@ -707,7 +745,7 @@ do
 			end
 		end);
 		sliderIconSize.lowtext:SetText("1");
-		sliderIconSize.hightext:SetText("50");
+		sliderIconSize.hightext:SetText("75");
 		table.insert(GUIFrame.Categories[index], sliderIconSize);
 		
 		local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -150, 155, "NAuras_GUIGeneralSliderIconXOffset");
@@ -1365,14 +1403,14 @@ do
 		return _copy(object)
 	end
 	
-	function TextureCache(spellID)
-		local value = textureCache[spellID];
-		if (value == nil) then
-			textureCache[spellID] = GetSpellTexture(spellID);
-			return textureCache[spellID];
-		end
-		return value;
-	end
+	-- function TextureCache(spellID)
+		-- local value = textureCache[spellID];
+		-- if (value == nil) then
+			-- textureCache[spellID] = GetSpellTexture(spellID);
+			-- return textureCache[spellID];
+		-- end
+		-- return value;
+	-- end
 	
 end
 

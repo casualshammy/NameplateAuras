@@ -274,6 +274,7 @@ do
 				if (textureCache[debuffName] == nil) then
 					textureCache[debuffName] = GetSpellTexture(debuffSpellID);
 				end
+				--print(SpellsEnabledCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 				if (SpellsEnabledCache[debuffName] == "all" or (SpellsEnabledCache[debuffName] == "my" and debuffCaster == "player")) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
@@ -330,7 +331,7 @@ do
 		icon.stacks:Hide();
 		icon:Hide();
 		icon.shown = false;
-		icon.spellID = 0;
+		icon.spellID = -1;
 		icon.stackcount = 0;
 	end
 	
@@ -412,7 +413,9 @@ do
 		if (OnStartup) then
 			OnStartup();
 		end
-		wipe(nameplateAuras);
+		for nameplate in pairs(nameplateAuras) do
+			wipe(nameplateAuras[nameplate]);
+		end
 	end
 
 	function NAME_PLATE_UNIT_ADDED(...)

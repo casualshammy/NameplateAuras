@@ -485,6 +485,9 @@ do
 		if (not TestFrame) then
 			TestFrame = CreateFrame("frame");
 		end
+		if (textureCache[_spellName] == nil) then
+			textureCache[_spellName] = GetSpellTexture(51514);
+		end
 		TestFrame:SetScript("OnUpdate", function(self, elapsed)
 			_t = _t + elapsed;
 			if (_t >= 2) then

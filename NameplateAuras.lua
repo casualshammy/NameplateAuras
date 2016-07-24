@@ -7,7 +7,13 @@ SML:Register("font", "NAuras_TeenBold", "Interface\\AddOns\\NameplateAuras\\medi
 
 NameplateAurasDB = {};
 local nameplateAuras = {};
-local textureCache = {};
+local TextureCache = setmetatable({}, {
+	__index = function(t, key)
+		local texture = GetSpellTexture(key);
+		t[key] = texture;
+		return texture;
+	end
+});
 local Spells = {};
 local SpellsEnabledCache = {};
 
@@ -256,31 +262,27 @@ do
 		for i = 1, 40 do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
-				if (textureCache[buffName] == nil) then
-					textureCache[buffName] = GetSpellTexture(buffSpellID);
-				end
 				if (SpellsEnabledCache[buffName] == "all" or (SpellsEnabledCache[buffName] == "my" and buffCaster == "player")) then
 					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
 							["duration"] = buffDuration,
 							["expires"] = buffExpires,
-							["stacks"] = buffStack
+							["stacks"] = buffStack,
+							["spellID"] = buffSpellID
 						};
 					end
 				end
 			end
 			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
-				if (textureCache[debuffName] == nil) then
-					textureCache[debuffName] = GetSpellTexture(debuffSpellID);
-				end
 				--print(SpellsEnabledCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 				if (SpellsEnabledCache[debuffName] == "all" or (SpellsEnabledCache[debuffName] == "my" and debuffCaster == "player")) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
 							["duration"] = debuffDuration,
 							["expires"] = debuffExpires,
-							["stacks"] = debuffStack
+							["stacks"] = debuffStack,
+							["spellID"] = debuffSpellID
 						};
 					end
 				end
@@ -289,7 +291,7 @@ do
 		local counter = 1;
 		if (nameplateAuras[frame]) then
 			local currentTime = GetTime();
-			for spellID, spellInfo in pairs(nameplateAuras[frame]) do
+			for spellName, spellInfo in pairs(nameplateAuras[frame]) do
 				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
 				if (last > 0) then
@@ -297,9 +299,9 @@ do
 						AllocateIcon(frame);
 					end
 					local icon = frame.NAurasIcons[counter];
-					if (icon.spellID ~= spellID) then
-						icon:SetTexture(textureCache[spellID]);
-						icon.spellID = spellID;
+					if (icon.spellID ~= spellName) then
+						icon:SetTexture(TextureCache[spellInfo.spellID]);
+						icon.spellID = spellName;
 					end
 					if (last >= 60) then
 						icon.cooldown:SetText(math_floor(last/60).."m");
@@ -366,7 +368,7 @@ do
 						local icon = frame.NAurasIcons[counter];
 						-- // setting texture if need
 						if (icon.spellID ~= spellID) then
-							icon:SetTexture(textureCache[spellID]);
+							icon:SetTexture(TextureCache[spellInfo.spellID]);
 							icon.spellID = spellID;
 						end
 						-- // stacks
@@ -475,7 +477,8 @@ do
 				nameplateAuras[frame][_spellName] = {
 					["duration"] = 30,
 					["expires"] = cTime + 10,
-					["stacks"] = 7
+					["stacks"] = 7,
+					["spellID"] = 51514
 				};
 			end
 		end
@@ -484,9 +487,6 @@ do
 	function EnableTestMode()
 		if (not TestFrame) then
 			TestFrame = CreateFrame("frame");
-		end
-		if (textureCache[_spellName] == nil) then
-			textureCache[_spellName] = GetSpellTexture(51514);
 		end
 		TestFrame:SetScript("OnUpdate", function(self, elapsed)
 			_t = _t + elapsed;
@@ -507,7 +507,8 @@ do
 				nameplateAuras[frame][_spellName] = {
 					["duration"] = 30,
 					["expires"] = cTime - 1,
-					["stacks"] = 7
+					["stacks"] = 7,
+					["spellID"] = 51514
 				};
 			end
 		end
@@ -1410,15 +1411,6 @@ do
 		end
 		return _copy(object)
 	end
-	
-	-- function TextureCache(spellID)
-		-- local value = textureCache[spellID];
-		-- if (value == nil) then
-			-- textureCache[spellID] = GetSpellTexture(spellID);
-			-- return textureCache[spellID];
-		-- end
-		-- return value;
-	-- end
 	
 end
 

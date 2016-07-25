@@ -337,6 +337,8 @@ do
 				HideCDIcon(icon);
 			end
 		end
+		-- // hide standart buff frame
+		frame.UnitFrame.BuffFrame:Hide();
 	end
 		
 	function HideCDIcon(icon)

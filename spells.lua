@@ -31,4 +31,6 @@ addonTable.StandardSpells = {
 	[15286] =	"all", 
 	[122783] =	"all", 
 	[122278] =	"all",
+	[115078] =	"all",
+	[125174] =	"all",
 };

@@ -485,7 +485,7 @@ end
 do
 
 	local _t = 0;
-	local _spellNames = {51514, 2645};
+	local _spellNames = {156925, 2645};
 	
 	local function refreshCDs()
 		local cTime = GetTime();

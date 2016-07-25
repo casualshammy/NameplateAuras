@@ -16,11 +16,6 @@ local TextureCache = setmetatable({}, {
 });
 local Spells = {};
 local SpellsEnabledCache = {};
-
-
-
-
-
 local ElapsedTimer = 0;
 local Nameplates = {};
 local NameplatesVisible = {};
@@ -28,10 +23,7 @@ local GUIFrame;
 local EventFrame;
 local TestFrame;
 local db;
-local WorldFrameNumChildren = 0;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
-local LocalPlayerName;
-
 
 local _G = _G;
 local pairs = pairs;
@@ -41,9 +33,7 @@ local string_match = strmatch;
 local string_gsub = gsub;
 local string_find = strfind;
 local string_format = format;
-local bit_band = bit.band;
 local GetTime = GetTime;
-local tContains = tContains;
 local math_ceil = ceil;
 local math_floor = floor;
 
@@ -262,11 +252,12 @@ do
 		for i = 1, 40 do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
+				--print(SpellsEnabledCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
 				if (SpellsEnabledCache[buffName] == "all" or (SpellsEnabledCache[buffName] == "my" and buffCaster == "player")) then
 					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
-							["duration"] = buffDuration,
-							["expires"] = buffExpires,
+							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
+							["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
 							["stacks"] = buffStack,
 							["spellID"] = buffSpellID
 						};
@@ -279,8 +270,8 @@ do
 				if (SpellsEnabledCache[debuffName] == "all" or (SpellsEnabledCache[debuffName] == "my" and debuffCaster == "player")) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
-							["duration"] = debuffDuration,
-							["expires"] = debuffExpires,
+							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
+							["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
 							["stacks"] = debuffStack,
 							["spellID"] = debuffSpellID
 						};
@@ -303,7 +294,9 @@ do
 						icon:SetTexture(TextureCache[spellInfo.spellID]);
 						icon.spellID = spellName;
 					end
-					if (last >= 60) then
+					if (last > 3600) then
+						icon.cooldown:SetText("Inf");
+					elseif (last >= 60) then
 						icon.cooldown:SetText(math_floor(last/60).."m");
 					else
 						icon.cooldown:SetText(string_format("%.0f", last));
@@ -381,7 +374,9 @@ do
 							icon.stackcount = spellInfo.stacks;
 						end
 						-- // setting text
-						if (last >= 60) then
+						if (last > 3600) then
+							icon.cooldown:SetText("Inf");
+						elseif (last >= 60) then
 							icon.cooldown:SetText(math_floor(last/60).."m");
 						else
 							icon.cooldown:SetText(string_format("%.0f", last));

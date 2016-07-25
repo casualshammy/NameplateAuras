@@ -259,7 +259,8 @@ do
 							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
 							["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
 							["stacks"] = buffStack,
-							["spellID"] = buffSpellID
+							["spellID"] = buffSpellID,
+							["type"] = "buff"
 						};
 					end
 				end
@@ -273,7 +274,8 @@ do
 							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
 							["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
 							["stacks"] = debuffStack,
-							["spellID"] = debuffSpellID
+							["spellID"] = debuffSpellID,
+							["type"] = "debuff"
 						};
 					end
 				end
@@ -300,6 +302,16 @@ do
 						icon.cooldown:SetText(math_floor(last/60).."m");
 					else
 						icon.cooldown:SetText(string_format("%.0f", last));
+					end
+					-- // border
+					if (icon.borderState ~= spellInfo.type) then
+						if (spellInfo.type == "buff") then
+							icon.border:SetVertexColor(0, 1, 0, 1);
+						else
+							icon.border:SetVertexColor(1, 0, 0, 1);
+						end
+						icon.border:Show();
+						icon.borderState = spellInfo.type;
 					end
 					if (not icon.shown) then
 						ShowCDIcon(icon);
@@ -380,6 +392,16 @@ do
 							icon.cooldown:SetText(math_floor(last/60).."m");
 						else
 							icon.cooldown:SetText(string_format("%.0f", last));
+						end
+						-- // border
+						if (icon.borderState ~= spellInfo.type) then
+							if (spellInfo.type == "buff") then
+								icon.border:SetVertexColor(0, 1, 0, 1);
+							else
+								icon.border:SetVertexColor(1, 0, 0, 1);
+							end
+							icon.border:Show();
+							icon.borderState = spellInfo.type;
 						end
 						-- // show icon if need
 						if (not icon.shown) then
@@ -463,19 +485,24 @@ end
 do
 
 	local _t = 0;
-	local _spellName = GetSpellInfo(51514);
+	local _spellNames = {51514, 2645};
 	
 	local function refreshCDs()
 		local cTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
-			if (nameplateAuras[frame][_spellName] == nil or nameplateAuras[frame][_spellName].expires < cTime) then
-				nameplateAuras[frame][_spellName] = {
-					["duration"] = 30,
-					["expires"] = cTime + 10,
-					["stacks"] = 7,
-					["spellID"] = 51514
-				};
+			for index, spellID in pairs(_spellNames) do
+				local _spellName = GetSpellInfo(spellID);
+				if (nameplateAuras[frame][_spellName] == nil or nameplateAuras[frame][_spellName].expires < cTime) then
+					nameplateAuras[frame][_spellName] = {
+						["duration"] = 30,
+						["expires"] = index % 2 == 0 and 4000000000 or (cTime + 10),
+						["stacks"] = index % 2 == 0 and 0 or 7,
+						["spellID"] = spellID,
+						["type"] = index % 2 == 0 and "buff" or "debuff"
+					};
+				end
 			end
+			UpdateOnlyOneNameplate(frame, "invalid");
 		end
 	end
 	
@@ -498,13 +525,17 @@ do
 		TestFrame:SetScript("OnUpdate", nil);
 		local cTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
-			if (nameplateAuras[frame][_spellName] ~= nil and nameplateAuras[frame][_spellName].expires > cTime) then
-				nameplateAuras[frame][_spellName] = {
-					["duration"] = 30,
-					["expires"] = cTime - 1,
-					["stacks"] = 7,
-					["spellID"] = 51514
-				};
+			for index, spellID in pairs(_spellNames) do
+				local _spellName = GetSpellInfo(spellID);
+				if (nameplateAuras[frame][_spellName] ~= nil and nameplateAuras[frame][_spellName].expires > cTime) then
+					nameplateAuras[frame][_spellName] = {
+						["duration"] = 30,
+						["expires"] = cTime - 1,
+						["stacks"] = 7,
+						["spellID"] = index,
+						["type"] = "debuff"
+					};
+				end
 			end
 		end
 		OnUpdate();		-- // for instant start

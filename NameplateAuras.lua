@@ -160,6 +160,7 @@ do
 			IconYOffset = 50,
 			FullOpacityAlways = false,
 			Font = "NAuras_TeenBold",
+			DisplayBorders = true,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -304,14 +305,21 @@ do
 						icon.cooldown:SetText(string_format("%.0f", last));
 					end
 					-- // border
-					if (icon.borderState ~= spellInfo.type) then
-						if (spellInfo.type == "buff") then
-							icon.border:SetVertexColor(0, 1, 0, 1);
-						else
-							icon.border:SetVertexColor(1, 0, 0, 1);
+					if (db.DisplayBorders) then
+						if (icon.borderState ~= spellInfo.type) then
+							if (spellInfo.type == "buff") then
+								icon.border:SetVertexColor(0, 1, 0, 1);
+							else
+								icon.border:SetVertexColor(1, 0, 0, 1);
+							end
+							icon.border:Show();
+							icon.borderState = spellInfo.type;
 						end
-						icon.border:Show();
-						icon.borderState = spellInfo.type;
+					else
+						if (icon.borderState ~= nil) then
+							icon.border:Hide();
+							icon.borderState = nil;
+						end
 					end
 					if (not icon.shown) then
 						ShowCDIcon(icon);
@@ -339,7 +347,7 @@ do
 		icon:Hide();
 		icon.shown = false;
 		icon.spellID = -1;
-		icon.stackcount = 0;
+		icon.stackcount = -1;
 	end
 	
 	function ShowCDIcon(icon)
@@ -394,14 +402,21 @@ do
 							icon.cooldown:SetText(string_format("%.0f", last));
 						end
 						-- // border
-						if (icon.borderState ~= spellInfo.type) then
-							if (spellInfo.type == "buff") then
-								icon.border:SetVertexColor(0, 1, 0, 1);
-							else
-								icon.border:SetVertexColor(1, 0, 0, 1);
+						if (db.DisplayBorders) then
+							if (icon.borderState ~= spellInfo.type) then
+								if (spellInfo.type == "buff") then
+									icon.border:SetVertexColor(0, 1, 0, 1);
+								else
+									icon.border:SetVertexColor(1, 0, 0, 1);
+								end
+								icon.border:Show();
+								icon.borderState = spellInfo.type;
 							end
-							icon.border:Show();
-							icon.borderState = spellInfo.type;
+						else
+							if (icon.borderState ~= nil) then
+								icon.border:Hide();
+								icon.borderState = nil;
+							end
 						end
 						-- // show icon if need
 						if (not icon.shown) then
@@ -854,6 +869,13 @@ do
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
+		
+		local checkBoxDisplayBorders = GUICreateCheckBox(160, -240, "Display red/green borders", function(this)
+			db.DisplayBorders = this:GetChecked();
+			ReallocateAllIcons(true);
+		end, "NAuras.GUI.Cat1.CheckBoxDisplayBorders");
+		checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
+		table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
 		
 		local dropdownFont = CreateFrame("Frame", "NAuras_GUI_General_DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFont, 150);

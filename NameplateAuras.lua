@@ -25,6 +25,7 @@ local Spells = {};
 local SpellShowModesCache = {};
 local SpellAuraTypeCache = {};
 local SpellIconSizesCache = {};
+local SpellCheckIDCache = { };
 local ElapsedTimer = 0;
 local Nameplates = {};
 local NameplatesVisible = {};
@@ -106,6 +107,7 @@ do
 					SpellShowModesCache[spellName] = spellInfo.enabledState;
 					SpellAuraTypeCache[spellName] = spellInfo.auraType;
 					SpellIconSizesCache[spellName] = spellInfo.iconSize;
+					SpellCheckIDCache[spellName] = spellInfo.checkSpellID;
 				end
 				if (db.DefaultSpells[spellID] == nil) then
 					db.DefaultSpells[spellID] = spellInfo;
@@ -124,6 +126,10 @@ do
 						SpellShowModesCache[spellName] = spellInfo.enabledState;
 						SpellAuraTypeCache[spellName] = spellInfo.auraType;
 						SpellIconSizesCache[spellName] = spellInfo.iconSize;
+						SpellCheckIDCache[spellName] = spellInfo.checkSpellID;
+					end
+					if (spellInfo.spellID == nil) then
+						db.DefaultSpells[spellID].spellID = spellID;
 					end
 				end
 			else
@@ -142,6 +148,10 @@ do
 					SpellShowModesCache[spellName] = spellInfo.enabledState;
 					SpellAuraTypeCache[spellName] = spellInfo.auraType;
 					SpellIconSizesCache[spellName] = spellInfo.iconSize;
+					SpellCheckIDCache[spellName] = spellInfo.checkSpellID;
+				end
+				if (spellInfo.spellID == nil) then
+					db.CustomSpells2[spellID].spellID = spellID;
 				end
 			end
 		end
@@ -198,6 +208,7 @@ do
 					["enabledState"] = enabledState,
 					["auraType"] = SPELL_SHOW_TYPES[3],
 					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
+					["spellID"] = spellID,
 				};
 			end
 			NameplateAurasDB[LocalPlayerFullName].CustomSpells = nil;
@@ -208,6 +219,7 @@ do
 					["enabledState"] = enabledState,
 					["auraType"] = SPELL_SHOW_TYPES[3],
 					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
+					["spellID"] = spellID,
 				};
 			end
 			NameplateAurasDB[LocalPlayerFullName].StandardSpells = nil;
@@ -304,7 +316,7 @@ do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
 				--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
-				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player")) and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")) then
+				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player")) and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff") and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
 					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
 							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
@@ -319,7 +331,7 @@ do
 			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
 				--print(SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
-				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player")) and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")) then
+				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player")) and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff") and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
 							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
@@ -355,6 +367,15 @@ do
 						icon.cooldown:SetText(math_floor(last/60).."m");
 					else
 						icon.cooldown:SetText(string_format("%.0f", last));
+					end
+					-- // stacks
+					if (icon.stackcount ~= spellInfo.stacks) then
+						if (spellInfo.stacks > 1) then
+							icon.stacks:SetText(spellInfo.stacks);
+						else
+							icon.stacks:SetText("");
+						end
+						icon.stackcount = spellInfo.stacks;
 					end
 					-- // border
 					if (db.DisplayBorders) then
@@ -445,26 +466,22 @@ do
 					local duration = spellInfo.duration;
 					local last = spellInfo.expires - currentTime;
 					if (last > 0) then
-						-- // allocating icon if need
-						-- if (counter > frame.NAurasIconsCount) then
-							-- AllocateIcon(frame, );
-						-- end
 						-- // getting reference to icon
 						local icon = frame.NAurasIcons[counter];
 						-- // setting texture if need
-						if (icon.spellID ~= spellID) then
-							icon:SetTexture(TextureCache[spellInfo.spellID]);
-							icon.spellID = spellID;
-						end
+						-- if (icon.spellID ~= spellID) then
+							-- icon:SetTexture(TextureCache[spellInfo.spellID]);
+							-- icon.spellID = spellID;
+						-- end
 						-- // stacks
-						if (icon.stackcount ~= spellInfo.stacks) then
-							if (spellInfo.stacks > 1) then
-								icon.stacks:SetText(spellInfo.stacks);
-							else
-								icon.stacks:SetText("");
-							end
-							icon.stackcount = spellInfo.stacks;
-						end
+						-- if (icon.stackcount ~= spellInfo.stacks) then
+							-- if (spellInfo.stacks > 1) then
+								-- icon.stacks:SetText(spellInfo.stacks);
+							-- else
+								-- icon.stacks:SetText("");
+							-- end
+							-- icon.stackcount = spellInfo.stacks;
+						-- end
 						-- // setting text
 						if (last > 3600) then
 							icon.cooldown:SetText("Inf");
@@ -474,22 +491,22 @@ do
 							icon.cooldown:SetText(string_format("%.0f", last));
 						end
 						-- // border
-						if (db.DisplayBorders) then
-							if (icon.borderState ~= spellInfo.type) then
-								if (spellInfo.type == "buff") then
-									icon.border:SetVertexColor(0, 1, 0, 1);
-								else
-									icon.border:SetVertexColor(1, 0, 0, 1);
-								end
-								icon.border:Show();
-								icon.borderState = spellInfo.type;
-							end
-						else
-							if (icon.borderState ~= nil) then
-								icon.border:Hide();
-								icon.borderState = nil;
-							end
-						end
+						-- if (db.DisplayBorders) then
+							-- if (icon.borderState ~= spellInfo.type) then
+								-- if (spellInfo.type == "buff") then
+									-- icon.border:SetVertexColor(0, 1, 0, 1);
+								-- else
+									-- icon.border:SetVertexColor(1, 0, 0, 1);
+								-- end
+								-- icon.border:Show();
+								-- icon.borderState = spellInfo.type;
+							-- end
+						-- else
+							-- if (icon.borderState ~= nil) then
+								-- icon.border:Hide();
+								-- icon.borderState = nil;
+							-- end
+						-- end
 						-- // show icon if need
 						if (not icon.shown) then
 							ShowCDIcon(icon);
@@ -1041,18 +1058,23 @@ do
 			local info = {};
 			dropdownSelectSpell.initialize = function()
 				wipe(info);
-				for spellID, spellInfo in pairs(DefaultSpells) do
-					local spellName = GetSpellInfo(spellID);
+				local t = { };
+				for _, spellInfo in pairs(DefaultSpells) do
+					table.insert(t, spellInfo);
+				end
+				table.sort(t, function(item1, item2) return SpellNamesCache[item1.spellID] < SpellNamesCache[item2.spellID] end);
+				for _, spellInfo in pairs(t) do
+					local spellName = SpellNamesCache[spellInfo.spellID];
 					info.text = spellName;
-					info.value = spellID;
+					info.value = spellInfo.spellID;
 					info.func = function(self)
 						if (self.value ~= nil) then
 							for _, control in pairs(controls) do
 								control:Show();
 							end
 						end
-						selectedSpell = spellID;
-						print(spellID, db.DefaultSpells[selectedSpell].enabledState, db.DefaultSpells[selectedSpell].iconSize);
+						selectedSpell = spellInfo.spellID;
+						print(spellInfo.spellID, db.DefaultSpells[selectedSpell].enabledState, db.DefaultSpells[selectedSpell].iconSize);
 						_G[dropdownSelectSpell:GetName().."Text"]:SetText(self:GetText());
 						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.DefaultSpells[selectedSpell].enabledState);
 						sliderSpellIconSize.slider:SetValue(db.DefaultSpells[selectedSpell].iconSize);
@@ -1061,7 +1083,7 @@ do
 						
 						-- //
 					end
-					info.checked = (spellID == selectedSpell);
+					info.checked = (spellInfo.spellID == selectedSpell);
 					UIDropDownMenu_AddButton(info);
 				end
 			end
@@ -1190,7 +1212,7 @@ do
 	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
-		local editboxAddSpell, buttonAddSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType;
+		local editboxAddSpell, buttonAddSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID;
 		
 		-- // editboxAddSpell, buttonAddSpell
 		do
@@ -1267,18 +1289,23 @@ do
 			local info = {};
 			dropdownSelectSpell.initialize = function()
 				wipe(info);
-				for spellID, spellInfo in pairs(db.CustomSpells2) do
-					local spellName = SpellNamesCache[spellID];
+				local t = { };
+				for _, spellInfo in pairs(db.CustomSpells2) do
+					table.insert(t, spellInfo);
+				end
+				table.sort(t, function(item1, item2) return SpellNamesCache[item1.spellID] < SpellNamesCache[item2.spellID] end);
+				for _, spellInfo in pairs(t) do
+					local spellName = SpellNamesCache[spellInfo.spellID];
 					info.text = spellName;
-					info.value = spellID;
+					info.value = spellInfo.spellID;
 					info.func = function(self)
 						if (self.value ~= nil) then
 							for _, control in pairs(controls) do
 								control:Show();
 							end
 						end
-						selectedSpell = spellID;
-						print(spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize);
+						selectedSpell = spellInfo.spellID;
+						print(spellInfo.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize);
 						_G[dropdownSelectSpell:GetName().."Text"]:SetText(self:GetText());
 						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].enabledState);
 						sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
@@ -1287,7 +1314,7 @@ do
 						
 						-- //
 					end
-					info.checked = (spellID == selectedSpell);
+					info.checked = (spellInfo.spellID == selectedSpell);
 					UIDropDownMenu_AddButton(info);
 				end
 			end
@@ -1411,6 +1438,47 @@ do
 			table.insert(controls, sliderSpellIconSize);
 			
 		end
+		
+		-- // editboxSpellID
+		do
+		
+			editboxSpellID = CreateFrame("EditBox", "NAuras.GUI.Cat4.EditboxSpellID", GUIFrame);
+			editboxSpellID:SetAutoFocus(false);
+			editboxSpellID:SetFontObject(GameFontHighlightSmall);
+			editboxSpellID.text = editboxSpellID:CreateFontString("NAuras.GUI.Cat4.EditboxSpellID.Label", "ARTWORK", "GameFontNormal");
+			editboxSpellID.text:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -245);
+			editboxSpellID.text:SetText("Check spell id: "); -- todo:localization
+			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
+			editboxSpellID:SetPoint("RIGHT", GUIFrame, "RIGHT", -45, 0);
+			editboxSpellID:SetHeight(20);
+			editboxSpellID:SetWidth(215);
+			editboxSpellID:SetJustifyH("LEFT");
+			editboxSpellID:EnableMouse(true);
+			editboxSpellID:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxSpellID:SetBackdropColor(0, 0, 0, 0.5);
+			editboxSpellID:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
+			editboxSpellID:SetScript("OnEnterPressed", function(self, value)
+				local text = self:GetText();
+				local textAsNumber = tonumber(text);
+				if (textAsNumber ~= nil) then
+					db.CustomSpells2[selectedSpell].checkSpellID = textAsNumber;
+					SpellCheckIDCache[SpellNamesCache[selectedSpell]] = textAsNumber;
+				else
+					db.CustomSpells2[selectedSpell].checkSpellID = nil;
+					self:SetText("");
+					self:ClearFocus();
+					message("Value must be a number!");
+				end
+			end);
+			table.insert(controls, editboxSpellID);
+		
+		end
+		
 		
 	end
 	

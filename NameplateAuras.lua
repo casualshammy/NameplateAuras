@@ -22,9 +22,9 @@ local SpellNamesCache = setmetatable({}, {
 	end
 });
 local Spells = {};
-local SpellShowModesCache = {};
-local SpellAuraTypeCache = {};
-local SpellIconSizesCache = {};
+local SpellShowModesCache = { };
+local SpellAuraTypeCache = { };
+local SpellIconSizesCache = { };
 local SpellCheckIDCache = { };
 local ElapsedTimer = 0;
 local Nameplates = {};
@@ -38,7 +38,6 @@ local SPELL_SHOW_MODES = { "my", "all", "disabled" };
 local SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
 local CONST_DISABLED = SPELL_SHOW_MODES[3];
 local CONST_MAX_ICON_SIZE = 75;
-local CONST_DEFAULT_ICON_SIZE = 45;
 
 local _G = _G;
 local pairs = pairs;
@@ -54,6 +53,7 @@ local math_floor = floor;
 
 local OnStartup;
 local InitializeDB;
+local GetDefaultDBSpellEntry;
 local AddButtonToBlizzOptions;
 
 local AllocateIcon;
@@ -195,6 +195,7 @@ do
 			Font = "NAuras_TeenBold",
 			DisplayBorders = true,
 			HideBlizzardFrames = true,
+			DefaultIconSize = 45,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -204,23 +205,13 @@ do
 		-- // processing old and invalid entries
 		if (NameplateAurasDB[LocalPlayerFullName].CustomSpells ~= nil and NameplateAurasDB[LocalPlayerFullName].CustomSpells2 == nil) then
 			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].CustomSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = {
-					["enabledState"] = enabledState,
-					["auraType"] = SPELL_SHOW_TYPES[3],
-					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
-					["spellID"] = spellID,
-				};
+				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize);
 			end
 			NameplateAurasDB[LocalPlayerFullName].CustomSpells = nil;
 		end
 		if (NameplateAurasDB[LocalPlayerFullName].StandardSpells ~= nil and NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"] == nil) then
 			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].StandardSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = {
-					["enabledState"] = enabledState,
-					["auraType"] = SPELL_SHOW_TYPES[3],
-					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
-					["spellID"] = spellID,
-				};
+				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize);
 			end
 			NameplateAurasDB[LocalPlayerFullName].StandardSpells = nil;
 		end
@@ -230,7 +221,16 @@ do
 		-- // creating a fast reference
 		db = NameplateAurasDB[LocalPlayerFullName];
 	end
-		
+	
+	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize)
+		return {
+			["enabledState"] = enabledState,
+			["auraType"] = SPELL_SHOW_TYPES[3],
+			["iconSize"] = (iconSize ~= nil) and iconSize or db.DefaultIconSize,
+			["spellID"] = spellID,
+		};
+	end
+	
 	function AddButtonToBlizzOptions()
 		local frame = CreateFrame("Frame", "NAuras_BlizzOptionsFrame", UIParent);
 		frame.name = "NameplateAuras";
@@ -257,21 +257,21 @@ do
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
-			frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE);
-			frame.NAurasFrame:SetHeight(CONST_DEFAULT_ICON_SIZE);
+			frame.NAurasFrame:SetWidth(db.DefaultIconSize);
+			frame.NAurasFrame:SetHeight(db.DefaultIconSize);
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
 		local texture = frame.NAurasFrame:CreateTexture(nil, "BORDER");
 		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
-		texture:SetWidth(CONST_DEFAULT_ICON_SIZE);
-		texture:SetHeight(CONST_DEFAULT_ICON_SIZE);
-		texture.size = CONST_DEFAULT_ICON_SIZE;
+		texture:SetWidth(db.DefaultIconSize);
+		texture:SetHeight(db.DefaultIconSize);
+		texture.size = db.DefaultIconSize;
 		texture:Hide();
 		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
 		texture.cooldown:SetAllPoints(texture);
-		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE - CONST_DEFAULT_ICON_SIZE / 2), "OUTLINE");
+		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize - db.DefaultIconSize / 2), "OUTLINE");
 		texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
 		texture.border:SetVertexColor(1, 0.35, 0);
@@ -280,10 +280,10 @@ do
 		texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.stacks:SetTextColor(1, 0.1, 0.1);
 		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
-		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE / 4), "OUTLINE");
+		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize / 4), "OUTLINE");
 		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
-		frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE * frame.NAurasIconsCount);
+		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
 		tinsert(frame.NAurasIcons, texture);
 	end
 	
@@ -291,14 +291,14 @@ do
 		for frame in pairs(Nameplates) do
 			if (frame.NAurasFrame) then
 				frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
-				frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE * frame.NAurasIconsCount);
+				frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
 				local counter = 0;
 				for _, icon in pairs(frame.NAurasIcons) do
-					icon:SetWidth(CONST_DEFAULT_ICON_SIZE);
-					icon:SetHeight(CONST_DEFAULT_ICON_SIZE);
-					icon:SetPoint("LEFT", frame.NAurasFrame, counter * CONST_DEFAULT_ICON_SIZE, 0);
-					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE - CONST_DEFAULT_ICON_SIZE / 2), "OUTLINE");
-					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE / 4), "OUTLINE");
+					icon:SetWidth(db.DefaultIconSize);
+					icon:SetHeight(db.DefaultIconSize);
+					icon:SetPoint("LEFT", frame.NAurasFrame, counter * db.DefaultIconSize, 0);
+					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize - db.DefaultIconSize / 2), "OUTLINE");
+					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize / 4), "OUTLINE");
 					if (clearSpells) then
 						HideCDIcon(icon);
 					end
@@ -839,6 +839,51 @@ do
 	end
 
 	function GUICategory_1(index, value)
+		
+		local sliderIconSize = GUICreateSlider(GUIFrame, 160, -90, 340, "NAuras.GUI.Cat1.SliderIconSize");
+		sliderIconSize.label:SetText("Default icon size");
+		sliderIconSize.slider:SetValueStep(1);
+		sliderIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
+		sliderIconSize.slider:SetValue(db.DefaultIconSize);
+		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
+			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
+			for spellID, spellInfo in pairs(db.DefaultSpells) do
+				if (spellInfo.iconSize == db.DefaultIconSize) then
+					db.DefaultSpells[spellID].iconSize = math_ceil(value);
+					SpellIconSizesCache[SpellNamesCache[spellID]] = db.DefaultSpells[spellID].iconSize;
+				end
+			end
+			for spellID, spellInfo in pairs(db.CustomSpells2) do
+				if (spellInfo.iconSize == db.DefaultIconSize) then
+					db.CustomSpells2[spellID].iconSize = math_ceil(value);
+					SpellIconSizesCache[SpellNamesCache[spellID]] = db.CustomSpells2[spellID].iconSize;
+				end
+			end
+			db.DefaultIconSize = math_ceil(value);
+		end);
+		sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize));
+		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconSize.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconSize.editbox:GetText());
+				if (v == nil) then
+					sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize));
+					message(L["Value must be a number"]);
+				else
+					if (v > CONST_MAX_ICON_SIZE) then
+						v = CONST_MAX_ICON_SIZE;
+					end
+					if (v < 1) then
+						v = 1;
+					end
+					sliderIconSize.slider:SetValue(v);
+				end
+				sliderIconSize.editbox:ClearFocus();
+			end
+		end);
+		sliderIconSize.lowtext:SetText("1");
+		sliderIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
+		table.insert(GUIFrame.Categories[index], sliderIconSize);
+	
 		local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -150, 155, "NAuras_GUIGeneralSliderIconXOffset");
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
@@ -1212,7 +1257,7 @@ do
 	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
-		local editboxAddSpell, buttonAddSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID;
+		local editboxAddSpell, buttonAddSpell, dropdownSelectSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell;
 		
 		-- // editboxAddSpell, buttonAddSpell
 		do
@@ -1264,7 +1309,7 @@ do
 							end
 						end
 						if (not alreadyExist) then
-							db.CustomSpells2[textAsNumber] = { ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = CONST_DEFAULT_ICON_SIZE };
+							db.CustomSpells2[textAsNumber] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], textAsNumber, db.DefaultIconSize);
 							SpellShowModesCache[spellName] = db.CustomSpells2[textAsNumber].enabledState;
 							SpellAuraTypeCache[spellName] = db.CustomSpells2[textAsNumber].auraType;
 						else
@@ -1272,6 +1317,7 @@ do
 						end
 					end
 					editboxAddSpell:SetText("");
+					editboxAddSpell:ClearFocus();
 				else
 					Print("Please enter spell ID, not spell name"); -- todo:localization
 				end
@@ -1283,7 +1329,7 @@ do
 		-- // dropdownSelectSpell
 		do
 		
-			local dropdownSelectSpell = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSelectSpell", GUIFrame, "UIDropDownMenuTemplate");
+			dropdownSelectSpell = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSelectSpell", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSelectSpell, 300);
 			dropdownSelectSpell:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -65);
 			local info = {};
@@ -1476,6 +1522,31 @@ do
 				end
 			end);
 			table.insert(controls, editboxSpellID);
+		
+		end
+		
+		-- // buttonDeleteSpell
+		do
+		
+			buttonDeleteSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonDeleteSpell", GUIFrame, "Delete spell"); -- todo:localization
+			buttonDeleteSpell:SetWidth(90);
+			buttonDeleteSpell:SetHeight(20);
+			buttonDeleteSpell:SetPoint("LEFT", GUIFrame, "LEFT", 165, -130);
+			buttonDeleteSpell:SetPoint("RIGHT", GUIFrame, "RIGHT", -45, 0);
+			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
+				db.CustomSpells2[selectedSpell] = nil;
+				local spellName = SpellNamesCache[selectedSpell];
+				Spells[spellName] = nil;
+				SpellShowModesCache[spellName] = nil;
+				SpellAuraTypeCache[spellName] = nil;
+				SpellIconSizesCache[spellName] = nil;
+				SpellCheckIDCache[spellName] = nil;
+				_G[dropdownSelectSpell:GetName().."Text"]:SetText("");
+				for _, control in pairs(controls) do
+					control:Hide();
+				end
+			end);
+			table.insert(controls, buttonDeleteSpell);
 		
 		end
 		

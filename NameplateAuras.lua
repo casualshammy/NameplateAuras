@@ -1,6 +1,6 @@
 ﻿local _, addonTable = ...;
 local L = addonTable.L;
-local StandardSpells = addonTable.StandardSpells;
+local DefaultSpells = addonTable.DefaultSpells;
 
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", "Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
@@ -14,8 +14,17 @@ local TextureCache = setmetatable({}, {
 		return texture;
 	end
 });
+local SpellNamesCache = setmetatable({}, {
+	__index = function(t, key)
+		local spellName = GetSpellInfo(key);
+		t[key] = spellName;
+		return spellName;
+	end
+});
 local Spells = {};
-local SpellsEnabledCache = {};
+local SpellShowModesCache = {};
+local SpellAuraTypeCache = {};
+local SpellIconSizesCache = {};
 local ElapsedTimer = 0;
 local Nameplates = {};
 local NameplatesVisible = {};
@@ -24,6 +33,11 @@ local EventFrame;
 local TestFrame;
 local db;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
+local SPELL_SHOW_MODES = { "my", "all", "disabled" };
+local SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
+local CONST_DISABLED = SPELL_SHOW_MODES[3];
+local CONST_MAX_ICON_SIZE = 75;
+local CONST_DEFAULT_ICON_SIZE = 45;
 
 local _G = _G;
 local pairs = pairs;
@@ -43,10 +57,12 @@ local AddButtonToBlizzOptions;
 
 local AllocateIcon;
 local ReallocateAllIcons;
+local GetNAurasFrameWidth;
 local InitializeFrame;
 local UpdateOnlyOneNameplate;
 local HideCDIcon;
 local ShowCDIcon;
+local ResizeIcon;
 
 local OnUpdate;
 
@@ -82,44 +98,50 @@ do
 	function OnStartup()
 		InitializeDB();
 		-- // Convert standard spell IDs to spell names
-		for spellID, enabledState in pairs(StandardSpells) do
-			local spellName = GetSpellInfo(spellID);
+		for spellID, spellInfo in pairs(DefaultSpells) do
+			local spellName = SpellNamesCache[spellID];
 			if (spellName ~= nil and Spells[spellName] == nil) then
-				Spells[spellName] = enabledState;
-				if (enabledState ~= "disable") then
-					SpellsEnabledCache[spellName] = enabledState;
+				Spells[spellName] = spellInfo;
+				if (spellInfo.enabledState ~= CONST_DISABLED) then
+					SpellShowModesCache[spellName] = spellInfo.enabledState;
+					SpellAuraTypeCache[spellName] = spellInfo.auraType;
+					SpellIconSizesCache[spellName] = spellInfo.iconSize;
 				end
-				if (db.StandardSpells[spellID] == nil) then
-					db.StandardSpells[spellID] = enabledState;
+				if (db.DefaultSpells[spellID] == nil) then
+					db.DefaultSpells[spellID] = spellInfo;
 				end
 			end
 		end
-		for spellID, enabledState in pairs(db.StandardSpells) do
-			local spellName = GetSpellInfo(spellID);
-			if (StandardSpells[spellID] ~= nil) then
+		for spellID, spellInfo in pairs(db.DefaultSpells) do
+			local spellName = SpellNamesCache[spellID];
+			if (DefaultSpells[spellID] ~= nil) then
 				if (spellName == nil) then
 					Print("<"..spellName.."> isn't exist. Removing from database...");
-					db.StandardSpells[spellID] = nil;
+					db.DefaultSpells[spellID] = nil;
 				else
-					Spells[spellName] = enabledState;
-					if (enabledState ~= "disable") then
-						SpellsEnabledCache[spellName] = enabledState;
+					Spells[spellName] = spellInfo;
+					if (spellInfo.enabledState ~= CONST_DISABLED) then
+						SpellShowModesCache[spellName] = spellInfo.enabledState;
+						SpellAuraTypeCache[spellName] = spellInfo.auraType;
+						SpellIconSizesCache[spellName] = spellInfo.iconSize;
 					end
 				end
 			else
 				Print("<"..spellName.."> isn't standard spell. Removing from database...");
-				db.StandardSpells[spellID] = nil;
+				db.DefaultSpells[spellID] = nil;
 			end
 		end
-		for spellID, enabledState in pairs(db.CustomSpells) do
-			local spellName = GetSpellInfo(spellID);
+		for spellID, spellInfo in pairs(db.CustomSpells2) do
+			local spellName = SpellNamesCache[spellID];
 			if (spellName == nil) then
 				Print("<"..spellName.."> isn't exist. Removing from database...");
-				db.CustomSpells[spellID] = nil;
+				db.CustomSpells2[spellID] = nil;
 			else
-				Spells[spellName] = enabledState;
-				if (enabledState ~= "disable") then
-					SpellsEnabledCache[spellName] = enabledState;
+				Spells[spellName] = spellInfo;
+				if (enabledState ~= CONST_DISABLED) then
+					SpellShowModesCache[spellName] = spellInfo.enabledState;
+					SpellAuraTypeCache[spellName] = spellInfo.auraType;
+					SpellIconSizesCache[spellName] = spellInfo.iconSize;
 				end
 			end
 		end
@@ -149,24 +171,51 @@ do
 	end
 
 	function InitializeDB()
+		-- // if db is not exist for current player, create it
 		if (NameplateAurasDB[LocalPlayerFullName] == nil) then
 			NameplateAurasDB[LocalPlayerFullName] = { };
 		end
+		-- // set defaults
 		local defaults = {
-			StandardSpells = { },
-			CustomSpells = { },
-			IconSize = 45,
+			DefaultSpells = { },
+			CustomSpells2 = { },
 			IconXOffset = 0,
 			IconYOffset = 50,
 			FullOpacityAlways = false,
 			Font = "NAuras_TeenBold",
 			DisplayBorders = true,
+			HideBlizzardFrames = true,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
 				NameplateAurasDB[LocalPlayerFullName][key] = value;
 			end
 		end
+		-- // processing old and invalid entries
+		if (NameplateAurasDB[LocalPlayerFullName].CustomSpells ~= nil and NameplateAurasDB[LocalPlayerFullName].CustomSpells2 == nil) then
+			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].CustomSpells) do
+				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = {
+					["enabledState"] = enabledState,
+					["auraType"] = SPELL_SHOW_TYPES[3],
+					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
+				};
+			end
+			NameplateAurasDB[LocalPlayerFullName].CustomSpells = nil;
+		end
+		if (NameplateAurasDB[LocalPlayerFullName].StandardSpells ~= nil and NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"] == nil) then
+			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].StandardSpells) do
+				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = {
+					["enabledState"] = enabledState,
+					["auraType"] = SPELL_SHOW_TYPES[3],
+					["iconSize"] = (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) and NameplateAurasDB[LocalPlayerFullName].IconSize or CONST_DEFAULT_ICON_SIZE,
+				};
+			end
+			NameplateAurasDB[LocalPlayerFullName].StandardSpells = nil;
+		end
+		if (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) then
+			NameplateAurasDB[LocalPlayerFullName].IconSize = nil;
+		end
+		-- // creating a fast reference
 		db = NameplateAurasDB[LocalPlayerFullName];
 	end
 		
@@ -193,23 +242,24 @@ end
 -------------------------------------------------------------------------------------------------
 do
 
-	function AllocateIcon(frame)
+	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
-			frame.NAurasFrame:SetWidth(db.IconSize);
-			frame.NAurasFrame:SetHeight(db.IconSize);
+			frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE);
+			frame.NAurasFrame:SetHeight(CONST_DEFAULT_ICON_SIZE);
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
 		local texture = frame.NAurasFrame:CreateTexture(nil, "BORDER");
-		texture:SetPoint("LEFT", frame.NAurasFrame, frame.NAurasIconsCount * db.IconSize, 0);
-		texture:SetWidth(db.IconSize);
-		texture:SetHeight(db.IconSize);
+		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
+		texture:SetWidth(CONST_DEFAULT_ICON_SIZE);
+		texture:SetHeight(CONST_DEFAULT_ICON_SIZE);
+		texture.size = CONST_DEFAULT_ICON_SIZE;
 		texture:Hide();
 		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
 		texture.cooldown:SetAllPoints(texture);
-		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize - db.IconSize / 2), "OUTLINE");
+		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE - CONST_DEFAULT_ICON_SIZE / 2), "OUTLINE");
 		texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
 		texture.border:SetVertexColor(1, 0.35, 0);
@@ -218,10 +268,10 @@ do
 		texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.stacks:SetTextColor(1, 0.1, 0.1);
 		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
-		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize / 4), "OUTLINE");
+		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE / 4), "OUTLINE");
 		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
-		frame.NAurasFrame:SetWidth(db.IconSize * frame.NAurasIconsCount);
+		frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE * frame.NAurasIconsCount);
 		tinsert(frame.NAurasIcons, texture);
 	end
 	
@@ -229,14 +279,14 @@ do
 		for frame in pairs(Nameplates) do
 			if (frame.NAurasFrame) then
 				frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
-				frame.NAurasFrame:SetWidth(db.IconSize * frame.NAurasIconsCount);
+				frame.NAurasFrame:SetWidth(CONST_DEFAULT_ICON_SIZE * frame.NAurasIconsCount);
 				local counter = 0;
 				for _, icon in pairs(frame.NAurasIcons) do
-					icon:SetWidth(db.IconSize);
-					icon:SetHeight(db.IconSize);
-					icon:SetPoint("LEFT", frame.NAurasFrame, counter * db.IconSize, 0);
-					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize - db.IconSize / 2), "OUTLINE");
-					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.IconSize / 4), "OUTLINE");
+					icon:SetWidth(CONST_DEFAULT_ICON_SIZE);
+					icon:SetHeight(CONST_DEFAULT_ICON_SIZE);
+					icon:SetPoint("LEFT", frame.NAurasFrame, counter * CONST_DEFAULT_ICON_SIZE, 0);
+					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE - CONST_DEFAULT_ICON_SIZE / 2), "OUTLINE");
+					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(CONST_DEFAULT_ICON_SIZE / 4), "OUTLINE");
 					if (clearSpells) then
 						HideCDIcon(icon);
 					end
@@ -253,8 +303,8 @@ do
 		for i = 1, 40 do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
-				--print(SpellsEnabledCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
-				if (SpellsEnabledCache[buffName] == "all" or (SpellsEnabledCache[buffName] == "my" and buffCaster == "player")) then
+				--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
+				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player")) and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")) then
 					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
 							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
@@ -268,8 +318,8 @@ do
 			end
 			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
-				--print(SpellsEnabledCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
-				if (SpellsEnabledCache[debuffName] == "all" or (SpellsEnabledCache[debuffName] == "my" and debuffCaster == "player")) then
+				--print(SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
+				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player")) and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
 							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
@@ -283,6 +333,8 @@ do
 			end
 		end
 		local counter = 1;
+		local totalWidth = 0;
+		local iconResized = false;
 		if (nameplateAuras[frame]) then
 			local currentTime = GetTime();
 			for spellName, spellInfo in pairs(nameplateAuras[frame]) do
@@ -290,7 +342,7 @@ do
 				local last = spellInfo.expires - currentTime;
 				if (last > 0) then
 					if (counter > frame.NAurasIconsCount) then
-						AllocateIcon(frame);
+						AllocateIcon(frame, totalWidth);
 					end
 					local icon = frame.NAurasIcons[counter];
 					if (icon.spellID ~= spellName) then
@@ -321,15 +373,22 @@ do
 							icon.borderState = nil;
 						end
 					end
+					-- // icon size
+					if (SpellIconSizesCache[spellName] ~= icon.size or iconResized) then
+						icon.size = SpellIconSizesCache[spellName];
+						ResizeIcon(icon, icon.size, totalWidth);
+						iconResized = true;
+					end
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
+					totalWidth = totalWidth + icon.size;
 					counter = counter + 1;
 				end
 			end
 		end
 		if (frame.NAurasFrame ~= nil) then
-			frame.NAurasFrame:SetWidth(db.IconSize * (counter - 1));
+			frame.NAurasFrame:SetWidth(totalWidth);
 		end
 		for k = counter, frame.NAurasIconsCount do
 			local icon = frame.NAurasIcons[k];
@@ -338,7 +397,9 @@ do
 			end
 		end
 		-- // hide standart buff frame
-		frame.UnitFrame.BuffFrame:Hide();
+		if (db.HideBlizzardFrames) then
+			frame.UnitFrame.BuffFrame:Hide();
+		end
 	end
 		
 	function HideCDIcon(icon)
@@ -350,6 +411,7 @@ do
 		icon.shown = false;
 		icon.spellID = -1;
 		icon.stackcount = -1;
+		icon.size = -1;
 	end
 	
 	function ShowCDIcon(icon)
@@ -357,6 +419,14 @@ do
 		icon.stacks:Show();
 		icon:Show();
 		icon.shown = true;
+	end
+	
+	function ResizeIcon(icon, size, widthAlreadyUsed)
+		icon:SetWidth(size);
+		icon:SetHeight(size);
+		icon:SetPoint("LEFT", icon:GetParent(), widthAlreadyUsed, 0);
+		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(size - size / 2), "OUTLINE");
+		icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(size / 4), "OUTLINE");
 	end
 	
 end
@@ -376,9 +446,9 @@ do
 					local last = spellInfo.expires - currentTime;
 					if (last > 0) then
 						-- // allocating icon if need
-						if (counter > frame.NAurasIconsCount) then
-							AllocateIcon(frame);
-						end
+						-- if (counter > frame.NAurasIconsCount) then
+							-- AllocateIcon(frame, );
+						-- end
 						-- // getting reference to icon
 						local icon = frame.NAurasIcons[counter];
 						-- // setting texture if need
@@ -752,54 +822,6 @@ do
 	end
 
 	function GUICategory_1(index, value)
-		local buttonSwitchTestMode = GUICreateButton("NAuras_GUIGeneralButtonSwitchTestMode", GUIFrame, L["Enable test mode (need at least one visible nameplate)"]);
-		buttonSwitchTestMode:SetWidth(340);
-		buttonSwitchTestMode:SetHeight(40);
-		buttonSwitchTestMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -40);
-		buttonSwitchTestMode:SetScript("OnClick", function(self, ...)
-			if (not TestFrame or not TestFrame:GetScript("OnUpdate")) then
-				EnableTestMode();
-				self.Text:SetText(L["Disable test mode"]);
-			else
-				DisableTestMode();
-				self.Text:SetText(L["Enable test mode (need at least one visible nameplate)"]);
-			end
-		end);
-		table.insert(GUIFrame.Categories[index], buttonSwitchTestMode);
-		
-		local sliderIconSize = GUICreateSlider(GUIFrame, 160, -90, 340, "NAuras_GUIGeneralSliderIconSize");
-		sliderIconSize.label:SetText(L["Icon size"]);
-		sliderIconSize.slider:SetValueStep(1);
-		sliderIconSize.slider:SetMinMaxValues(1, 75);
-		sliderIconSize.slider:SetValue(db.IconSize);
-		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
-			db.IconSize = math_ceil(value);
-			ReallocateAllIcons(false);
-		end);
-		sliderIconSize.editbox:SetText(tostring(db.IconSize));
-		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (sliderIconSize.editbox:GetText() ~= "") then
-				local v = tonumber(sliderIconSize.editbox:GetText());
-				if (v == nil) then
-					sliderIconSize.editbox:SetText(tostring(db.IconSize));
-					Print(L["Value must be a number"]);
-				else
-					if (v > 75) then
-						v = 75;
-					end
-					if (v < 1) then
-						v = 1;
-					end
-					sliderIconSize.slider:SetValue(v);
-				end
-				sliderIconSize.editbox:ClearFocus();
-			end
-		end);
-		sliderIconSize.lowtext:SetText("1");
-		sliderIconSize.hightext:SetText("75");
-		table.insert(GUIFrame.Categories[index], sliderIconSize);
-		
 		local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -150, 155, "NAuras_GUIGeneralSliderIconXOffset");
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
@@ -879,6 +901,12 @@ do
 		checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
 		
+		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -260, "Hide Blizzard's aura frames (Reload UI required)", function(this)
+			db.HideBlizzardFrames = this:GetChecked();
+		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
+		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
+		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
+		
 		local dropdownFont = CreateFrame("Frame", "NAuras_GUI_General_DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFont, 150);
 		dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -310);
@@ -928,8 +956,6 @@ do
 				db = NameplateAurasDB[LocalPlayerFullName];
 				Print(format(L["Data from '%s' has been successfully copied to '%s'"], dropdownCopyProfile.myvalue, LocalPlayerFullName));
 				RebuildDropdowns();
-				NAuras_GUIGeneralSliderIconSize.slider:SetValue(db.IconSize);
-				NAuras_GUIGeneralSliderIconSize.editbox:SetText(tostring(db.IconSize));
 				NAuras_GUIGeneralSliderIconXOffset.slider:SetValue(db.IconXOffset);
 				NAuras_GUIGeneralSliderIconXOffset.editbox:SetText(tostring(db.IconXOffset));
 				NAuras_GUIGeneralSliderIconYOffset.slider:SetValue(db.IconYOffset);
@@ -1003,259 +1029,389 @@ do
 	end
 	
 	function GUICategory_3(index, value)
-		local scrollAreaBackground = CreateFrame("Frame", "NAuras_GUIScrollFrameBackground_"..tostring(index - 1), GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -60);
-		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
-		scrollAreaBackground:SetBackdrop({
-			bgFile = "Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
-			edgeFile = "Interface\\AddOns\\NameplateAuras\\media\\Border",
-			tile = true, edgeSize = 3, tileSize = 1,
-			insets = { left = 3, right = 3, top = 3, bottom = 3 }
-		});
-		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
-		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
-		scrollAreaBackground:SetBackdropBorderColor(0.3, 0.3, 0.5, 1);
-		scrollAreaBackground:Hide();
-		table.insert(GUIFrame.Categories[index], scrollAreaBackground);
+		local controls = { };
+		local selectedSpell = 0;
+		local dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType;
 		
-		local scrollArea = CreateFrame("ScrollFrame", "NAuras_GUIScrollFrame_"..tostring(index - 1), scrollAreaBackground, "UIPanelScrollFrameTemplate");
-		scrollArea:SetPoint("TOPLEFT", scrollAreaBackground, "TOPLEFT", 5, -5);
-		scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
-		scrollArea:Show();
-		
-		local scrollAreaChildFrame = CreateFrame("Frame", "NAuras_GUIScrollFrameChildFrame_"..tostring(index - 1), scrollArea);
-		scrollArea:SetScrollChild(scrollAreaChildFrame);
-		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
-		scrollAreaChildFrame:SetWidth(288);
-		scrollAreaChildFrame:SetHeight(288);
-		
-		local iterator = 1;
-		for spellID in pairs(StandardSpells) do
-			local n, _, icon = GetSpellInfo(spellID);
-			if (not n) then
-				Print(format(L["Unknown spell: %s"], spellID));
-			else
-				local dropdown, text, button = GUICreateCmbboxTextureText("NAuras_GUI_Cat3_Spell"..tostring(iterator), scrollAreaChildFrame, -10, ((iterator - 1) * -22) - 10)
-				local info = {};
-				dropdown.initialize = function()
-					wipe(info);
-					for idx, v in pairs({"disable", "all", "my"}) do
-						info.text = v;
-						info.value = v;
-						info.func = function(self)
-							db.StandardSpells[spellID] = self.value;
-							if (self.value ~= "disable") then
-								SpellsEnabledCache[n] = self.value;
-							else
-								SpellsEnabledCache[n] = nil;
-							end
-							_G[dropdown:GetName().."Text"]:SetText(self:GetText());
-						end
-						info.checked = v == db.StandardSpells[spellID];
-						UIDropDownMenu_AddButton(info);
-					end
-				end
-				_G[dropdown:GetName().."Text"]:SetText(db.StandardSpells[spellID]);
-				text:SetText(n);
-				button.texture:SetTexture(icon);
-				button:SetScript("OnEnter", function(self, ...)
-					GameTooltip:SetOwner(button, "ANCHOR_TOPRIGHT");
-					GameTooltip:SetSpellByID(spellID);
-					GameTooltip:Show();
-				end)
-				button:SetScript("OnLeave", function(self, ...)
-					GameTooltip:Hide();
-				end)
-				iterator = iterator + 1;
-				dropdown.spellID = spellID;
-				--tinsert(GUIFrame.CustomSpellsDropdowns, dropdown);
-			end
-		end
-	end
-	
-	function GUICategory_4(index, value)
-		local scrollAreaBackground = CreateFrame("Frame", "NAuras_GUIScrollFrameBackground_"..tostring(index - 1), GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -60);
-		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
-		scrollAreaBackground:SetBackdrop({
-			bgFile = "Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
-			edgeFile = "Interface\\AddOns\\NameplateAuras\\media\\Border",
-			tile = true, edgeSize = 3, tileSize = 1,
-			insets = { left = 3, right = 3, top = 3, bottom = 3 }
-		});
-		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
-		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
-		scrollAreaBackground:SetBackdropBorderColor(0.3, 0.3, 0.5, 1);
-		scrollAreaBackground:Hide();
-		table.insert(GUIFrame.Categories[index], scrollAreaBackground);
-		
-		local scrollArea = CreateFrame("ScrollFrame", "NAuras_GUIScrollFrame_"..tostring(index - 1), scrollAreaBackground, "UIPanelScrollFrameTemplate");
-		scrollArea:SetPoint("TOPLEFT", scrollAreaBackground, "TOPLEFT", 5, -5);
-		scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
-		scrollArea:Show();
-		
-		local scrollAreaChildFrame = CreateFrame("Frame", "NAuras_GUIScrollFrameChildFrame_"..tostring(index - 1), scrollArea);
-		scrollArea:SetScrollChild(scrollAreaChildFrame);
-		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
-		scrollAreaChildFrame:SetWidth(288);
-		scrollAreaChildFrame:SetHeight(288);
-		
-		
-		
-		local iterator = 1;
-		local nameIterator = 1
-		local function CreateSpellEntry(spellID)
-			local n, _, icon = GetSpellInfo(spellID);
-			local dropdown, text, button = GUICreateCmbboxTextureText("NAuras_GUI_Cat4_Spell"..tostring(nameIterator), scrollAreaChildFrame, -10, ((iterator - 1) * -22) - 10)
+		-- // dropdownSelectSpell
+		do
+			local dropdownSelectSpell = CreateFrame("Frame", "NAuras.GUI.Cat3.DropdownSelectSpell", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSelectSpell, 300);
+			dropdownSelectSpell:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -20);
 			local info = {};
-			dropdown.initialize = function()
+			dropdownSelectSpell.initialize = function()
 				wipe(info);
-				for idx, v in pairs({"disable", "all", "my"}) do
-					info.text = v;
-					info.value = v;
+				for spellID, spellInfo in pairs(DefaultSpells) do
+					local spellName = GetSpellInfo(spellID);
+					info.text = spellName;
+					info.value = spellID;
 					info.func = function(self)
-						db.CustomSpells[spellID] = self.value;
-						if (self.value ~= "disable") then
-							SpellsEnabledCache[n] = self.value;
-						else
-							SpellsEnabledCache[n] = nil;
+						if (self.value ~= nil) then
+							for _, control in pairs(controls) do
+								control:Show();
+							end
 						end
-						_G[dropdown:GetName().."Text"]:SetText(self:GetText());
+						selectedSpell = spellID;
+						print(spellID, db.DefaultSpells[selectedSpell].enabledState, db.DefaultSpells[selectedSpell].iconSize);
+						_G[dropdownSelectSpell:GetName().."Text"]:SetText(self:GetText());
+						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.DefaultSpells[selectedSpell].enabledState);
+						sliderSpellIconSize.slider:SetValue(db.DefaultSpells[selectedSpell].iconSize);
+						sliderSpellIconSize.editbox:SetText(tostring(db.DefaultSpells[selectedSpell].iconSize));
+						_G[dropdownSpellShowType:GetName().."Text"]:SetText(db.DefaultSpells[selectedSpell].auraType);
+						
+						-- //
 					end
-					info.checked = v == db.CustomSpells[spellID];
+					info.checked = (spellID == selectedSpell);
 					UIDropDownMenu_AddButton(info);
 				end
 			end
-			_G[dropdown:GetName().."Text"]:SetText(db.CustomSpells[spellID]);
-			text:SetText(n);
-			button.texture:SetTexture(icon);
-			button:SetScript("OnEnter", function(self, ...)
-				GameTooltip:SetOwner(button, "ANCHOR_TOPRIGHT");
-				GameTooltip:SetSpellByID(spellID);
-				GameTooltip:Show();
-			end)
-			button:SetScript("OnLeave", function(self, ...)
-				GameTooltip:Hide();
-			end)
-			iterator = iterator + 1;
-			nameIterator = nameIterator + 1;
-			dropdown.spellName = GetSpellInfo(spellID);
-			tinsert(GUIFrame.CustomSpellsDropdowns, dropdown);
+			_G[dropdownSelectSpell:GetName().."Text"]:SetText("");
+			dropdownSelectSpell:SetScript("OnHide", function(self)
+				for _, control in pairs(controls) do
+					control:Hide();
+					_G[self:GetName().."Text"]:SetText("");
+				end
+			end);
+			dropdownSelectSpell.text = dropdownSelectSpell:CreateFontString("NAuras.GUI.Cat3.DropdownSelectSpell.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownSelectSpell.text:SetPoint("LEFT", 20, 15);
+			dropdownSelectSpell.text:SetText("Select spell:");
+			table.insert(GUIFrame.Categories[index], dropdownSelectSpell);
 		end
 		
-		local function RebuildListOfDropdowns()
-			iterator = 1;
-			for _, dropdown in pairs(GUIFrame.CustomSpellsDropdowns) do
-				if (dropdown.spellName ~= nil) then
-					print(dropdown.spellName, iterator, dropdown:IsVisible());
-					dropdown:SetPoint("TOPLEFT", scrollAreaChildFrame, "TOPLEFT", -10, ((iterator - 1) * -22) - 10);
-					iterator = iterator + 1;
+		-- // dropdownSpellShowMode
+		do
+		
+			dropdownSpellShowMode = CreateFrame("Frame", "NAuras.GUI.Cat3.DropdownSpellShowMode", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSpellShowMode, 150);
+			dropdownSpellShowMode.text = dropdownSpellShowMode:CreateFontString("NAuras.GUI.Cat3.DropdownSpellShowMode.Label", "ARTWORK", "GameFontNormal");
+			dropdownSpellShowMode.text:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -80);
+			dropdownSpellShowMode.text:SetText("Show mode:");
+			dropdownSpellShowMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 300, -70);
+			local info = {};
+			dropdownSpellShowMode.initialize = function()
+				wipe(info);
+				for _, showMode in pairs(SPELL_SHOW_MODES) do
+					info.text = showMode;
+					info.value = showMode;
+					info.func = function(self)
+						db.DefaultSpells[selectedSpell].enabledState = self.value;
+						if (self.value ~= CONST_DISABLED) then
+							SpellShowModesCache[SpellNamesCache[selectedSpell]] = self.value;
+							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.DefaultSpells[selectedSpell].auraType
+						else
+							SpellShowModesCache[SpellNamesCache[selectedSpell]] = nil;
+							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = nil;
+						end
+						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(self:GetText());
+					end
+					info.checked = (spellID == selectedSpell);
+					UIDropDownMenu_AddButton(info);
 				end
 			end
+			_G[dropdownSpellShowMode:GetName().."Text"]:SetText("");
+			table.insert(controls, dropdownSpellShowMode);
+			
 		end
 		
-		local editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame);
-		editboxAddSpell:SetAutoFocus(false);
-		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
-		editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 250, -12);
-		editboxAddSpell:SetHeight(20);
-		editboxAddSpell:SetWidth(150);
-		editboxAddSpell:SetJustifyH("LEFT");
-		editboxAddSpell:EnableMouse(true);
-		editboxAddSpell:SetBackdrop({
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			tile = true, edgeSize = 1, tileSize = 5,
-		});
-		editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
-		editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
-		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
-		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		text:SetPoint("RIGHT", -155, 0);
-		text:SetText("Add new spell: "); -- todo:localization
-		table.insert(GUIFrame.Categories[index], editboxAddSpell);
+		-- // dropdownSpellShowType
+		do
 		
-		local buttonAddSpell = GUICreateButton("ghggggggggggggggghghg", GUIFrame, "Add spell"); -- todo:localization; todo:publicname
-		buttonAddSpell:SetWidth(90);
-		buttonAddSpell:SetHeight(20);
-		buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
-		buttonAddSpell:SetScript("OnClick", function(self, ...)
-			local text = editboxAddSpell:GetText();
-			local textAsNumber = tonumber(text);
-			if (textAsNumber ~= nil) then
-				local n, _, icon = GetSpellInfo(textAsNumber);
-				if (not n) then
-					Print(format(L["Unknown spell: %s"], text));
-				else
-					local alreadyExist = false;
-					for spellID in pairs(StandardSpells) do
-						local spellName = GetSpellInfo(spellID);
-						if (spellName == n) then
-							alreadyExist = true;
-						end
+			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat3.DropdownSpellShowType", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSpellShowType, 150);
+			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString("NAuras.GUI.Cat3.DropdownSpellShowType.Label", "ARTWORK", "GameFontNormal");
+			dropdownSpellShowType.text:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -120);
+			dropdownSpellShowType.text:SetText("Aura type:");
+			dropdownSpellShowType:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 300, -110);
+			local info = {};
+			dropdownSpellShowType.initialize = function()
+				wipe(info);
+				for _, auraType in pairs(SPELL_SHOW_TYPES) do
+					info.text = auraType;
+					info.value = auraType;
+					info.func = function(self)
+						db.DefaultSpells[selectedSpell].auraType = self.value;
+						SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.DefaultSpells[selectedSpell].auraType;
+						_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
 					end
-					for spellID in pairs(db.CustomSpells) do
-						local spellName = GetSpellInfo(spellID);
-						if (spellName == n) then
-							alreadyExist = true;
-						end
-					end
-					if (not alreadyExist) then
-						db.CustomSpells[textAsNumber] = "all";
-						SpellsEnabledCache[n] = "all";
-						CreateSpellEntry(textAsNumber);
+					info.checked = (info.value == db.DefaultSpells[selectedSpell].auraType);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
+			table.insert(controls, dropdownSpellShowType);
+		
+		end
+		
+		-- // sliderSpellIconSize
+		do
+		
+			sliderSpellIconSize = GUICreateSlider(GUIFrame, 170, -120, 200, "NAuras.GUI.Cat3.SliderSpellIconSize");
+			sliderSpellIconSize.label:ClearAllPoints();
+			sliderSpellIconSize.label:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -160);
+			sliderSpellIconSize.label:SetText("Icon size:");
+			sliderSpellIconSize:ClearAllPoints();
+			sliderSpellIconSize:SetPoint("LEFT", sliderSpellIconSize.label, "RIGHT", 20, 0);
+			sliderSpellIconSize.slider:ClearAllPoints();
+			sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
+			sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
+			sliderSpellIconSize.slider:SetValueStep(1);
+			sliderSpellIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
+			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
+				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
+				db.DefaultSpells[selectedSpell].iconSize = math_ceil(value);
+				SpellIconSizesCache[SpellNamesCache[selectedSpell]] = db.DefaultSpells[selectedSpell].iconSize;
+			end);
+			sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderSpellIconSize.editbox:GetText() ~= "") then
+					local v = tonumber(sliderSpellIconSize.editbox:GetText());
+					if (v == nil) then
+						sliderSpellIconSize.editbox:SetText(tostring(db.DefaultSpells[selectedSpell].iconSize));
+						Print(L["Value must be a number"]);
 					else
-						Print("Spell is already exists ("..n..")"); -- todo:localization
+						if (v > CONST_MAX_ICON_SIZE) then
+							v = CONST_MAX_ICON_SIZE;
+						end
+						if (v < 1) then
+							v = 1;
+						end
+						sliderSpellIconSize.slider:SetValue(v);
 					end
+					sliderSpellIconSize.editbox:ClearFocus();
 				end
-				editboxAddSpell:SetText("");
-			else
-				Print("Please enter spell ID, not spell name"); -- todo:localization
-			end
-		end);
-		table.insert(GUIFrame.Categories[index], buttonAddSpell);
+			end);
+			sliderSpellIconSize.lowtext:SetText("1");
+			sliderSpellIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
+			table.insert(controls, sliderSpellIconSize);
+			
+		end
 		
-		local dropdownRemoveSpell = CreateFrame("Frame", "NAuras_GUI_Cat4_CmbboxRemoveSpell", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownRemoveSpell, 135);
-		dropdownRemoveSpell:SetPoint("TOPLEFT", GUIFrame, 233, -34);
-		local info = {};
-		dropdownRemoveSpell.initialize = function()
-			wipe(info);
-			for spellID in pairs(db.CustomSpells) do
-				info.text = GetSpellInfo(spellID);
-				info.value = spellID;
-				info.func = function(self)
-					local spellName = GetSpellInfo(spellID);
-					db.CustomSpells[self.value] = nil;
-					SpellsEnabledCache[spellName] = nil;
-					for _, dropdown in pairs(GUIFrame.CustomSpellsDropdowns) do
-						if (dropdown.spellName == spellName) then
-							dropdown:Hide();
-							dropdown.spellName = nil;
+	end
+	
+	function GUICategory_4(index, value)
+		local controls = { };
+		local selectedSpell = 0;
+		local editboxAddSpell, buttonAddSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType;
+		
+		-- // editboxAddSpell, buttonAddSpell
+		do
+		
+			editboxAddSpell = CreateFrame("EditBox", "NAuras.GUI.Cat4.EditboxAddSpell", GUIFrame);
+			editboxAddSpell:SetAutoFocus(false);
+			editboxAddSpell:SetFontObject(GameFontHighlightSmall);
+			editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 167, -30);
+			editboxAddSpell:SetHeight(20);
+			editboxAddSpell:SetWidth(215);
+			editboxAddSpell:SetJustifyH("LEFT");
+			editboxAddSpell:EnableMouse(true);
+			editboxAddSpell:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
+			editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
+			local text = editboxAddSpell:CreateFontString("NAuras.GUI.Cat4.EditboxAddSpell.Label", "ARTWORK", "GameFontNormalSmall");
+			text:SetPoint("LEFT", 5, 15);
+			text:SetText("Add new spell: "); -- todo:localization
+			table.insert(GUIFrame.Categories[index], editboxAddSpell);
+			
+			buttonAddSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonAddSpell", GUIFrame, "Add spell"); -- todo:localization
+			buttonAddSpell:SetWidth(90);
+			buttonAddSpell:SetHeight(20);
+			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
+			buttonAddSpell:SetScript("OnClick", function(self, ...)
+				local text = editboxAddSpell:GetText();
+				local textAsNumber = tonumber(text);
+				if (textAsNumber ~= nil) then
+					local spellName = SpellNamesCache[textAsNumber];
+					if (spellName == nil) then
+						Print(format(L["Unknown spell: %s"], text));
+					else
+						local alreadyExist = false;
+						for spellIDDefault in pairs(DefaultSpells) do
+							local spellNameDefault = SpellNamesCache[spellIDDefault];
+							if (spellNameDefault == spellName) then
+								alreadyExist = true;
+							end
+						end
+						for spellIDCustom in pairs(db.CustomSpells2) do
+							local spellNameCustom = SpellNamesCache[spellIDCustom];
+							if (spellNameCustom == spellName) then
+								alreadyExist = true;
+							end
+						end
+						if (not alreadyExist) then
+							db.CustomSpells2[textAsNumber] = { ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = CONST_DEFAULT_ICON_SIZE };
+							SpellShowModesCache[spellName] = db.CustomSpells2[textAsNumber].enabledState;
+							SpellAuraTypeCache[spellName] = db.CustomSpells2[textAsNumber].auraType;
+						else
+							Print("Spell is already exists ("..spellName..")"); -- todo:localization
 						end
 					end
-					RebuildListOfDropdowns();
-					_G[dropdownRemoveSpell:GetName().."Text"]:SetText("");
-					--UIDropDownMenu_Initialize(dropdownRemoveSpell, dropdownRemoveSpell.initialize);
+					editboxAddSpell:SetText("");
+				else
+					Print("Please enter spell ID, not spell name"); -- todo:localization
 				end
-				UIDropDownMenu_AddButton(info);
-			end
+			end);
+			table.insert(GUIFrame.Categories[index], buttonAddSpell);
+			
 		end
-		_G[dropdownRemoveSpell:GetName().."Text"]:SetText(db.CustomSpells[spellID]);
-		local text = dropdownRemoveSpell:CreateFontString("NAuras_GUI_Cat4_CmbboxRemoveSpell_Label", "ARTWORK", "GameFontNormalSmall");
-		text:SetPoint("RIGHT", -171, 0);
-		text:SetText("Remove spell: "); -- todo:localization
-		table.insert(GUIFrame.Categories[index], dropdownRemoveSpell);
+	
+		-- // dropdownSelectSpell
+		do
 		
-		
-		for spellID in pairs(db.CustomSpells) do
-			local n, _, icon = GetSpellInfo(spellID);
-			if (not n) then
-				Print(format(L["Unknown spell: %s"], spellID));
-			else
-				CreateSpellEntry(spellID);
+			local dropdownSelectSpell = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSelectSpell", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSelectSpell, 300);
+			dropdownSelectSpell:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -65);
+			local info = {};
+			dropdownSelectSpell.initialize = function()
+				wipe(info);
+				for spellID, spellInfo in pairs(db.CustomSpells2) do
+					local spellName = SpellNamesCache[spellID];
+					info.text = spellName;
+					info.value = spellID;
+					info.func = function(self)
+						if (self.value ~= nil) then
+							for _, control in pairs(controls) do
+								control:Show();
+							end
+						end
+						selectedSpell = spellID;
+						print(spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize);
+						_G[dropdownSelectSpell:GetName().."Text"]:SetText(self:GetText());
+						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].enabledState);
+						sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
+						sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
+						_G[dropdownSpellShowType:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].auraType);
+						
+						-- //
+					end
+					info.checked = (spellID == selectedSpell);
+					UIDropDownMenu_AddButton(info);
+				end
 			end
+			_G[dropdownSelectSpell:GetName().."Text"]:SetText("");
+			dropdownSelectSpell:SetScript("OnHide", function(self)
+				for _, control in pairs(controls) do
+					control:Hide();
+					_G[self:GetName().."Text"]:SetText("");
+				end
+			end);
+			dropdownSelectSpell.text = dropdownSelectSpell:CreateFontString("NAuras.GUI.Cat4.DropdownSelectSpell.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownSelectSpell.text:SetPoint("LEFT", 20, 15);
+			dropdownSelectSpell.text:SetText("Select spell:");
+			table.insert(GUIFrame.Categories[index], dropdownSelectSpell);
+			
 		end
+	
+		-- // dropdownSpellShowMode
+		do
+		
+			dropdownSpellShowMode = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowMode", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSpellShowMode, 150);
+			dropdownSpellShowMode.text = dropdownSpellShowMode:CreateFontString("NAuras.GUI.Cat4.DropdownSpellShowMode.Label", "ARTWORK", "GameFontNormal");
+			dropdownSpellShowMode.text:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -125);
+			dropdownSpellShowMode.text:SetText("Show mode:");
+			dropdownSpellShowMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 300, -115);
+			local info = {};
+			dropdownSpellShowMode.initialize = function()
+				wipe(info);
+				for _, showMode in pairs(SPELL_SHOW_MODES) do
+					info.text = showMode;
+					info.value = showMode;
+					info.func = function(self)
+						db.CustomSpells2[selectedSpell].enabledState = self.value;
+						if (self.value ~= CONST_DISABLED) then
+							SpellShowModesCache[SpellNamesCache[selectedSpell]] = self.value;
+							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].auraType
+						else
+							SpellShowModesCache[SpellNamesCache[selectedSpell]] = nil;
+							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = nil;
+						end
+						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(self:GetText());
+					end
+					info.checked = (showMode == db.CustomSpells2[selectedSpell].enabledState);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownSpellShowMode:GetName().."Text"]:SetText("");
+			table.insert(controls, dropdownSpellShowMode);
+			
+		end
+		
+		-- // dropdownSpellShowType
+		do
+		
+			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSpellShowType, 150);
+			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString("NAuras.GUI.Cat4.DropdownSpellShowType.Label", "ARTWORK", "GameFontNormal");
+			dropdownSpellShowType.text:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -165);
+			dropdownSpellShowType.text:SetText("Aura type:");
+			dropdownSpellShowType:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 300, -155);
+			local info = {};
+			dropdownSpellShowType.initialize = function()
+				wipe(info);
+				for _, auraType in pairs(SPELL_SHOW_TYPES) do
+					info.text = auraType;
+					info.value = auraType;
+					info.func = function(self)
+						db.CustomSpells2[selectedSpell].auraType = self.value;
+						SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].auraType;
+						_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
+					end
+					info.checked = (info.value == db.CustomSpells2[selectedSpell].auraType);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
+			table.insert(controls, dropdownSpellShowType);
+		
+		end
+		
+		-- // sliderSpellIconSize
+		do
+		
+			sliderSpellIconSize = GUICreateSlider(GUIFrame, 170, -120, 200, "NAuras.GUI.Cat4.SliderSpellIconSize");
+			sliderSpellIconSize.label:ClearAllPoints();
+			sliderSpellIconSize.label:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 170, -205);
+			sliderSpellIconSize.label:SetText("Icon size:");
+			sliderSpellIconSize:ClearAllPoints();
+			sliderSpellIconSize:SetPoint("LEFT", sliderSpellIconSize.label, "RIGHT", 20, 0);
+			sliderSpellIconSize.slider:ClearAllPoints();
+			sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
+			sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
+			sliderSpellIconSize.slider:SetValueStep(1);
+			sliderSpellIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
+			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
+				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
+				db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
+				SpellIconSizesCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].iconSize;
+			end);
+			sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderSpellIconSize.editbox:GetText() ~= "") then
+					local v = tonumber(sliderSpellIconSize.editbox:GetText());
+					if (v == nil) then
+						sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
+						Print(L["Value must be a number"]);
+					else
+						if (v > CONST_MAX_ICON_SIZE) then
+							v = CONST_MAX_ICON_SIZE;
+						end
+						if (v < 1) then
+							v = 1;
+						end
+						sliderSpellIconSize.slider:SetValue(v);
+					end
+					sliderSpellIconSize.editbox:ClearFocus();
+				end
+			end);
+			sliderSpellIconSize.lowtext:SetText("1");
+			sliderSpellIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
+			table.insert(controls, sliderSpellIconSize);
+			
+		end
+		
 	end
 	
 	function OnGUICategoryClick(self, ...)
@@ -1344,7 +1500,7 @@ do
 		frame.label:SetPoint("TOPLEFT");
 		frame.label:SetPoint("TOPRIGHT");
 		frame.label:SetJustifyH("CENTER");
-		frame.label:SetHeight(15);
+		--frame.label:SetHeight(15);
 		
 		frame.slider = CreateFrame("Slider", nil, frame);
 		frame.slider:SetOrientation("HORIZONTAL")

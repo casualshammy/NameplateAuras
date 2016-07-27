@@ -4,6 +4,7 @@ local DefaultSpells = addonTable.DefaultSpells;
 
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", "Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
+SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
 NameplateAurasDB = {};
 local nameplateAuras = {};
@@ -19,6 +20,18 @@ local SpellNamesCache = setmetatable({}, {
 		local spellName = GetSpellInfo(key);
 		t[key] = spellName;
 		return spellName;
+	end
+});
+local SpellIDsCache = setmetatable({}, {
+	__index = function(t, key)
+		for spellID = 1, 500000 do
+			local spellName = GetSpellInfo(spellID);
+			if (spellName == key) then
+				t[key] = spellID;
+				return spellID;
+			end
+		end
+		return nil;
 	end
 });
 local Spells = {};
@@ -158,7 +171,7 @@ do
 		-- // starting OnUpdate()
 		EventFrame:SetScript("OnUpdate", function(self, elapsed)
 			ElapsedTimer = ElapsedTimer + elapsed;
-			if (ElapsedTimer >= 1) then
+			if (ElapsedTimer >= 0.1) then
 				OnUpdate();				
 				ElapsedTimer = 0;
 			end
@@ -365,8 +378,10 @@ do
 						icon.cooldown:SetText("Inf");
 					elseif (last >= 60) then
 						icon.cooldown:SetText(math_floor(last/60).."m");
-					else
+					elseif (last >= 10) then
 						icon.cooldown:SetText(string_format("%.0f", last));
+					else
+						icon.cooldown:SetText(string_format("%.1f", last));
 					end
 					-- // stacks
 					if (icon.stackcount ~= spellInfo.stacks) then
@@ -487,8 +502,10 @@ do
 							icon.cooldown:SetText("Inf");
 						elseif (last >= 60) then
 							icon.cooldown:SetText(math_floor(last/60).."m");
-						else
+						elseif (last >= 10) then
 							icon.cooldown:SetText(string_format("%.0f", last));
+						else
+							icon.cooldown:SetText(string_format("%.1f", last));
 						end
 						-- // border
 						-- if (db.DisplayBorders) then
@@ -508,20 +525,20 @@ do
 							-- end
 						-- end
 						-- // show icon if need
-						if (not icon.shown) then
-							ShowCDIcon(icon);
-						end
+						-- if (not icon.shown) then
+							-- ShowCDIcon(icon);
+						-- end
 						counter = counter + 1;
 					else
 						nameplateAuras[frame][spellID] = nil;
 					end
 				end
 			end
-			for k = counter, frame.NAurasIconsCount do
-				if (frame.NAurasIcons[k].shown) then
-					HideCDIcon(frame.NAurasIcons[k]);
-				end
-			end
+			-- for k = counter, frame.NAurasIconsCount do
+				-- if (frame.NAurasIcons[k].shown) then
+					-- HideCDIcon(frame.NAurasIcons[k]);
+				-- end
+			-- end
 		end
 	end
 	
@@ -1289,7 +1306,7 @@ do
 			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 			buttonAddSpell:SetScript("OnClick", function(self, ...)
 				local text = editboxAddSpell:GetText();
-				local textAsNumber = tonumber(text);
+				local textAsNumber = tonumber(text) or SpellIDsCache[text];
 				if (textAsNumber ~= nil) then
 					local spellName = SpellNamesCache[textAsNumber];
 					if (spellName == nil) then
@@ -1312,14 +1329,15 @@ do
 							db.CustomSpells2[textAsNumber] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], textAsNumber, db.DefaultIconSize);
 							SpellShowModesCache[spellName] = db.CustomSpells2[textAsNumber].enabledState;
 							SpellAuraTypeCache[spellName] = db.CustomSpells2[textAsNumber].auraType;
+							SpellIconSizesCache[spellName] = db.DefaultIconSize;
 						else
-							Print("Spell is already exists ("..spellName..")"); -- todo:localization
+							message("Spell already exists ("..spellName..")"); -- todo:localization
 						end
 					end
 					editboxAddSpell:SetText("");
 					editboxAddSpell:ClearFocus();
 				else
-					Print("Please enter spell ID, not spell name"); -- todo:localization
+					message("Spell seems to be missing"); -- todo:localization
 				end
 			end);
 			table.insert(GUIFrame.Categories[index], buttonAddSpell);

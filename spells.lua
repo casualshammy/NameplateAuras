@@ -130,7 +130,7 @@ addonTable.DefaultSpells = {
 	[710] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 710 },
 	[198111] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 198111 },
 	[115176] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 115176 },
-	[163505] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 163505 },
+	[163505] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 163505, ["checkSpellID"] = 163505 },
 	[15487] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 15487 },
 	[107574] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 107574 },
 	[8178] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 8178 },

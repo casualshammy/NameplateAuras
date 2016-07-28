@@ -1066,7 +1066,7 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, L["Always display icons at full opacity (ReloadUI is needed)"], function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, "Always display icons at full opacity (ReloadUI is needed)", function(this)
 			db.FullOpacityAlways = this:GetChecked();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);

@@ -208,19 +208,19 @@ do
 		-- // processing old and invalid entries
 		if (NameplateAurasDB[LocalPlayerFullName].CustomSpells ~= nil and NameplateAurasDB[LocalPlayerFullName].CustomSpells2 == nil) then
 			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].CustomSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize);
+				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize, nil);
 			end
 			NameplateAurasDB[LocalPlayerFullName].CustomSpells = nil;
 		end
 		if (NameplateAurasDB[LocalPlayerFullName].StandardSpells ~= nil and NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"] == nil) then
 			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].StandardSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize);
+				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize, nil);
 			end
 			NameplateAurasDB[LocalPlayerFullName].StandardSpells = nil;
 		end
 		if (NameplateAurasDB[LocalPlayerFullName].DefaultSpells ~= nil) then
 			for spellID, spellInfo in pairs(NameplateAurasDB[LocalPlayerFullName].DefaultSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(spellInfo.enabledState, spellInfo.spellID, spellInfo.iconSize or defaults.DefaultIconSize);
+				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(spellInfo.enabledState, spellInfo.spellID, spellInfo.iconSize or defaults.DefaultIconSize, spellInfo.checkSpellID or (DefaultSpells[spellID] ~= nil and DefaultSpells[spellID].checkSpellID or nil));
 			end
 			NameplateAurasDB[LocalPlayerFullName].DefaultSpells = nil;
 		end
@@ -231,12 +231,13 @@ do
 		db = NameplateAurasDB[LocalPlayerFullName];
 	end
 	
-	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize)
+	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
 		return {
 			["enabledState"] = enabledState,
 			["auraType"] = SPELL_SHOW_TYPES[3],
 			["iconSize"] = (iconSize ~= nil) and iconSize or db.DefaultIconSize,
 			["spellID"] = spellID,
+			["checkSpellID"] = checkSpellID,
 		};
 	end
 	
@@ -1269,7 +1270,7 @@ do
 							end
 						end
 						if (not alreadyExist) then
-							db.CustomSpells2[textAsNumber] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], textAsNumber, db.DefaultIconSize);
+							db.CustomSpells2[textAsNumber] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], textAsNumber, db.DefaultIconSize, nil);
 							SpellShowModesCache[spellName] = db.CustomSpells2[textAsNumber].enabledState;
 							SpellAuraTypeCache[spellName] = db.CustomSpells2[textAsNumber].auraType;
 							SpellIconSizesCache[spellName] = db.DefaultIconSize;
@@ -1307,7 +1308,7 @@ do
 								control:Show();
 							end
 							selectedSpell = self.info.spellID;
-							print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize);
+							print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize, db.CustomSpells2[selectedSpell].auraType, db.CustomSpells2[selectedSpell].checkSpellID);
 							selectSpell.Text:SetText(self.text);
 							_G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].enabledState);
 							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
@@ -1335,59 +1336,6 @@ do
 			table.insert(GUIFrame.Categories[index], selectSpell);
 			
 		end
-	
-	
-	
-		-- // dropdownSelectSpell
-		-- do
-		
-			-- dropdownSelectSpell = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSelectSpell", GUIFrame, "UIDropDownMenuTemplate");
-			-- UIDropDownMenu_SetWidth(dropdownSelectSpell, 300);
-			-- dropdownSelectSpell:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -65);
-			-- local info = {};
-			-- dropdownSelectSpell.initialize = function()
-				-- wipe(info);
-				-- local t = { };
-				-- for _, spellInfo in pairs(db.CustomSpells2) do
-					-- table.insert(t, spellInfo);
-				-- end
-				-- table.sort(t, function(item1, item2) return SpellNamesCache[item1.spellID] < SpellNamesCache[item2.spellID] end);
-				-- for _, spellInfo in pairs(t) do
-					-- local spellName = SpellNamesCache[spellInfo.spellID];
-					-- info.text = spellName;
-					-- info.value = spellInfo.spellID;
-					-- info.icon = TextureCache[spellInfo.spellID];
-					-- info.func = function(self)
-						-- if (self.value ~= nil) then
-							-- for _, control in pairs(controls) do
-								-- control:Show();
-							-- end
-						-- end
-						-- selectedSpell = spellInfo.spellID;
-						-- print(spellInfo.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize);
-						-- _G[dropdownSelectSpell:GetName().."Text"]:SetText(self:GetText());
-						-- _G[dropdownSpellShowMode:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].enabledState);
-						-- sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
-						-- sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
-						-- _G[dropdownSpellShowType:GetName().."Text"]:SetText(db.CustomSpells2[selectedSpell].auraType);
-					-- end
-					-- info.checked = (spellInfo.spellID == selectedSpell);
-					-- UIDropDownMenu_AddButton(info);
-				-- end
-			-- end
-			-- _G[dropdownSelectSpell:GetName().."Text"]:SetText("");
-			-- dropdownSelectSpell:SetScript("OnHide", function(self)
-				-- for _, control in pairs(controls) do
-					-- control:Hide();
-					-- _G[self:GetName().."Text"]:SetText("");
-				-- end
-			-- end);
-			-- dropdownSelectSpell.text = dropdownSelectSpell:CreateFontString("NAuras.GUI.Cat4.DropdownSelectSpell.Label", "ARTWORK", "GameFontNormalSmall");
-			-- dropdownSelectSpell.text:SetPoint("LEFT", 20, 15);
-			-- dropdownSelectSpell.text:SetText("Select spell:");
-			-- table.insert(GUIFrame.Categories[index], dropdownSelectSpell);
-			
-		-- end
 	
 		-- // dropdownSpellShowMode
 		do

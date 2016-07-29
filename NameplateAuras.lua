@@ -89,6 +89,7 @@ local UpdateOnlyOneNameplate;
 local HideCDIcon;
 local ShowCDIcon;
 local ResizeIcon;
+local Nameplates_OnFontChanged;
 local SortAurasForNameplate;
 local UpdateCachesForSpell;
 
@@ -108,6 +109,7 @@ local GUICategory_1;
 local GUICategory_2;
 local GUICategory_3;
 local GUICategory_4;
+local GUICategory_Fonts;
 local OnGUICategoryClick;
 local ShowGUICategory;
 local RebuildDropdowns;
@@ -199,6 +201,9 @@ do
 			DefaultIconSize = 45,
 			SortMode = CONST_SORT_MODES[2],
 			DisplayTenthsOfSeconds = true,
+			FontScale = 1,
+			StacksFont = "NAuras_TeenBold",
+			StacksFontScale = 1,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -281,7 +286,7 @@ do
 		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
 		texture.cooldown:SetAllPoints(texture);
-		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize - db.DefaultIconSize / 2), "OUTLINE");
+		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
 		texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
 		texture.border:SetVertexColor(1, 0.35, 0);
@@ -290,7 +295,7 @@ do
 		texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.stacks:SetTextColor(1, 0.1, 0.1);
 		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
-		texture.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize / 4), "OUTLINE");
+		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
@@ -301,7 +306,7 @@ do
 		for frame in pairs(Nameplates) do
 			if (frame.NAurasFrame) then
 				frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
-				frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
+				--frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
 				local counter = 0;
 				for _, icon in pairs(frame.NAurasIcons) do
 					icon:SetWidth(db.DefaultIconSize);
@@ -381,7 +386,7 @@ do
 						icon.cooldown:SetText("Inf");
 					elseif (last >= 60) then
 						icon.cooldown:SetText(math_floor(last/60).."m");
-					elseif (last >= 10) then
+					elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
 						icon.cooldown:SetText(string_format("%.0f", last));
 					else
 						icon.cooldown:SetText(string_format("%.1f", last));
@@ -464,19 +469,34 @@ do
 		icon:SetWidth(size);
 		icon:SetHeight(size);
 		icon:SetPoint("LEFT", icon:GetParent(), widthAlreadyUsed, 0);
-		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(size - size / 2), "OUTLINE");
-		icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(size / 4), "OUTLINE");
+		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
+		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
+	end
+	
+	function Nameplates_OnFontChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				local width = 0;
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					ResizeIcon(icon, icon.size, width);
+					width = width + icon.size;
+				end
+			end
+		end
 	end
 	
 	function SortAurasForNameplate(auras)
-		if (db.SortMode == CONST_SORT_MODES[1]) then
-			return auras;
-		end
+		-- if (db.SortMode == CONST_SORT_MODES[1]) then
+			-- print("SortAurasForNameplate: return auras");
+			-- return auras;
+		-- end
 		local t = { };
 		for _, spellInfo in pairs(auras) do
 			table.insert(t, spellInfo);
 		end
-		if (db.SortMode == CONST_SORT_MODES[2]) then
+		if (db.SortMode == CONST_SORT_MODES[1]) then
+			--print("SortAurasForNameplate: return plain t");
+		elseif (db.SortMode == CONST_SORT_MODES[2]) then
 			table.sort(t, function(item1, item2) return item1.expires < item2.expires end);
 		elseif (db.SortMode == CONST_SORT_MODES[3]) then
 			table.sort(t, function(item1, item2) return item1.expires > item2.expires end);
@@ -820,7 +840,7 @@ do
 		GUIFrame.SpellIcons = {};
 		GUIFrame.CustomSpellsDropdowns = {};
 		
-		for index, value in pairs({ L["General"], L["Profiles"], "Spells" }) do
+		for index, value in pairs({ L["General"], L["Profiles"], "Fonts", "Spells" }) do
 			local b = CreateGUICategory();
 			b.index = index;
 			b.text:SetText(value);
@@ -830,6 +850,8 @@ do
 				b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
 			elseif (index == 2) then
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -24);
+			elseif (index == 3) then
+				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -42);
 			else
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 			end
@@ -841,9 +863,11 @@ do
 			elseif (index == 2) then
 				GUICategory_2(index, value);
 			elseif (index == 3) then
-				GUICategory_3(index, value);
+				GUICategory_Fonts(index, value);
+			elseif (index == 4) then
+				GUICategory_4(index, value);
 			else
-				--GUICategory_4(index, value);
+				
 			end
 		end
 	end
@@ -888,7 +912,7 @@ do
 				button.Icon:SetHeight(20);
 				button:Hide();
 				scrollAreaBackground.buttons[counter] = button;
-				print("New button is created: " .. tostring(counter));
+				--print("New button is created: " .. tostring(counter));
 				return button;
 				--button:SetScript("OnClick", function() scrollAreaBackground.selectedItem =  end);
 			else
@@ -1090,33 +1114,6 @@ do
 			table.insert(GUIFrame.Categories[index], dropdownSortMode);
 		end
 		
-		-- // dropdownFont
-		do
-			local dropdownFont = CreateFrame("Frame", "NAuras_GUI_General_DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownFont, 200);
-			dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -310);
-			local info = {};
-			dropdownFont.initialize = function()
-				wipe(info);
-				for idx, font in next, LibStub("LibSharedMedia-3.0"):List("font") do
-					info.text = font;
-					info.value = font;
-					info.func = function(self)
-						db.Font = self.value;
-						ReallocateAllIcons(false);
-						NAuras_GUI_General_DropdownFontText:SetText(self:GetText());
-					end
-					info.checked = font == db.Font;
-					UIDropDownMenu_AddButton(info);
-				end
-			end
-			NAuras_GUI_General_DropdownFontText:SetText(db.Font);
-			dropdownFont.text = dropdownFont:CreateFontString("NAuras_GUI_General_DropdownFontNoteText", "ARTWORK", "GameFontNormalSmall");
-			dropdownFont.text:SetPoint("LEFT", 20, 15);
-			dropdownFont.text:SetText(L["Font:"]);
-			table.insert(GUIFrame.Categories[index], dropdownFont);
-		end
-		
 	end
 	
 	function GUICategory_2(index, value)
@@ -1215,7 +1212,146 @@ do
 		RebuildDropdowns();
 	end
 	
-	function GUICategory_3(index, value)
+	function GUICategory_Fonts(index, value)
+		
+		-- // dropdownFont
+		do
+			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownFont, 300);
+			dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -30);
+			local info = {};
+			dropdownFont.initialize = function()
+				wipe(info);
+				for idx, font in next, LibStub("LibSharedMedia-3.0"):List("font") do
+					info.text = font;
+					info.value = font;
+					info.func = function(self)
+						db.Font = self.value;
+						_G[dropdownFont:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnFontChanged();
+					end
+					info.checked = font == db.Font;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownFont:GetName() .. "Text"]:SetText(db.Font);
+			dropdownFont.text = dropdownFont:CreateFontString("NAuras.GUI.Fonts.DropdownFont.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownFont.text:SetPoint("LEFT", 20, 15);
+			dropdownFont.text:SetText("Timer font:");
+			table.insert(GUIFrame.Categories[index], dropdownFont);
+		end
+		
+		-- // sliderTimerFontScale
+		do
+			
+			local minValue, maxValue = 0.3, 3;
+			local sliderTimerFontScale = GUICreateSlider(GUIFrame, 160, -70, 325, "NAuras.GUI.Fonts.SliderTimerFontScale");
+			sliderTimerFontScale.label:SetText("Timer font scale");
+			sliderTimerFontScale.slider:SetValueStep(0.1);
+			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
+			sliderTimerFontScale.slider:SetValue(db.FontScale);
+			sliderTimerFontScale.slider:SetScript("OnValueChanged", function(self, value)
+				local actualValue = tonumber(string_format("%.1f", value));
+				sliderTimerFontScale.editbox:SetText(tostring(actualValue));
+				db.FontScale = actualValue;
+				Nameplates_OnFontChanged();
+			end);
+			sliderTimerFontScale.editbox:SetText(tostring(db.FontScale));
+			sliderTimerFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderTimerFontScale.editbox:GetText() ~= "") then
+					local v = tonumber(sliderTimerFontScale.editbox:GetText());
+					if (v == nil) then
+						sliderTimerFontScale.editbox:SetText(tostring(db.FontScale));
+						message(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderTimerFontScale.slider:SetValue(v);
+					end
+					sliderTimerFontScale.editbox:ClearFocus();
+				end
+			end);
+			sliderTimerFontScale.lowtext:SetText(tostring(minValue));
+			sliderTimerFontScale.hightext:SetText(tostring(maxValue));
+			table.insert(GUIFrame.Categories[index], sliderTimerFontScale);
+		
+		end
+		
+		-- // dropdownStacksFont
+		do
+			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownStacksFont, 300);
+			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -130);
+			local info = {};
+			dropdownStacksFont.initialize = function()
+				wipe(info);
+				for idx, font in next, LibStub("LibSharedMedia-3.0"):List("font") do
+					info.text = font;
+					info.value = font;
+					info.func = function(self)
+						db.StacksFont = self.value;
+						_G[dropdownStacksFont:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnFontChanged();
+					end
+					info.checked = font == db.StacksFont;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont);
+			dropdownStacksFont.text = dropdownStacksFont:CreateFontString("NAuras.GUI.Fonts.DropdownStacksFont.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksFont.text:SetPoint("LEFT", 20, 15);
+			dropdownStacksFont.text:SetText("Stacks font:");
+			table.insert(GUIFrame.Categories[index], dropdownStacksFont);
+		end
+		
+		-- // sliderStacksFontScale
+		do
+			
+			local minValue, maxValue = 0.3, 3;
+			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -170, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			sliderStacksFontScale.label:SetText("Timer font scale");
+			sliderStacksFontScale.slider:SetValueStep(0.1);
+			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
+			sliderStacksFontScale.slider:SetValue(db.StacksFontScale);
+			sliderStacksFontScale.slider:SetScript("OnValueChanged", function(self, value)
+				local actualValue = tonumber(string_format("%.1f", value));
+				sliderStacksFontScale.editbox:SetText(tostring(actualValue));
+				db.StacksFontScale = actualValue;
+				Nameplates_OnFontChanged();
+			end);
+			sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale));
+			sliderStacksFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderStacksFontScale.editbox:GetText() ~= "") then
+					local v = tonumber(sliderStacksFontScale.editbox:GetText());
+					if (v == nil) then
+						sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale));
+						message(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderStacksFontScale.slider:SetValue(v);
+					end
+					sliderStacksFontScale.editbox:ClearFocus();
+				end
+			end);
+			sliderStacksFontScale.lowtext:SetText(tostring(minValue));
+			sliderStacksFontScale.hightext:SetText(tostring(maxValue));
+			table.insert(GUIFrame.Categories[index], sliderStacksFontScale);
+		
+		end
+		
+		
+	end
+	
+	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
 		local editboxAddSpell, buttonAddSpell, dropdownSelectSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, selectSpell;
@@ -1250,39 +1386,37 @@ do
 			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 			buttonAddSpell:SetScript("OnClick", function(self, ...)
 				local text = editboxAddSpell:GetText();
-				local textAsNumber = tonumber(text) or SpellIDsCache[text];
-				if (textAsNumber ~= nil) then
-					local spellName = SpellNamesCache[textAsNumber];
-					if (spellName == nil) then
-						Print(format(L["Unknown spell: %s"], text));
-					else
-						local alreadyExist = false;
-						-- for spellIDDefault in pairs(DefaultSpells) do
-							-- local spellNameDefault = SpellNamesCache[spellIDDefault];
-							-- if (spellNameDefault == spellName) then
-								-- alreadyExist = true;
-							-- end
-						-- end
-						for spellIDCustom in pairs(db.CustomSpells2) do
-							local spellNameCustom = SpellNamesCache[spellIDCustom];
-							if (spellNameCustom == spellName) then
-								alreadyExist = true;
+				if (tonumber(text) ~= nil) then
+					message("You should enter spell name instead of spell id.\nUse \"Check spell ID\" option if you want to track spell with specific id"); -- todo:localization
+				else
+					local spellID = SpellIDsCache[text];
+					if (spellID ~= nil) then
+						local spellName = SpellNamesCache[spellID];
+						if (spellName == nil) then
+							Print(format(L["Unknown spell: %s"], text));
+						else
+							local alreadyExist = false;
+							for spellIDCustom in pairs(db.CustomSpells2) do
+								local spellNameCustom = SpellNamesCache[spellIDCustom];
+								if (spellNameCustom == spellName) then
+									alreadyExist = true;
+								end
+							end
+							if (not alreadyExist) then
+								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], spellID, db.DefaultIconSize, nil);
+								SpellShowModesCache[spellName] = db.CustomSpells2[spellID].enabledState;
+								SpellAuraTypeCache[spellName] = db.CustomSpells2[spellID].auraType;
+								SpellIconSizesCache[spellName] = db.DefaultIconSize;
+								selectSpell:Click();
+							else
+								message("Spell already exists ("..spellName..")"); -- todo:localization
 							end
 						end
-						if (not alreadyExist) then
-							db.CustomSpells2[textAsNumber] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], textAsNumber, db.DefaultIconSize, nil);
-							SpellShowModesCache[spellName] = db.CustomSpells2[textAsNumber].enabledState;
-							SpellAuraTypeCache[spellName] = db.CustomSpells2[textAsNumber].auraType;
-							SpellIconSizesCache[spellName] = db.DefaultIconSize;
-							selectSpell:Click();
-						else
-							message("Spell already exists ("..spellName..")"); -- todo:localization
-						end
+						editboxAddSpell:SetText("");
+						editboxAddSpell:ClearFocus();
+					else
+						message("Spell seems to be missing"); -- todo:localization
 					end
-					editboxAddSpell:SetText("");
-					editboxAddSpell:ClearFocus();
-				else
-					message("Spell seems to be missing"); -- todo:localization
 				end
 			end);
 			table.insert(GUIFrame.Categories[index], buttonAddSpell);

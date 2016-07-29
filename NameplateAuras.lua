@@ -322,6 +322,7 @@ do
 	end
 	
 	function UpdateOnlyOneNameplate(frame, unitID)
+		wipe(nameplateAuras[frame]);
 		for i = 1, 40 do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
@@ -340,7 +341,7 @@ do
 			end
 			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
-				--print(SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
+				--print("UpdateOnlyOneNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player")) and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff") and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
@@ -581,7 +582,6 @@ do
 		local unitID = ...;
 		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
-			wipe(nameplateAuras[nameplate]);
 			UpdateOnlyOneNameplate(nameplate, unitID);
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 				nameplate.NAurasFrame:Show();

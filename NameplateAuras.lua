@@ -84,6 +84,9 @@ local AddButtonToBlizzOptions;
 local AllocateIcon;
 local UpdateOnlyOneNameplate;
 local UpdateNameplate;
+local UpdateNameplate_SetCooldown;
+local UpdateNameplate_SetStacks;
+local UpdateNameplate_SetBorder;
 local HideCDIcon;
 local ShowCDIcon;
 local ResizeIcon;
@@ -160,13 +163,15 @@ do
 			end
 		end
 		-- // starting OnUpdate()
-		EventFrame:SetScript("OnUpdate", function(self, elapsed)
-			ElapsedTimer = ElapsedTimer + elapsed;
-			if (ElapsedTimer >= 0.1) then
-				OnUpdate();				
-				ElapsedTimer = 0;
-			end
-		end);
+		if (db.CooldownStyle == "texture-with-text") then
+			EventFrame:SetScript("OnUpdate", function(self, elapsed)
+				ElapsedTimer = ElapsedTimer + elapsed;
+				if (ElapsedTimer >= 0.1) then
+					OnUpdate();				
+					ElapsedTimer = 0;
+				end
+			end);
+		end
 		-- // starting listening for events
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
@@ -205,6 +210,7 @@ do
 			FontScale = 1,
 			StacksFont = "NAuras_TeenBold",
 			StacksFontScale = 1,
+			CooldownStyle = "texture-with-text",
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -269,7 +275,7 @@ end
 ----- Nameplates
 -------------------------------------------------------------------------------------------------
 do
-
+	local cooldownCounter = 0;
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -278,22 +284,53 @@ do
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
-		local texture = frame.NAurasFrame:CreateTexture(nil, "BORDER");
+		local texture = (db.CooldownStyle == "texture-with-text") and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
 		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
 		texture:SetWidth(db.DefaultIconSize);
 		texture:SetHeight(db.DefaultIconSize);
+		if (db.CooldownStyle ~= "texture-with-text") then
+			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
+			--print("Cooldown is created: ", "NAuras.Cooldown" .. tostring(cooldownCounter));
+			texture.cooldownFrame:SetAllPoints(texture);
+			texture.cooldownFrame:SetReverse(true)
+			texture.cooldownFrame:SetDrawEdge(false);
+			texture.cooldownFrame:SetDrawSwipe(true);
+			texture.cooldownFrame:SetHideCountdownNumbers(true);
+			texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+			texture.texture = texture:CreateTexture(nil, "BORDER");
+			texture.texture:SetAllPoints(texture);
+			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
+			texture.SetCooldown = function(self, startTime, duration)
+				if (startTime == 0) then duration = 0; end
+				texture.cooldownFrame:SetCooldown(startTime, duration);
+			end;
+			cooldownCounter = cooldownCounter + 1;
+			texture.border = texture:CreateTexture(nil, "OVERLAY");
+			texture.stacks = texture:CreateFontString("NAuras.Cooldown" .. tostring(cooldownCounter) .. ".Stacks", "OVERLAY");
+			hooksecurefunc(texture.stacks, "SetText", function(self, text)
+				if (text ~= "") then
+					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
+						texture.stacks:SetParent(texture);
+					else
+						texture.stacks:SetParent(texture.cooldownFrame);
+					end
+					--print(texture.stacks:GetName(), ": parent is changed");
+				end
+			end);
+		else
+			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
+			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+		end
 		texture.size = db.DefaultIconSize;
 		texture:Hide();
 		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
 		texture.cooldown:SetAllPoints(texture);
 		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
-		texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
 		texture.border:SetVertexColor(1, 0.35, 0);
 		texture.border:SetAllPoints(texture);
 		texture.border:Hide();
-		texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.stacks:SetTextColor(1, 0.1, 0.1);
 		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
 		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
@@ -363,41 +400,11 @@ do
 						icon:SetTexture(TextureCache[spellInfo.spellID]);
 						icon.spellID = spellName;
 					end
-					if (last > 3600) then
-						icon.cooldown:SetText("Inf");
-					elseif (last >= 60) then
-						icon.cooldown:SetText(math_floor(last/60).."m");
-					elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
-						icon.cooldown:SetText(string_format("%.0f", last));
-					else
-						icon.cooldown:SetText(string_format("%.1f", last));
-					end
+					UpdateNameplate_SetCooldown(icon, last, spellInfo);
 					-- // stacks
-					if (icon.stackcount ~= spellInfo.stacks) then
-						if (spellInfo.stacks > 1) then
-							icon.stacks:SetText(spellInfo.stacks);
-						else
-							icon.stacks:SetText("");
-						end
-						icon.stackcount = spellInfo.stacks;
-					end
+					UpdateNameplate_SetStacks(icon, spellInfo);
 					-- // border
-					if (db.DisplayBorders) then
-						if (icon.borderState ~= spellInfo.type) then
-							if (spellInfo.type == "buff") then
-								icon.border:SetVertexColor(0, 1, 0, 1);
-							else
-								icon.border:SetVertexColor(1, 0, 0, 1);
-							end
-							icon.border:Show();
-							icon.borderState = spellInfo.type;
-						end
-					else
-						if (icon.borderState ~= nil) then
-							icon.border:Hide();
-							icon.borderState = nil;
-						end
-					end
+					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
 					if (SpellIconSizesCache[spellName] ~= icon.size or iconResized) then
 						icon.size = SpellIconSizesCache[spellName];
@@ -426,7 +433,53 @@ do
 			frame.UnitFrame.BuffFrame:Hide();
 		end
 	end
-		
+	
+	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
+		if (db.CooldownStyle == "texture-with-text") then
+			if (last > 3600) then
+				icon.cooldown:SetText("Inf");
+			elseif (last >= 60) then
+				icon.cooldown:SetText(math_floor(last/60).."m");
+			elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
+				icon.cooldown:SetText(string_format("%.0f", last));
+			else
+				icon.cooldown:SetText(string_format("%.1f", last));
+			end
+		else
+			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+		end
+	end
+	
+	function UpdateNameplate_SetStacks(icon, spellInfo)
+		if (icon.stackcount ~= spellInfo.stacks) then
+			if (spellInfo.stacks > 1) then
+				icon.stacks:SetText(spellInfo.stacks);
+			else
+				icon.stacks:SetText("");
+			end
+			icon.stackcount = spellInfo.stacks;
+		end
+	end
+	
+	function UpdateNameplate_SetBorder(icon, spellInfo)
+		if (db.DisplayBorders) then
+			if (icon.borderState ~= spellInfo.type) then
+				if (spellInfo.type == "buff") then
+					icon.border:SetVertexColor(0, 1, 0, 1);
+				else
+					icon.border:SetVertexColor(1, 0, 0, 1);
+				end
+				icon.border:Show();
+				icon.borderState = spellInfo.type;
+			end
+		else
+			if (icon.borderState ~= nil) then
+				icon.border:Hide();
+				icon.borderState = nil;
+			end
+		end
+	end
+	
 	function HideCDIcon(icon)
 		icon.border:Hide();
 		icon.borderState = nil;
@@ -472,7 +525,7 @@ do
 				nameplate.NAurasFrame:SetPoint("CENTER", nameplate, db.IconXOffset, db.IconYOffset);
 				local width = 0;
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					if (icon.size == oldDefaultIconSize) then
+					if (icon.size == oldDefaultIconSize and icon.shown == true) then
 						icon.size = db.DefaultIconSize;
 					end
 					ResizeIcon(icon, icon.size, width);
@@ -1126,11 +1179,17 @@ do
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
 		
+		local checkBoxUseOmniCC = GUICreateCheckBox(160, -240, "Use OmniCC for rendering (Reload UI required)", function(this)
+			db.CooldownStyle = this:GetChecked() and "omnicc" or "texture-with-text";
+		end, "NAuras.GUI.Cat1.CheckBoxUseOmniCC");
+		checkBoxUseOmniCC:SetChecked(db.CooldownStyle == "omnicc");
+		table.insert(GUIFrame.Categories[index], checkBoxUseOmniCC);
+		
 		-- // dropdownSortMode
 		do
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSortMode, 200);
-			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -275);
+			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -300);
 			local info = {};
 			dropdownSortMode.initialize = function()
 				wipe(info);

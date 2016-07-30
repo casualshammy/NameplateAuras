@@ -82,14 +82,15 @@ local GetDefaultDBSpellEntry;
 local AddButtonToBlizzOptions;
 
 local AllocateIcon;
-local ReallocateAllIcons;
-local GetNAurasFrameWidth;
-local InitializeFrame;
 local UpdateOnlyOneNameplate;
+local UpdateNameplate;
 local HideCDIcon;
 local ShowCDIcon;
 local ResizeIcon;
 local Nameplates_OnFontChanged;
+local Nameplates_OnDefaultIconSizeOrOffsetChanged;
+local Nameplates_OnBordersStyleChanged;
+local Nameplates_OnSortModeChanged;
 local SortAurasForNameplate;
 local UpdateCachesForSpell;
 
@@ -301,31 +302,7 @@ do
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
 		tinsert(frame.NAurasIcons, texture);
 	end
-	
-	function ReallocateAllIcons(clearSpells)
-		for frame in pairs(Nameplates) do
-			if (frame.NAurasFrame) then
-				frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
-				--frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
-				local counter = 0;
-				for _, icon in pairs(frame.NAurasIcons) do
-					icon:SetWidth(db.DefaultIconSize);
-					icon:SetHeight(db.DefaultIconSize);
-					icon:SetPoint("LEFT", frame.NAurasFrame, counter * db.DefaultIconSize, 0);
-					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize - db.DefaultIconSize / 2), "OUTLINE");
-					icon.stacks:SetFont(SML:Fetch("font", db.Font), math_ceil(db.DefaultIconSize / 4), "OUTLINE");
-					if (clearSpells) then
-						HideCDIcon(icon);
-					end
-					counter = counter + 1;
-				end
-			end
-		end
-		if (clearSpells) then
-			OnUpdate();
-		end
-	end
-	
+		
 	function UpdateOnlyOneNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
 		for i = 1, 40 do
@@ -360,6 +337,10 @@ do
 				end
 			end
 		end
+		UpdateNameplate(frame);
+	end
+	
+	function UpdateNameplate(frame)
 		local counter = 1;
 		local totalWidth = 0;
 		local iconResized = false;
@@ -441,7 +422,7 @@ do
 			end
 		end
 		-- // hide standart buff frame
-		if (db.HideBlizzardFrames) then
+		if (db.HideBlizzardFrames and frame.UnitFrame.BuffFrame ~= nil) then
 			frame.UnitFrame.BuffFrame:Hide();
 		end
 	end
@@ -485,17 +466,72 @@ do
 		end
 	end
 	
+	function Nameplates_OnDefaultIconSizeOrOffsetChanged(oldDefaultIconSize)
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				nameplate.NAurasFrame:SetPoint("CENTER", nameplate, db.IconXOffset, db.IconYOffset);
+				local width = 0;
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					if (icon.size == oldDefaultIconSize) then
+						icon.size = db.DefaultIconSize;
+					end
+					ResizeIcon(icon, icon.size, width);
+					width = width + icon.size;
+				end
+				nameplate.NAurasFrame:SetWidth(width);
+			end
+		end
+	end
+	
+	function Nameplates_OnBordersStyleChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					if (db.DisplayBorders) then
+						if (nameplateAuras[nameplate].sortedAuras ~= nil) then
+							for _, spellInfo in pairs(nameplateAuras[nameplate].sortedAuras) do
+								if (SpellNamesCache[spellInfo.spellID] == icon.spellID) then
+									if (icon.borderState ~= spellInfo.type) then
+										if (spellInfo.type == "buff") then
+											icon.border:SetVertexColor(0, 1, 0, 1);
+										else
+											icon.border:SetVertexColor(1, 0, 0, 1);
+										end
+										icon.border:Show();
+										icon.borderState = spellInfo.type;
+									end
+									break;
+								end
+							end
+						end
+					else
+						if (icon.borderState ~= nil) then
+							icon.border:Hide();
+							icon.borderState = nil;
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	function Nameplates_OnSortModeChanged()
+		for nameplate in pairs(NameplatesVisible) do
+			if (nameplate.NAurasFrame and nameplateAuras[nameplate] ~= nil) then
+				UpdateNameplate(nameplate);
+			end
+		end
+	end
+	
 	function SortAurasForNameplate(auras)
-		-- if (db.SortMode == CONST_SORT_MODES[1]) then
-			-- print("SortAurasForNameplate: return auras");
-			-- return auras;
-		-- end
 		local t = { };
 		for _, spellInfo in pairs(auras) do
-			table.insert(t, spellInfo);
+			if (spellInfo.spellID ~= nil) then
+				table.insert(t, spellInfo);
+			end
 		end
 		if (db.SortMode == CONST_SORT_MODES[1]) then
-			--print("SortAurasForNameplate: return plain t");
+			-- // do nothing
 		elseif (db.SortMode == CONST_SORT_MODES[2]) then
 			table.sort(t, function(item1, item2) return item1.expires < item2.expires end);
 		elseif (db.SortMode == CONST_SORT_MODES[3]) then
@@ -959,7 +995,9 @@ do
 						SpellIconSizesCache[SpellNamesCache[spellID]] = db.CustomSpells2[spellID].iconSize;
 					end
 				end
+				local oldSize = db.DefaultIconSize;
 				db.DefaultIconSize = math_ceil(value);
+				Nameplates_OnDefaultIconSizeOrOffsetChanged(oldSize);
 			end);
 			sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize));
 			sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -997,7 +1035,7 @@ do
 			sliderIconXOffset.slider:SetScript("OnValueChanged", function(self, value)
 				sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
 				db.IconXOffset = math_ceil(value);
-				ReallocateAllIcons(false);
+				Nameplates_OnDefaultIconSizeOrOffsetChanged(db.DefaultIconSize);
 			end);
 			sliderIconXOffset.editbox:SetText(tostring(db.IconXOffset));
 			sliderIconXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1035,7 +1073,7 @@ do
 			sliderIconYOffset.slider:SetScript("OnValueChanged", function(self, value)
 				sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
 				db.IconYOffset = math_ceil(value);
-				ReallocateAllIcons(false);
+				Nameplates_OnDefaultIconSizeOrOffsetChanged(db.DefaultIconSize);
 			end);
 			sliderIconYOffset.editbox:SetText(tostring(db.IconYOffset));
 			sliderIconYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1071,7 +1109,7 @@ do
 		
 		local checkBoxDisplayBorders = GUICreateCheckBox(160, -180, "Display red/green borders", function(this)
 			db.DisplayBorders = this:GetChecked();
-			ReallocateAllIcons(true);
+			Nameplates_OnBordersStyleChanged();
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayBorders");
 		checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
@@ -1102,6 +1140,7 @@ do
 					info.func = function(self)
 						db.SortMode = self.value;
 						_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
+						Nameplates_OnSortModeChanged();
 					end
 					info.checked = (db.SortMode == info.value);
 					UIDropDownMenu_AddButton(info);

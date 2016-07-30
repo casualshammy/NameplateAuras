@@ -48,7 +48,7 @@ local TestFrame;
 local db;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
 -- consts
-local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE;
+local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
 	SPELL_SHOW_MODES = { "my", "all", "disabled" };
 	SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
@@ -62,6 +62,12 @@ do
 	};
 	CONST_DISABLED = SPELL_SHOW_MODES[3];
 	CONST_MAX_ICON_SIZE = 75;
+	CONST_TIMER_STYLES = { "texture-with-text", "cooldown-frame-no-text", "cooldown-frame" };
+	CONST_TIMER_STYLES_LOCALIZATION = {
+		[CONST_TIMER_STYLES[1]] = "Texture with timer",
+		[CONST_TIMER_STYLES[2]] = "Circular without timer",
+		[CONST_TIMER_STYLES[3]] = "Circular"
+	};
 end
 
 local _G = _G;
@@ -163,7 +169,7 @@ do
 			end
 		end
 		-- // starting OnUpdate()
-		if (db.CooldownStyle == "texture-with-text") then
+		if (db.TimerStyle == CONST_TIMER_STYLES[1]) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
 				ElapsedTimer = ElapsedTimer + elapsed;
 				if (ElapsedTimer >= 0.1) then
@@ -210,7 +216,7 @@ do
 			FontScale = 1,
 			StacksFont = "NAuras_TeenBold",
 			StacksFontScale = 1,
-			CooldownStyle = "texture-with-text",
+			TimerStyle = CONST_TIMER_STYLES[1],
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -284,19 +290,21 @@ do
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
-		local texture = (db.CooldownStyle == "texture-with-text") and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
+		local texture = (db.TimerStyle == CONST_TIMER_STYLES[1]) and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
 		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
 		texture:SetWidth(db.DefaultIconSize);
 		texture:SetHeight(db.DefaultIconSize);
-		if (db.CooldownStyle ~= "texture-with-text") then
+		if (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
 			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
 			--print("Cooldown is created: ", "NAuras.Cooldown" .. tostring(cooldownCounter));
 			texture.cooldownFrame:SetAllPoints(texture);
-			texture.cooldownFrame:SetReverse(true)
-			texture.cooldownFrame:SetDrawEdge(false);
-			texture.cooldownFrame:SetDrawSwipe(true);
-			texture.cooldownFrame:SetHideCountdownNumbers(true);
-			texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+			texture.cooldownFrame:SetReverse(true);
+			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
+				texture.cooldownFrame:SetDrawEdge(false);
+				texture.cooldownFrame:SetDrawSwipe(true);
+				texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+				texture.cooldownFrame:SetHideCountdownNumbers(true);
+			end
 			texture.texture = texture:CreateTexture(nil, "BORDER");
 			texture.texture:SetAllPoints(texture);
 			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
@@ -435,7 +443,7 @@ do
 	end
 	
 	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
-		if (db.CooldownStyle == "texture-with-text") then
+		if (db.TimerStyle == CONST_TIMER_STYLES[1]) then
 			if (last > 3600) then
 				icon.cooldown:SetText("Inf");
 			elseif (last >= 60) then
@@ -445,7 +453,7 @@ do
 			else
 				icon.cooldown:SetText(string_format("%.1f", last));
 			end
-		else
+		elseif (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
 			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 		end
 	end
@@ -1178,12 +1186,33 @@ do
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
-		
-		local checkBoxUseOmniCC = GUICreateCheckBox(160, -240, "Use OmniCC for rendering (Reload UI required)", function(this)
-			db.CooldownStyle = this:GetChecked() and "omnicc" or "texture-with-text";
-		end, "NAuras.GUI.Cat1.CheckBoxUseOmniCC");
-		checkBoxUseOmniCC:SetChecked(db.CooldownStyle == "omnicc");
-		table.insert(GUIFrame.Categories[index], checkBoxUseOmniCC);
+				
+		-- // dropdownTimerStyle
+		do
+			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownTimerStyle, 200);
+			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -265);
+			local info = {};
+			dropdownTimerStyle.initialize = function()
+				wipe(info);
+				for _, timerStyle in pairs(CONST_TIMER_STYLES) do
+					info.text = CONST_TIMER_STYLES_LOCALIZATION[timerStyle];
+					info.value = timerStyle;
+					info.func = function(self)
+						db.TimerStyle = self.value;
+						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
+						message("Please reload UI to apply changes");
+					end
+					info.checked = (db.TimerStyle == info.value);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]);
+			dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString("NAuras.GUI.Cat1.DropdownTimerStyle.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
+			dropdownTimerStyle.text:SetText("Timer style:");
+			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
+		end
 		
 		-- // dropdownSortMode
 		do
@@ -1411,7 +1440,7 @@ do
 			
 			local minValue, maxValue = 0.3, 3;
 			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -170, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
-			sliderStacksFontScale.label:SetText("Timer font scale");
+			sliderStacksFontScale.label:SetText("Stacks text's font scale");
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
 			sliderStacksFontScale.slider:SetValue(db.StacksFontScale);

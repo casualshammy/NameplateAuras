@@ -129,6 +129,7 @@ local GUICreateButton;
 
 local Print;
 local deepcopy;
+local msg;
 
 -------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -533,11 +534,14 @@ do
 				nameplate.NAurasFrame:SetPoint("CENTER", nameplate, db.IconXOffset, db.IconYOffset);
 				local width = 0;
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					if (icon.size == oldDefaultIconSize and icon.shown == true) then
-						icon.size = db.DefaultIconSize;
+					if (icon.shown == true) then
+						if (icon.size == oldDefaultIconSize) then
+							icon.size = db.DefaultIconSize;
+						end
+						--print(icon.spellID, icon.size, icon.shown)
+						ResizeIcon(icon, icon.size, width);
+						width = width + icon.size;
 					end
-					ResizeIcon(icon, icon.size, width);
-					width = width + icon.size;
 				end
 				nameplate.NAurasFrame:SetWidth(width);
 			end
@@ -1066,7 +1070,7 @@ do
 					local v = tonumber(sliderIconSize.editbox:GetText());
 					if (v == nil) then
 						sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize));
-						message(L["Value must be a number"]);
+						msg(L["Value must be a number"]);
 					else
 						if (v > CONST_MAX_ICON_SIZE) then
 							v = CONST_MAX_ICON_SIZE;
@@ -1201,7 +1205,7 @@ do
 					info.func = function(self)
 						db.TimerStyle = self.value;
 						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
-						message("Please reload UI to apply changes");
+						msg("Please reload UI to apply changes");
 					end
 					info.checked = (db.TimerStyle == info.value);
 					UIDropDownMenu_AddButton(info);
@@ -1389,7 +1393,7 @@ do
 					local v = tonumber(sliderTimerFontScale.editbox:GetText());
 					if (v == nil) then
 						sliderTimerFontScale.editbox:SetText(tostring(db.FontScale));
-						message(L["Value must be a number"]);
+						msg(L["Value must be a number"]);
 					else
 						if (v > maxValue) then
 							v = maxValue;
@@ -1456,7 +1460,7 @@ do
 					local v = tonumber(sliderStacksFontScale.editbox:GetText());
 					if (v == nil) then
 						sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale));
-						message(L["Value must be a number"]);
+						msg(L["Value must be a number"]);
 					else
 						if (v > maxValue) then
 							v = maxValue;
@@ -1514,7 +1518,7 @@ do
 			buttonAddSpell:SetScript("OnClick", function(self, ...)
 				local text = editboxAddSpell:GetText();
 				if (tonumber(text) ~= nil) then
-					message("You should enter spell name instead of spell id.\nUse \"Check spell ID\" option if you want to track spell with specific id"); -- todo:localization
+					msg("You should enter spell name instead of spell id.\nUse \"Check spell ID\" option if you want to track spell with specific id"); -- todo:localization
 				else
 					local spellID = SpellIDsCache[text];
 					if (spellID ~= nil) then
@@ -1536,13 +1540,13 @@ do
 								SpellIconSizesCache[spellName] = db.DefaultIconSize;
 								selectSpell:Click();
 							else
-								message("Spell already exists ("..spellName..")"); -- todo:localization
+								msg("Spell already exists ("..spellName..")"); -- todo:localization
 							end
 						end
 						editboxAddSpell:SetText("");
 						editboxAddSpell:ClearFocus();
 					else
-						message("Spell seems to be missing"); -- todo:localization
+						msg("Spell seems to be missing"); -- todo:localization
 					end
 				end
 			end);
@@ -1738,7 +1742,7 @@ do
 					db.CustomSpells2[selectedSpell].checkSpellID = nil;
 					SpellCheckIDCache[SpellNamesCache[selectedSpell]] = nil;
 					self:SetText("");
-					--message("Value must be a number!");
+					--msg("Value must be a number!");
 				end
 				self:ClearFocus();
 			end);
@@ -1976,6 +1980,21 @@ do
 			return setmetatable(new_table, getmetatable(object))
 		end
 		return _copy(object)
+	end
+	
+	function msg(text)
+		if (StaticPopupDialogs["NAURAS_MSG"] == nil) then
+			StaticPopupDialogs["NAURAS_MSG"] = {
+				text = "NAURAS_MSG",
+				button1 = OKAY,
+				timeout = 0,
+				whileDead = true,
+				hideOnEscape = true,
+				preferredIndex = 3,
+			};
+		end
+		StaticPopupDialogs["NAURAS_MSG"].text = text;
+		StaticPopup_Show ("NAURAS_MSG");
 	end
 	
 end

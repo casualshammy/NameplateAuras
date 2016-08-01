@@ -65,8 +65,8 @@ do
 	CONST_TIMER_STYLES = { "texture-with-text", "cooldown-frame-no-text", "cooldown-frame" };
 	CONST_TIMER_STYLES_LOCALIZATION = {
 		[CONST_TIMER_STYLES[1]] = "Texture with timer",
-		[CONST_TIMER_STYLES[2]] = "Circular without timer",
-		[CONST_TIMER_STYLES[3]] = "Circular"
+		[CONST_TIMER_STYLES[2]] = "Circular",
+		[CONST_TIMER_STYLES[3]] = "Circular with OmniCC support"
 	};
 end
 
@@ -85,6 +85,7 @@ local math_floor = floor;
 local OnStartup;
 local InitializeDB;
 local GetDefaultDBSpellEntry;
+local UpdateSpellCachesFromDB;
 local AddButtonToBlizzOptions;
 
 local AllocateIcon;
@@ -159,10 +160,7 @@ do
 			else
 				Spells[spellName] = spellInfo;
 				if (enabledState ~= CONST_DISABLED) then
-					SpellShowModesCache[spellName] = spellInfo.enabledState;
-					SpellAuraTypeCache[spellName] = spellInfo.auraType;
-					SpellIconSizesCache[spellName] = spellInfo.iconSize;
-					SpellCheckIDCache[spellName] = spellInfo.checkSpellID;
+					UpdateSpellCachesFromDB(spellID);
 				end
 				if (spellInfo.spellID == nil) then
 					db.CustomSpells2[spellID].spellID = spellID;
@@ -258,6 +256,21 @@ do
 			["spellID"] = spellID,
 			["checkSpellID"] = checkSpellID,
 		};
+	end
+	
+	function UpdateSpellCachesFromDB(spellID)
+		local spellName = SpellNamesCache[spellID];
+		if (db.CustomSpells2[spellID] ~= nil) then
+			SpellShowModesCache[spellName] = 	db.CustomSpells2[spellID].enabledState;
+			SpellAuraTypeCache[spellName] = 	db.CustomSpells2[spellID].auraType;
+			SpellIconSizesCache[spellName] = 	db.CustomSpells2[spellID].iconSize;
+			SpellCheckIDCache[spellName] = 		db.CustomSpells2[spellID].checkSpellID;
+		else
+			SpellShowModesCache[spellName] = 	nil;
+			SpellAuraTypeCache[spellName] = 	nil;
+			SpellIconSizesCache[spellName] = 	nil;
+			SpellCheckIDCache[spellName] = 		nil;
+		end
 	end
 	
 	function AddButtonToBlizzOptions()
@@ -1039,6 +1052,15 @@ do
 			end
 		end
 		
+		scrollAreaBackground.GetButtonByText = function(text)
+			for _, button in pairs(scrollAreaBackground.buttons) do
+				if (button.Text:GetText() == text) then
+					return button;
+				end
+			end
+			return nil;
+		end
+		
 		return scrollAreaBackground;
 	end
 	
@@ -1057,7 +1079,7 @@ do
 				for spellID, spellInfo in pairs(db.CustomSpells2) do
 					if (spellInfo.iconSize == db.DefaultIconSize) then
 						db.CustomSpells2[spellID].iconSize = math_ceil(value);
-						SpellIconSizesCache[SpellNamesCache[spellID]] = db.CustomSpells2[spellID].iconSize;
+						UpdateSpellCachesFromDB(spellID);
 					end
 				end
 				local oldSize = db.DefaultIconSize;
@@ -1506,6 +1528,7 @@ do
 			editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
 			editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 			editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
+			editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
 			local text = editboxAddSpell:CreateFontString("NAuras.GUI.Cat4.EditboxAddSpell.Label", "ARTWORK", "GameFontNormalSmall");
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("Add new spell: "); -- todo:localization
@@ -1535,10 +1558,10 @@ do
 							end
 							if (not alreadyExist) then
 								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], spellID, db.DefaultIconSize, nil);
-								SpellShowModesCache[spellName] = db.CustomSpells2[spellID].enabledState;
-								SpellAuraTypeCache[spellName] = db.CustomSpells2[spellID].auraType;
-								SpellIconSizesCache[spellName] = db.DefaultIconSize;
+								UpdateSpellCachesFromDB(spellID);
 								selectSpell:Click();
+								local btn = GUIFrame.SpellSelector.GetButtonByText(spellName);
+								if (btn ~= nil) then btn:Click(); end
 							else
 								msg("Spell already exists ("..spellName..")"); -- todo:localization
 							end
@@ -1546,7 +1569,7 @@ do
 						editboxAddSpell:SetText("");
 						editboxAddSpell:ClearFocus();
 					else
-						msg("Spell seems to be missing"); -- todo:localization
+						msg("Spell seems to be nonexistent"); -- todo:localization
 					end
 				end
 			end);
@@ -1619,13 +1642,7 @@ do
 					info.value = showMode;
 					info.func = function(self)
 						db.CustomSpells2[selectedSpell].enabledState = self.value;
-						if (self.value ~= CONST_DISABLED) then
-							SpellShowModesCache[SpellNamesCache[selectedSpell]] = self.value;
-							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].auraType
-						else
-							SpellShowModesCache[SpellNamesCache[selectedSpell]] = nil;
-							SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = nil;
-						end
+						UpdateSpellCachesFromDB(selectedSpell);
 						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(self:GetText());
 					end
 					info.checked = (showMode == db.CustomSpells2[selectedSpell].enabledState);
@@ -1654,7 +1671,7 @@ do
 					info.value = auraType;
 					info.func = function(self)
 						db.CustomSpells2[selectedSpell].auraType = self.value;
-						SpellAuraTypeCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].auraType;
+						UpdateSpellCachesFromDB(selectedSpell);
 						_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
 					end
 					info.checked = (info.value == db.CustomSpells2[selectedSpell].auraType);
@@ -1683,7 +1700,10 @@ do
 			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
 				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
 				db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
-				SpellIconSizesCache[SpellNamesCache[selectedSpell]] = db.CustomSpells2[selectedSpell].iconSize;
+				UpdateSpellCachesFromDB(selectedSpell);
+				for nameplate in pairs(NameplatesVisible) do
+					UpdateNameplate(nameplate);
+				end
 			end);
 			sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
 				if (sliderSpellIconSize.editbox:GetText() ~= "") then
@@ -1735,14 +1755,10 @@ do
 			editboxSpellID:SetScript("OnEnterPressed", function(self, value)
 				local text = self:GetText();
 				local textAsNumber = tonumber(text);
-				if (textAsNumber ~= nil) then
-					db.CustomSpells2[selectedSpell].checkSpellID = textAsNumber;
-					SpellCheckIDCache[SpellNamesCache[selectedSpell]] = textAsNumber;
-				else
-					db.CustomSpells2[selectedSpell].checkSpellID = nil;
-					SpellCheckIDCache[SpellNamesCache[selectedSpell]] = nil;
+				db.CustomSpells2[selectedSpell].checkSpellID = textAsNumber;
+				UpdateSpellCachesFromDB(selectedSpell);
+				if (textAsNumber == nil) then
 					self:SetText("");
-					--msg("Value must be a number!");
 				end
 				self:ClearFocus();
 			end);
@@ -1760,12 +1776,8 @@ do
 			buttonDeleteSpell:SetPoint("RIGHT", GUIFrame, "RIGHT", -45, 0);
 			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 				db.CustomSpells2[selectedSpell] = nil;
-				local spellName = SpellNamesCache[selectedSpell];
 				Spells[spellName] = nil;
-				SpellShowModesCache[spellName] = nil;
-				SpellAuraTypeCache[spellName] = nil;
-				SpellIconSizesCache[spellName] = nil;
-				SpellCheckIDCache[spellName] = nil;
+				UpdateSpellCachesFromDB(selectedSpell);
 				selectSpell.Text:SetText("Click to select spell");
 				for _, control in pairs(controls) do
 					control:Hide();

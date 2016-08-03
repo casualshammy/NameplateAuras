@@ -52,13 +52,14 @@ local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOC
 do
 	SPELL_SHOW_MODES = { "my", "all", "disabled" };
 	SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
-	CONST_SORT_MODES = { "none", "by-expire-time-asc", "by-expire-time-des", "by-icon-size-asc", "by-icon-size-des" };
+	CONST_SORT_MODES = { "none", "by-expire-time-asc", "by-expire-time-des", "by-icon-size-asc", "by-icon-size-des", "by-aura-type-expire-time" };
 	CONST_SORT_MODES_LOCALIZATION = { 
 		[CONST_SORT_MODES[1]] = "None",
 		[CONST_SORT_MODES[2]] = "By expire time, ascending",
 		[CONST_SORT_MODES[3]] = "By expire time, descending",
 		[CONST_SORT_MODES[4]] = "By icon size, ascending",
-		[CONST_SORT_MODES[5]] = "By icon size, descending"
+		[CONST_SORT_MODES[5]] = "By icon size, descending",
+		[CONST_SORT_MODES[6]] = "By aura type (de/buff) + expire time"
 	};
 	CONST_DISABLED = SPELL_SHOW_MODES[3];
 	CONST_MAX_ICON_SIZE = 75;
@@ -101,6 +102,8 @@ local Nameplates_OnFontChanged;
 local Nameplates_OnDefaultIconSizeOrOffsetChanged;
 local Nameplates_OnBordersStyleChanged;
 local Nameplates_OnSortModeChanged;
+local Nameplates_OnBordersChanged;
+local Nameplates_OnTextPositionChanged;
 local SortAurasForNameplate;
 local UpdateCachesForSpell;
 
@@ -121,6 +124,7 @@ local GUICategory_2;
 local GUICategory_3;
 local GUICategory_4;
 local GUICategory_Fonts;
+local GUICategory_Borders;
 local OnGUICategoryClick;
 local ShowGUICategory;
 local RebuildDropdowns;
@@ -207,15 +211,25 @@ do
 			IconYOffset = 50,
 			FullOpacityAlways = false,
 			Font = "NAuras_TeenBold",
-			DisplayBorders = true,
+			DisplayBorders = true, -- deprecated
 			HideBlizzardFrames = true,
 			DefaultIconSize = 45,
 			SortMode = CONST_SORT_MODES[2],
 			DisplayTenthsOfSeconds = true,
 			FontScale = 1,
+			TimerTextAnchor = "CENTER",
+			TimerTextXOffset = 0,
+			TimerTextYOffset = 0,
 			StacksFont = "NAuras_TeenBold",
 			StacksFontScale = 1,
+			StacksTextAnchor = "BOTTOMRIGHT",
+			StacksTextXOffset = -3,
+			StacksTextYOffset = 5,
 			TimerStyle = CONST_TIMER_STYLES[1],
+			ShowBuffBorders = true,
+			BuffBordersColor = {0, 1, 0},
+			ShowDebuffBorders = true,
+			DebuffBordersColor = {1, 0, 0},
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -347,14 +361,14 @@ do
 		texture:Hide();
 		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
-		texture.cooldown:SetAllPoints(texture);
+		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextXOffset, db.TimerTextYOffset);
 		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
 		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
 		texture.border:SetVertexColor(1, 0.35, 0);
 		texture.border:SetAllPoints(texture);
 		texture.border:Hide();
 		texture.stacks:SetTextColor(1, 0.1, 0.1);
-		texture.stacks:SetPoint("BOTTOMRIGHT", texture, -3, 5);
+		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextXOffset, db.StacksTextYOffset);
 		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
@@ -484,13 +498,15 @@ do
 	end
 	
 	function UpdateNameplate_SetBorder(icon, spellInfo)
-		if (db.DisplayBorders) then
+		if (db.ShowBuffBorders and spellInfo.type == "buff") then
 			if (icon.borderState ~= spellInfo.type) then
-				if (spellInfo.type == "buff") then
-					icon.border:SetVertexColor(0, 1, 0, 1);
-				else
-					icon.border:SetVertexColor(1, 0, 0, 1);
-				end
+				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
+				icon.border:Show();
+				icon.borderState = spellInfo.type;
+			end
+		elseif (db.ShowDebuffBorders and spellInfo.type == "debuff") then
+			if (icon.borderState ~= spellInfo.type) then
+				icon.border:SetVertexColor(unpack(db.DebuffBordersColor));
 				icon.border:Show();
 				icon.borderState = spellInfo.type;
 			end
@@ -601,6 +617,31 @@ do
 		end
 	end
 	
+	function Nameplates_OnBordersChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					icon.border:Hide();
+					icon.borderState = nil;
+				end
+				UpdateNameplate(nameplate);
+			end
+		end
+	end
+	
+	function Nameplates_OnTextPositionChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					icon.cooldown:ClearAllPoints();
+					icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextXOffset, db.TimerTextYOffset);
+					icon.stacks:ClearAllPoints();
+					icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextXOffset, db.StacksTextYOffset);
+				end
+			end
+		end
+	end
+	
 	function SortAurasForNameplate(auras)
 		local t = { };
 		for _, spellInfo in pairs(auras) do
@@ -618,6 +659,17 @@ do
 			table.sort(t, function(item1, item2) return SpellIconSizesCache[SpellNamesCache[item1.spellID]] < SpellIconSizesCache[SpellNamesCache[item2.spellID]] end);
 		elseif (db.SortMode == CONST_SORT_MODES[5]) then
 			table.sort(t, function(item1, item2) return SpellIconSizesCache[SpellNamesCache[item1.spellID]] > SpellIconSizesCache[SpellNamesCache[item2.spellID]] end);
+		elseif (db.SortMode == CONST_SORT_MODES[6]) then
+			table.sort(t, function(item1, item2)
+				if (item1.type ~= item2.type) then
+					return (item1.type == "debuff") and true or false;
+				end
+				if (item1.type == "debuff") then
+					return item1.expires < item2.expires;
+				else
+					return item1.expires > item2.expires;
+				end
+			end);
 		end
 		return t;
 	end
@@ -954,7 +1006,8 @@ do
 		GUIFrame.SpellIcons = {};
 		GUIFrame.CustomSpellsDropdowns = {};
 		
-		for index, value in pairs({ L["General"], L["Profiles"], "Fonts", "Spells" }) do
+		local categories = { L["General"], L["Profiles"], "Text", "Icon borders", "Spells" };
+		for index, value in pairs(categories) do
 			local b = CreateGUICategory();
 			b.index = index;
 			b.text:SetText(value);
@@ -962,12 +1015,10 @@ do
 				b:LockHighlight();
 				b.text:SetTextColor(1, 1, 1);
 				b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
-			elseif (index == 2) then
-				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -24);
-			elseif (index == 3) then
-				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -42);
-			else
+			elseif (index == #categories) then
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
+			else
+				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
 			end
 			
 			GUIFrame.Categories[index] = {};
@@ -979,6 +1030,8 @@ do
 			elseif (index == 3) then
 				GUICategory_Fonts(index, value);
 			elseif (index == 4) then
+				GUICategory_Borders(index, value);
+			elseif (index == 5) then
 				GUICategory_4(index, value);
 			else
 				
@@ -1188,26 +1241,26 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, "Always display icons at full opacity (ReloadUI is needed)", function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, "Always display icons at full opacity (ReloadUI is required)", function(this)
 			db.FullOpacityAlways = this:GetChecked();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 		
-		local checkBoxDisplayBorders = GUICreateCheckBox(160, -180, "Display red/green borders", function(this)
-			db.DisplayBorders = this:GetChecked();
-			Nameplates_OnBordersStyleChanged();
-		end, "NAuras.GUI.Cat1.CheckBoxDisplayBorders");
-		checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
-		table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
+		-- local checkBoxDisplayBorders = GUICreateCheckBox(160, -180, "Display red/green borders", function(this)
+			-- db.DisplayBorders = this:GetChecked();
+			-- Nameplates_OnBordersStyleChanged();
+		-- end, "NAuras.GUI.Cat1.CheckBoxDisplayBorders");
+		-- checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
+		-- table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
 		
-		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -200, "Hide Blizzard's aura frames (Reload UI required)", function(this)
+		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		
-		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -220, "Display tenths of seconds", function(this)
+		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -200, "Display tenths of seconds", function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
@@ -1367,6 +1420,8 @@ do
 	
 	function GUICategory_Fonts(index, value)
 		
+		local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
+		
 		-- // dropdownFont
 		do
 			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
@@ -1434,11 +1489,114 @@ do
 		
 		end
 		
+		-- // dropdownTimerTextAnchor
+		do
+			
+			local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 120);
+			dropdownTimerTextAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -120);
+			local info = {};
+			dropdownTimerTextAnchor.initialize = function()
+				wipe(info);
+				for _, anchorPoint in pairs(textAnchors) do
+					info.text = anchorPoint;
+					info.value = anchorPoint;
+					info.func = function(self)
+						db.TimerTextAnchor = self.value;
+						_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnTextPositionChanged();
+					end
+					info.checked = anchorPoint == db.TimerTextAnchor;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(db.TimerTextAnchor);
+			dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
+			dropdownTimerTextAnchor.text:SetText("Timer text anchor:");
+			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
+		
+		end
+		
+		-- // editboxTimerTextXOffset
+		do
+		
+			local editboxTimerTextXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextXOffset", GUIFrame);
+			editboxTimerTextXOffset:SetAutoFocus(false);
+			editboxTimerTextXOffset:SetFontObject(GameFontHighlightSmall);
+			editboxTimerTextXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -125);
+			editboxTimerTextXOffset:SetHeight(20);
+			editboxTimerTextXOffset:SetWidth(80);
+			editboxTimerTextXOffset:SetJustifyH("LEFT");
+			editboxTimerTextXOffset:EnableMouse(true);
+			editboxTimerTextXOffset:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxTimerTextXOffset:SetBackdropColor(0, 0, 0, 0.5);
+			editboxTimerTextXOffset:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxTimerTextXOffset:SetScript("OnEscapePressed", function() editboxTimerTextXOffset:ClearFocus(); end);
+			editboxTimerTextXOffset:SetScript("OnEnterPressed", function()
+				local offset = tonumber(editboxTimerTextXOffset:GetText());
+				if (offset ~= nil) then
+					db.TimerTextXOffset = offset;
+					Nameplates_OnTextPositionChanged();
+				else
+					editboxTimerTextXOffset:SetText(tostring(db.TimerTextXOffset));
+				end
+				editboxTimerTextXOffset:ClearFocus();
+			end);
+			editboxTimerTextXOffset:SetText(tostring(db.TimerTextXOffset));
+			local text = editboxTimerTextXOffset:CreateFontString("NAuras.GUI.Fonts.EditboxTimerTextXOffset.Label", "ARTWORK", "GameFontNormalSmall");
+			text:SetPoint("LEFT", 5, 15);
+			text:SetText("X offset:"); -- todo:localization
+			table.insert(GUIFrame.Categories[index], editboxTimerTextXOffset);
+		
+		end
+		
+		-- // editboxTimerTextYOffset
+		do
+		
+			local editboxTimerTextYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextYOffset", GUIFrame);
+			editboxTimerTextYOffset:SetAutoFocus(false);
+			editboxTimerTextYOffset:SetFontObject(GameFontHighlightSmall);
+			editboxTimerTextYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -125);
+			editboxTimerTextYOffset:SetHeight(20);
+			editboxTimerTextYOffset:SetWidth(80);
+			editboxTimerTextYOffset:SetJustifyH("LEFT");
+			editboxTimerTextYOffset:EnableMouse(true);
+			editboxTimerTextYOffset:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxTimerTextYOffset:SetBackdropColor(0, 0, 0, 0.5);
+			editboxTimerTextYOffset:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxTimerTextYOffset:SetScript("OnEscapePressed", function() editboxTimerTextYOffset:ClearFocus(); end);
+			editboxTimerTextYOffset:SetScript("OnEnterPressed", function()
+				local offset = tonumber(editboxTimerTextYOffset:GetText());
+				if (offset ~= nil) then
+					db.TimerTextYOffset = offset;
+					Nameplates_OnTextPositionChanged();
+				else
+					editboxTimerTextYOffset:SetText(tostring(db.TimerTextYOffset));
+				end
+				editboxTimerTextYOffset:ClearFocus();
+			end);
+			editboxTimerTextYOffset:SetText(tostring(db.TimerTextYOffset));
+			local text = editboxTimerTextYOffset:CreateFontString("NAuras.GUI.Fonts.EditboxTimerTextYOffset.Label", "ARTWORK", "GameFontNormalSmall");
+			text:SetPoint("LEFT", 5, 15);
+			text:SetText("Y offset:"); -- todo:localization
+			table.insert(GUIFrame.Categories[index], editboxTimerTextYOffset);
+		
+		end
+		
 		-- // dropdownStacksFont
 		do
 			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownStacksFont, 300);
-			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -130);
+			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -190);
 			local info = {};
 			dropdownStacksFont.initialize = function()
 				wipe(info);
@@ -1465,7 +1623,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -170, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -230, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
 			sliderStacksFontScale.label:SetText("Stacks text's font scale");
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1501,6 +1659,172 @@ do
 		
 		end
 		
+		-- // dropdownStacksAnchor
+		do
+			
+			local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownStacksAnchor, 120);
+			dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -285);
+			local info = {};
+			dropdownStacksAnchor.initialize = function()
+				wipe(info);
+				for _, anchorPoint in pairs(textAnchors) do
+					info.text = anchorPoint;
+					info.value = anchorPoint;
+					info.func = function(self)
+						db.StacksTextAnchor = self.value;
+						_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnTextPositionChanged();
+					end
+					info.checked = anchorPoint == db.StacksTextAnchor;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(db.StacksTextAnchor);
+			dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
+			dropdownStacksAnchor.text:SetText("Stacks text anchor:");
+			table.insert(GUIFrame.Categories[index], dropdownStacksAnchor);
+		
+		end
+		
+		-- // editboxStacksXOffset
+		do
+		
+			local editboxStacksXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksXOffset", GUIFrame);
+			editboxStacksXOffset:SetAutoFocus(false);
+			editboxStacksXOffset:SetFontObject(GameFontHighlightSmall);
+			editboxStacksXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -290);
+			editboxStacksXOffset:SetHeight(20);
+			editboxStacksXOffset:SetWidth(80);
+			editboxStacksXOffset:SetJustifyH("LEFT");
+			editboxStacksXOffset:EnableMouse(true);
+			editboxStacksXOffset:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxStacksXOffset:SetBackdropColor(0, 0, 0, 0.5);
+			editboxStacksXOffset:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxStacksXOffset:SetScript("OnEscapePressed", function() editboxStacksXOffset:ClearFocus(); end);
+			editboxStacksXOffset:SetScript("OnEnterPressed", function()
+				local offset = tonumber(editboxStacksXOffset:GetText());
+				if (offset ~= nil) then
+					db.StacksTextXOffset = offset;
+					Nameplates_OnTextPositionChanged();
+				else
+					editboxStacksXOffset:SetText(tostring(db.StacksTextXOffset));
+				end
+				editboxStacksXOffset:ClearFocus();
+			end);
+			editboxStacksXOffset:SetText(tostring(db.StacksTextXOffset));
+			local text = editboxStacksXOffset:CreateFontString("NAuras.GUI.Fonts.EditboxStacksXOffset.Label", "ARTWORK", "GameFontNormalSmall");
+			text:SetPoint("LEFT", 5, 15);
+			text:SetText("X offset:"); -- todo:localization
+			table.insert(GUIFrame.Categories[index], editboxStacksXOffset);
+		
+		end
+		
+		-- // editboxStacksYOffset
+		do
+		
+			local editboxStacksYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksYOffset", GUIFrame);
+			editboxStacksYOffset:SetAutoFocus(false);
+			editboxStacksYOffset:SetFontObject(GameFontHighlightSmall);
+			editboxStacksYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -290);
+			editboxStacksYOffset:SetHeight(20);
+			editboxStacksYOffset:SetWidth(80);
+			editboxStacksYOffset:SetJustifyH("LEFT");
+			editboxStacksYOffset:EnableMouse(true);
+			editboxStacksYOffset:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxStacksYOffset:SetBackdropColor(0, 0, 0, 0.5);
+			editboxStacksYOffset:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxStacksYOffset:SetScript("OnEscapePressed", function() editboxStacksYOffset:ClearFocus(); end);
+			editboxStacksYOffset:SetScript("OnEnterPressed", function()
+				local offset = tonumber(editboxStacksYOffset:GetText());
+				if (offset ~= nil) then
+					db.StacksTextYOffset = offset;
+					Nameplates_OnTextPositionChanged();
+				else
+					editboxStacksYOffset:SetText(tostring(db.StacksTextYOffset));
+				end
+				editboxStacksYOffset:ClearFocus();
+			end);
+			editboxStacksYOffset:SetText(tostring(db.StacksTextYOffset));
+			local text = editboxStacksYOffset:CreateFontString("NAuras.GUI.Fonts.EditboxStacksYOffset.Label", "ARTWORK", "GameFontNormalSmall");
+			text:SetPoint("LEFT", 5, 15);
+			text:SetText("Y offset:"); -- todo:localization
+			table.insert(GUIFrame.Categories[index], editboxStacksYOffset);
+		
+		end
+		
+	end
+	
+	function GUICategory_Borders(index, value)
+		
+		-- // checkBoxBuffBorder
+		do
+			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -30, "Show border around buff icons", function(this)
+				db.ShowBuffBorders = this:GetChecked();
+				Nameplates_OnBordersChanged();
+			end);
+			checkBoxBuffBorder:SetChecked(db.ShowBuffBorders);
+			checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor));
+			checkBoxBuffBorder.ColorButton:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.BuffBordersColor = {r, g, b};
+					checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor));
+					Nameplates_OnBordersChanged();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.BuffBordersColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.BuffBordersColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], checkBoxBuffBorder);
+		end
+		
+		-- // checkBoxDebuffBorder
+		do
+			local checkBoxDebuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxDebuffBorder", 160, -60, "Show border around debuff icons", function(this)
+				db.ShowDebuffBorders = this:GetChecked();
+				Nameplates_OnBordersChanged();
+			end);
+			checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders);
+			checkBoxDebuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.DebuffBordersColor));
+			checkBoxDebuffBorder.ColorButton:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.DebuffBordersColor = {r, g, b};
+					checkBoxDebuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.DebuffBordersColor));
+					Nameplates_OnBordersChanged();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
+		end
 		
 	end
 	
@@ -1776,7 +2100,7 @@ do
 			buttonDeleteSpell:SetPoint("RIGHT", GUIFrame, "RIGHT", -45, 0);
 			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 				db.CustomSpells2[selectedSpell] = nil;
-				Spells[spellName] = nil;
+				Spells[SpellNamesCache[selectedSpell]] = nil;
 				UpdateSpellCachesFromDB(selectedSpell);
 				selectSpell.Text:SetText("Click to select spell");
 				for _, control in pairs(controls) do

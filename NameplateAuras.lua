@@ -3,7 +3,7 @@ local L = addonTable.L;
 local DefaultSpells = addonTable.DefaultSpells;
 
 local SML = LibStub("LibSharedMedia-3.0");
-SML:Register("font", "NAuras_TeenBold", "Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
+SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
 NameplateAurasDB = {};
@@ -44,12 +44,12 @@ local Nameplates = {};
 local NameplatesVisible = {};
 local GUIFrame;
 local EventFrame;
-local TestFrame;
 local db;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
 -- consts
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
+	
 	SPELL_SHOW_MODES = { "my", "all", "disabled" };
 	SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
 	CONST_SORT_MODES = { "none", "by-expire-time-asc", "by-expire-time-des", "by-icon-size-asc", "by-icon-size-des", "by-aura-type-expire-time" };
@@ -69,6 +69,7 @@ do
 		[CONST_TIMER_STYLES[2]] = "Circular",
 		[CONST_TIMER_STYLES[3]] = "Circular with OmniCC support"
 	};
+	
 end
 
 local _G = _G;
@@ -105,7 +106,6 @@ local Nameplates_OnSortModeChanged;
 local Nameplates_OnBordersChanged;
 local Nameplates_OnTextPositionChanged;
 local SortAurasForNameplate;
-local UpdateCachesForSpell;
 
 local OnUpdate;
 
@@ -114,14 +114,10 @@ local NAME_PLATE_UNIT_ADDED;
 local NAME_PLATE_UNIT_REMOVED;
 local UNIT_AURA;
 
-local EnableTestMode;
-local DisableTestMode;
-
 local ShowGUI;
 local InitializeGUI;
 local GUICategory_1;
 local GUICategory_2;
-local GUICategory_3;
 local GUICategory_4;
 local GUICategory_Fonts;
 local GUICategory_Borders;
@@ -220,6 +216,9 @@ do
 			TimerTextAnchor = "CENTER",
 			TimerTextXOffset = 0,
 			TimerTextYOffset = 0,
+			TimerTextSoonToExpireColor = { 1, 0.1, 0.1 },
+			TimerTextUnderMinuteColor = { 1, 1, 0.1 },
+			TimerTextLongerColor = { 0.7, 1, 0 },
 			StacksFont = "NAuras_TeenBold",
 			StacksFontScale = 1,
 			StacksTextAnchor = "BOTTOMRIGHT",
@@ -382,7 +381,9 @@ do
 			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 			if (buffName ~= nil) then
 				--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
-				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player")) and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff") and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
+				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player"))
+				and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")
+				and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
 					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 						nameplateAuras[frame][buffName] = {
 							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
@@ -397,7 +398,9 @@ do
 			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 			if (debuffName ~= nil) then
 				--print("UpdateOnlyOneNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
-				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player")) and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff") and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
+				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player"))
+				and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")
+				and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
 					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 						nameplateAuras[frame][debuffName] = {
 							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
@@ -408,6 +411,9 @@ do
 						};
 					end
 				end
+			end
+			if (buffName == nil and debuffName == nil) then
+				break;
 			end
 		end
 		UpdateNameplate(frame);
@@ -480,6 +486,13 @@ do
 				icon.cooldown:SetText(string_format("%.0f", last));
 			else
 				icon.cooldown:SetText(string_format("%.1f", last));
+			end
+			if (last >= 60) then
+				icon.cooldown:SetTextColor(unpack(db.TimerTextLongerColor));
+			elseif (last >= 5) then
+				icon.cooldown:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+			else
+				icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
 			end
 		elseif (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
 			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
@@ -674,10 +687,6 @@ do
 		return t;
 	end
 	
-	function UpdateCachesForSpell(spellInfo)
-	
-	end
-	
 end
 
 -------------------------------------------------------------------------------------------------
@@ -697,15 +706,16 @@ do
 						-- // getting reference to icon
 						local icon = frame.NAurasIcons[counter];
 						-- // setting text
-						if (last > 3600) then
-							icon.cooldown:SetText("Inf");
-						elseif (last >= 60) then
-							icon.cooldown:SetText(math_floor(last/60).."m");
-						elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
-							icon.cooldown:SetText(string_format("%.0f", last));
-						else
-							icon.cooldown:SetText(string_format("%.1f", last));
-						end
+						UpdateNameplate_SetCooldown(icon, last, spellInfo);
+						-- if (last > 3600) then
+							-- icon.cooldown:SetText("Inf");
+						-- elseif (last >= 60) then
+							-- icon.cooldown:SetText(math_floor(last/60).."m");
+						-- elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
+							-- icon.cooldown:SetText(string_format("%.0f", last));
+						-- else
+							-- icon.cooldown:SetText(string_format("%.1f", last));
+						-- end
 						counter = counter + 1;
 					else
 						--nameplateAuras[frame][spellID] = nil;
@@ -773,70 +783,6 @@ do
 				nameplate.NAurasFrame:Show();
 			end
 		end
-	end
-	
-end
-
--------------------------------------------------------------------------------------------------
------ Test mode
--------------------------------------------------------------------------------------------------
-do
-
-	local _t = 0;
-	local _spellNames = {156925, 2645};
-	
-	local function refreshCDs()
-		local cTime = GetTime();
-		for frame in pairs(NameplatesVisible) do
-			for index, spellID in pairs(_spellNames) do
-				local _spellName = GetSpellInfo(spellID);
-				if (nameplateAuras[frame][_spellName] == nil or nameplateAuras[frame][_spellName].expires < cTime) then
-					nameplateAuras[frame][_spellName] = {
-						["duration"] = 30,
-						["expires"] = index % 2 == 0 and 4000000000 or (cTime + 10),
-						["stacks"] = index % 2 == 0 and 0 or 7,
-						["spellID"] = spellID,
-						["type"] = index % 2 == 0 and "buff" or "debuff"
-					};
-				end
-			end
-			UpdateOnlyOneNameplate(frame, "invalid");
-		end
-	end
-	
-	function EnableTestMode()
-		if (not TestFrame) then
-			TestFrame = CreateFrame("frame");
-		end
-		TestFrame:SetScript("OnUpdate", function(self, elapsed)
-			_t = _t + elapsed;
-			if (_t >= 2) then
-				refreshCDs();
-				_t = 0;
-			end
-		end);
-		refreshCDs(); 	-- // for instant start
-		OnUpdate();		-- // for instant start
-	end
-	
-	function DisableTestMode()
-		TestFrame:SetScript("OnUpdate", nil);
-		local cTime = GetTime();
-		for frame in pairs(NameplatesVisible) do
-			for index, spellID in pairs(_spellNames) do
-				local _spellName = GetSpellInfo(spellID);
-				if (nameplateAuras[frame][_spellName] ~= nil and nameplateAuras[frame][_spellName].expires > cTime) then
-					nameplateAuras[frame][_spellName] = {
-						["duration"] = 30,
-						["expires"] = cTime - 1,
-						["stacks"] = 7,
-						["spellID"] = index,
-						["type"] = "debuff"
-					};
-				end
-			end
-		end
-		OnUpdate();		-- // for instant start
 	end
 	
 end
@@ -926,6 +872,43 @@ do
 		return dropdown, text, button;
 	end
 	
+	local function GUICreateColorPicker(publicName, parent, x, y, text)
+		local colorButton = CreateFrame("Button", publicName, parent);
+		colorButton:SetPoint("TOPLEFT", x, y);
+		colorButton:SetWidth(20);
+		colorButton:SetHeight(20);
+		colorButton:Hide();
+		colorButton:EnableMouse(true);
+
+		colorButton.colorSwatch = colorButton:CreateTexture(nil, "OVERLAY");
+		colorButton.colorSwatch:SetWidth(19);
+		colorButton.colorSwatch:SetHeight(19);
+		colorButton.colorSwatch:SetTexture("Interface\\ChatFrame\\ChatFrameColorSwatch");
+		colorButton.colorSwatch:SetPoint("LEFT");
+
+		colorButton.texture = colorButton:CreateTexture(nil, "BACKGROUND");
+		colorButton.texture:SetWidth(16);
+		colorButton.texture:SetHeight(16);
+		colorButton.texture:SetTexture(1, 1, 1);
+		colorButton.texture:SetPoint("CENTER", colorButton.colorSwatch);
+		colorButton.texture:Show();
+
+		colorButton.checkers = colorButton:CreateTexture(nil, "BACKGROUND");
+		colorButton.checkers:SetWidth(14);
+		colorButton.checkers:SetHeight(14);
+		colorButton.checkers:SetTexture("Tileset\\Generic\\Checkers");
+		colorButton.checkers:SetTexCoord(.25, 0, 0.5, .25);
+		colorButton.checkers:SetDesaturated(true);
+		colorButton.checkers:SetVertexColor(1, 1, 1, 0.75);
+		colorButton.checkers:SetPoint("CENTER", colorButton.colorSwatch);
+		colorButton.checkers:Show();
+		
+		colorButton.text = colorButton:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+		colorButton.text:SetPoint("LEFT", 22, 0);
+		colorButton.text:SetText(text);
+		return colorButton;
+	end
+	
 	function ShowGUI()
 		if (not InCombatLockdown()) then
 			if (not GUIFrame) then
@@ -942,7 +925,7 @@ do
 		GUIFrame = CreateFrame("Frame", "NAuras_GUIFrame", UIParent);
 		GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
 		GUIFrame:SetScript("OnEvent", function() GUIFrame:Hide(); end);
-		GUIFrame:SetHeight(350);
+		GUIFrame:SetHeight(400);
 		GUIFrame:SetWidth(530);
 		GUIFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 80);
 		GUIFrame:SetBackdrop({
@@ -971,7 +954,7 @@ do
 		
 		local header = GUIFrame:CreateFontString("NAuras_GUIHeader", "ARTWORK", "GameFontHighlight");
 		header:SetFont(GameFontNormal:GetFont(), 22, "THICKOUTLINE");
-		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 185);
+		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 210);
 		header:SetText("NameplateAuras");
 		
 		GUIFrame.outline = CreateFrame("Frame", "NAuras_GUI_GUIFrame_outline", GUIFrame);
@@ -1269,7 +1252,7 @@ do
 		-- // dropdownTimerStyle
 		do
 			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownTimerStyle, 200);
+			UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
 			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -265);
 			local info = {};
 			dropdownTimerStyle.initialize = function()
@@ -1296,7 +1279,7 @@ do
 		-- // dropdownSortMode
 		do
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownSortMode, 200);
+			UIDropDownMenu_SetWidth(dropdownSortMode, 300);
 			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -300);
 			local info = {};
 			dropdownSortMode.initialize = function()
@@ -1324,7 +1307,7 @@ do
 	
 	function GUICategory_2(index, value)
 		local textProfilesCurrentProfile = GUIFrame:CreateFontString("NAuras_GUIProfilesTextCurrentProfile", "OVERLAY", "GameFontNormal");
-		textProfilesCurrentProfile:SetPoint("CENTER", GUIFrame, "LEFT", 330, 130);
+		textProfilesCurrentProfile:SetPoint("CENTER", GUIFrame, "LEFT", 330, 155);
 		textProfilesCurrentProfile:SetText(format(L["Current profile: [%s]"], LocalPlayerFullName));
 		table.insert(GUIFrame.Categories[index], textProfilesCurrentProfile);
 		
@@ -1527,7 +1510,7 @@ do
 			editboxTimerTextXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -125);
 			editboxTimerTextXOffset:SetHeight(20);
 			editboxTimerTextXOffset:SetWidth(80);
-			editboxTimerTextXOffset:SetJustifyH("LEFT");
+			editboxTimerTextXOffset:SetJustifyH("RIGHT");
 			editboxTimerTextXOffset:EnableMouse(true);
 			editboxTimerTextXOffset:SetBackdrop({
 				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -1564,7 +1547,7 @@ do
 			editboxTimerTextYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -125);
 			editboxTimerTextYOffset:SetHeight(20);
 			editboxTimerTextYOffset:SetWidth(80);
-			editboxTimerTextYOffset:SetJustifyH("LEFT");
+			editboxTimerTextYOffset:SetJustifyH("RIGHT");
 			editboxTimerTextYOffset:EnableMouse(true);
 			editboxTimerTextYOffset:SetBackdrop({
 				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -1592,11 +1575,95 @@ do
 		
 		end
 		
+		-- // colorPickerTimerTextFiveSeconds
+		do
+		
+			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", GUIFrame, 165, -160, "Soon to expire");
+			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
+			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.TimerTextSoonToExpireColor = {r, g, b};
+					colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
+					--Nameplates_OnBordersChanged();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextSoonToExpireColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.TimerTextSoonToExpireColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
+			
+		end
+		
+		-- // colorPickerTimerTextMinute
+		do
+		
+			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", GUIFrame, 290, -160, "Under a minute");
+			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
+			colorPickerTimerTextMinute:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.TimerTextUnderMinuteColor = {r, g, b};
+					colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
+					--Nameplates_OnBordersChanged();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextUnderMinuteColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.TimerTextUnderMinuteColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
+		
+		end
+		
+		-- // colorPickerTimerTextMore
+		do
+		
+			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", GUIFrame, 420, -160, "Longer");
+			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
+			colorPickerTimerTextMore:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.TimerTextLongerColor = {r, g, b};
+					colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
+					--Nameplates_OnBordersChanged();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextLongerColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.TimerTextLongerColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMore);
+		
+		end
+		
 		-- // dropdownStacksFont
 		do
 			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownStacksFont, 300);
-			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -190);
+			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -250);
 			local info = {};
 			dropdownStacksFont.initialize = function()
 				wipe(info);
@@ -1623,7 +1690,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -230, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -290, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
 			sliderStacksFontScale.label:SetText("Stacks text's font scale");
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1664,7 +1731,7 @@ do
 			
 			local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownStacksAnchor, 120);
-			dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -285);
+			dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -345);
 			local info = {};
 			dropdownStacksAnchor.initialize = function()
 				wipe(info);
@@ -1694,10 +1761,10 @@ do
 			local editboxStacksXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksXOffset", GUIFrame);
 			editboxStacksXOffset:SetAutoFocus(false);
 			editboxStacksXOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -290);
+			editboxStacksXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -350);
 			editboxStacksXOffset:SetHeight(20);
 			editboxStacksXOffset:SetWidth(80);
-			editboxStacksXOffset:SetJustifyH("LEFT");
+			editboxStacksXOffset:SetJustifyH("RIGHT");
 			editboxStacksXOffset:EnableMouse(true);
 			editboxStacksXOffset:SetBackdrop({
 				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -1731,10 +1798,10 @@ do
 			local editboxStacksYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksYOffset", GUIFrame);
 			editboxStacksYOffset:SetAutoFocus(false);
 			editboxStacksYOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -290);
+			editboxStacksYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -350);
 			editboxStacksYOffset:SetHeight(20);
 			editboxStacksYOffset:SetWidth(80);
-			editboxStacksYOffset:SetJustifyH("LEFT");
+			editboxStacksYOffset:SetJustifyH("RIGHT");
 			editboxStacksYOffset:EnableMouse(true);
 			editboxStacksYOffset:SetBackdrop({
 				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -1905,9 +1972,9 @@ do
 		do
 		
 			selectSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonSelectSpell", GUIFrame, "Click to select spell");
-			selectSpell:SetWidth(300);
+			selectSpell:SetWidth(314);
 			selectSpell:SetHeight(24);
-			selectSpell:SetPoint("TOPLEFT", 180, -60);
+			selectSpell:SetPoint("TOPLEFT", 168, -60);
 			selectSpell:SetScript("OnClick", function()
 				local t = { };
 				for _, spellInfo in pairs(db.CustomSpells2) do

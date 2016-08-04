@@ -224,6 +224,7 @@ do
 			StacksTextAnchor = "BOTTOMRIGHT",
 			StacksTextXOffset = -3,
 			StacksTextYOffset = 5,
+			StacksTextColor = { 1, 0.1, 0.1 },
 			TimerStyle = CONST_TIMER_STYLES[1],
 			ShowBuffBorders = true,
 			BuffBordersColor = {0, 1, 0},
@@ -366,7 +367,7 @@ do
 		texture.border:SetVertexColor(1, 0.35, 0);
 		texture.border:SetAllPoints(texture);
 		texture.border:Hide();
-		texture.stacks:SetTextColor(1, 0.1, 0.1);
+		texture.stacks:SetTextColor(unpack(db.StacksTextColor));
 		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextXOffset, db.StacksTextYOffset);
 		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		texture.stackcount = 0;
@@ -1404,12 +1405,55 @@ do
 	function GUICategory_Fonts(index, value)
 		
 		local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
+		local timerTextArea, stacksTextArea;
+		
+		-- // timerTextArea
+		do
+		
+			timerTextArea = CreateFrame("Frame", "NAuras.GUI.Fonts.TimerTextArea", GUIFrame);
+			timerTextArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			timerTextArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			timerTextArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			timerTextArea:SetPoint("TOPLEFT", 150, -12);
+			timerTextArea:SetPoint("LEFT", 150, 95);
+			timerTextArea:SetWidth(360);
+			table.insert(GUIFrame.Categories[index], timerTextArea);
+		
+		end
+		
+		-- // stacksTextArea
+		do
+		
+			stacksTextArea = CreateFrame("Frame", "NAuras.GUI.Fonts.StacksTextArea", GUIFrame);
+			stacksTextArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			stacksTextArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			stacksTextArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			stacksTextArea:SetPoint("TOPLEFT", 150, -210);
+			stacksTextArea:SetPoint("LEFT", 150, -99);
+			stacksTextArea:SetWidth(360);
+			table.insert(GUIFrame.Categories[index], stacksTextArea);
+		
+		end
 		
 		-- // dropdownFont
 		do
-			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
+			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", timerTextArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownFont, 300);
-			dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -30);
+			dropdownFont:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -18);
 			local info = {};
 			dropdownFont.initialize = function()
 				wipe(info);
@@ -1436,7 +1480,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderTimerFontScale = GUICreateSlider(GUIFrame, 160, -70, 325, "NAuras.GUI.Fonts.SliderTimerFontScale");
+			local sliderTimerFontScale = GUICreateSlider(timerTextArea, 10, -58, 325, "NAuras.GUI.Fonts.SliderTimerFontScale");
 			sliderTimerFontScale.label:SetText("Timer font scale");
 			sliderTimerFontScale.slider:SetValueStep(0.1);
 			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1475,9 +1519,9 @@ do
 		-- // dropdownTimerTextAnchor
 		do
 			
-			local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", GUIFrame, "UIDropDownMenuTemplate");
+			local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", timerTextArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 120);
-			dropdownTimerTextAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -120);
+			dropdownTimerTextAnchor:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -108);
 			local info = {};
 			dropdownTimerTextAnchor.initialize = function()
 				wipe(info);
@@ -1504,10 +1548,10 @@ do
 		-- // editboxTimerTextXOffset
 		do
 		
-			local editboxTimerTextXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextXOffset", GUIFrame);
+			local editboxTimerTextXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextXOffset", timerTextArea);
 			editboxTimerTextXOffset:SetAutoFocus(false);
 			editboxTimerTextXOffset:SetFontObject(GameFontHighlightSmall);
-			editboxTimerTextXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -125);
+			editboxTimerTextXOffset:SetPoint("TOPLEFT", timerTextArea, 160, -113);
 			editboxTimerTextXOffset:SetHeight(20);
 			editboxTimerTextXOffset:SetWidth(80);
 			editboxTimerTextXOffset:SetJustifyH("RIGHT");
@@ -1541,10 +1585,10 @@ do
 		-- // editboxTimerTextYOffset
 		do
 		
-			local editboxTimerTextYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextYOffset", GUIFrame);
+			local editboxTimerTextYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextYOffset", timerTextArea);
 			editboxTimerTextYOffset:SetAutoFocus(false);
 			editboxTimerTextYOffset:SetFontObject(GameFontHighlightSmall);
-			editboxTimerTextYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -125);
+			editboxTimerTextYOffset:SetPoint("TOPLEFT", timerTextArea, 250, -113);
 			editboxTimerTextYOffset:SetHeight(20);
 			editboxTimerTextYOffset:SetWidth(80);
 			editboxTimerTextYOffset:SetJustifyH("RIGHT");
@@ -1578,7 +1622,7 @@ do
 		-- // colorPickerTimerTextFiveSeconds
 		do
 		
-			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", GUIFrame, 165, -160, "Soon to expire");
+			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", timerTextArea, 15, -148, "Soon to expire");
 			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
 			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -1606,7 +1650,7 @@ do
 		-- // colorPickerTimerTextMinute
 		do
 		
-			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", GUIFrame, 290, -160, "Under a minute");
+			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", timerTextArea, 140, -148, "Under a minute");
 			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
 			colorPickerTimerTextMinute:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -1634,7 +1678,7 @@ do
 		-- // colorPickerTimerTextMore
 		do
 		
-			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", GUIFrame, 420, -160, "Longer");
+			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", timerTextArea, 270, -148, "Longer");
 			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
 			colorPickerTimerTextMore:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -1661,9 +1705,9 @@ do
 		
 		-- // dropdownStacksFont
 		do
-			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownStacksFont, 300);
-			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -250);
+			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", stacksTextArea, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownStacksFont, 285);
+			dropdownStacksFont:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", -4, -18);
 			local info = {};
 			dropdownStacksFont.initialize = function()
 				wipe(info);
@@ -1690,7 +1734,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -290, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			local sliderStacksFontScale = GUICreateSlider(stacksTextArea, 10, -58, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
 			sliderStacksFontScale.label:SetText("Stacks text's font scale");
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1729,9 +1773,9 @@ do
 		-- // dropdownStacksAnchor
 		do
 			
-			local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", GUIFrame, "UIDropDownMenuTemplate");
+			local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", stacksTextArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownStacksAnchor, 120);
-			dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -345);
+			dropdownStacksAnchor:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", -4, -108);
 			local info = {};
 			dropdownStacksAnchor.initialize = function()
 				wipe(info);
@@ -1758,10 +1802,10 @@ do
 		-- // editboxStacksXOffset
 		do
 		
-			local editboxStacksXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksXOffset", GUIFrame);
+			local editboxStacksXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksXOffset", stacksTextArea);
 			editboxStacksXOffset:SetAutoFocus(false);
 			editboxStacksXOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksXOffset:SetPoint("TOPLEFT", GUIFrame, 310, -350);
+			editboxStacksXOffset:SetPoint("TOPLEFT", stacksTextArea, 160, -113);
 			editboxStacksXOffset:SetHeight(20);
 			editboxStacksXOffset:SetWidth(80);
 			editboxStacksXOffset:SetJustifyH("RIGHT");
@@ -1795,10 +1839,10 @@ do
 		-- // editboxStacksYOffset
 		do
 		
-			local editboxStacksYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksYOffset", GUIFrame);
+			local editboxStacksYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksYOffset", stacksTextArea);
 			editboxStacksYOffset:SetAutoFocus(false);
 			editboxStacksYOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksYOffset:SetPoint("TOPLEFT", GUIFrame, 400, -350);
+			editboxStacksYOffset:SetPoint("TOPLEFT", stacksTextArea, 250, -113);
 			editboxStacksYOffset:SetHeight(20);
 			editboxStacksYOffset:SetWidth(80);
 			editboxStacksYOffset:SetJustifyH("RIGHT");
@@ -1826,6 +1870,40 @@ do
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("Y offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxStacksYOffset);
+		
+		end
+		
+		-- // colorPickerStacksTextColor
+		do
+		
+			local colorPickerStacksTextColor = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerStacksTextColor", stacksTextArea, 15, -148, "Stacks text color");
+			colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor));
+			colorPickerStacksTextColor:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.StacksTextColor = {r, g, b};
+					colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor));
+					for nameplate in pairs(Nameplates) do
+						if (nameplate.NAurasFrame) then
+							for _, icon in pairs(nameplate.NAurasIcons) do
+								icon.stacks:SetTextColor(unpack(db.StacksTextColor));
+							end
+						end
+					end
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.StacksTextColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.StacksTextColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerStacksTextColor);
 		
 		end
 		

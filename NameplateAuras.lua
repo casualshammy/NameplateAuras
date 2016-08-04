@@ -1622,7 +1622,7 @@ do
 		-- // colorPickerTimerTextFiveSeconds
 		do
 		
-			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", timerTextArea, 15, -148, "Soon to expire");
+			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", timerTextArea, 15, -148, "< 5sec");
 			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
 			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -1650,7 +1650,7 @@ do
 		-- // colorPickerTimerTextMinute
 		do
 		
-			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", timerTextArea, 140, -148, "Under a minute");
+			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", timerTextArea, 140, -148, "< 1min");
 			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
 			colorPickerTimerTextMinute:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -1678,7 +1678,7 @@ do
 		-- // colorPickerTimerTextMore
 		do
 		
-			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", timerTextArea, 270, -148, "Longer");
+			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", timerTextArea, 270, -148, "> 1min");
 			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
 			colorPickerTimerTextMore:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();

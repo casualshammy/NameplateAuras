@@ -46,6 +46,7 @@ local GUIFrame;
 local EventFrame;
 local db;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
+local LocalPlayerGUID = UnitGUID("player");
 -- consts
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
@@ -91,6 +92,7 @@ local UpdateSpellCachesFromDB;
 local AddButtonToBlizzOptions;
 
 local AllocateIcon;
+local UpdateAllNameplates;
 local UpdateOnlyOneNameplate;
 local UpdateNameplate;
 local UpdateNameplate_SetCooldown;
@@ -101,9 +103,7 @@ local ShowCDIcon;
 local ResizeIcon;
 local Nameplates_OnFontChanged;
 local Nameplates_OnDefaultIconSizeOrOffsetChanged;
-local Nameplates_OnBordersStyleChanged;
 local Nameplates_OnSortModeChanged;
-local Nameplates_OnBordersChanged;
 local Nameplates_OnTextPositionChanged;
 local SortAurasForNameplate;
 
@@ -229,7 +229,14 @@ do
 			ShowBuffBorders = true,
 			BuffBordersColor = {0, 1, 0},
 			ShowDebuffBorders = true,
-			DebuffBordersColor = {1, 0, 0},
+			DebuffBordersMagicColor = { 0.1, 1, 1 },
+			DebuffBordersCurseColor = { 1, 0.1, 1 },
+			DebuffBordersDiseaseColor = { 1, 0.5, 0.1 },
+			DebuffBordersPoisonColor = { 0.1, 1, 0.1 },
+			DebuffBordersOtherColor = { 1, 0.1, 0.1 },
+			DebuffBordersColor = {1, 0, 0}, -- deprecated
+			ShowAurasOnPlayerNameplate = false,
+			IconSpacing = 1,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -376,45 +383,65 @@ do
 		tinsert(frame.NAurasIcons, texture);
 	end
 		
+	function UpdateAllNameplates(force)
+		if (force) then
+			for nameplate in pairs(Nameplates) do
+				if (nameplate.NAurasFrame) then
+					for _, icon in pairs(nameplate.NAurasIcons) do
+						HideCDIcon(icon);
+					end
+				end
+			end
+		end
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame and nameplate.UnitFrame.unit) then
+				UpdateOnlyOneNameplate(nameplate, nameplate.UnitFrame.unit);
+			end
+		end
+	end
+		
 	function UpdateOnlyOneNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
-		for i = 1, 40 do
-			local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
-			if (buffName ~= nil) then
-				--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
-				if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player"))
-				and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")
-				and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
-					if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
-						nameplateAuras[frame][buffName] = {
-							["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
-							["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
-							["stacks"] = buffStack,
-							["spellID"] = buffSpellID,
-							["type"] = "buff"
-						};
+		if (LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate == true) then
+			for i = 1, 40 do
+				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
+				if (buffName ~= nil) then
+					--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
+					if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player"))
+					and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")
+					and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
+						if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
+							nameplateAuras[frame][buffName] = {
+								["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
+								["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
+								["stacks"] = buffStack,
+								["spellID"] = buffSpellID,
+								["type"] = "buff"
+							};
+						end
 					end
 				end
-			end
-			local debuffName, _, _, debuffStack, _, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
-			if (debuffName ~= nil) then
-				--print("UpdateOnlyOneNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
-				if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player"))
-				and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")
-				and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
-					if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
-						nameplateAuras[frame][debuffName] = {
-							["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
-							["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
-							["stacks"] = debuffStack,
-							["spellID"] = debuffSpellID,
-							["type"] = "debuff"
-						};
+				local debuffName, _, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
+				if (debuffName ~= nil) then
+					--print("UpdateOnlyOneNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
+					if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player"))
+					and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")
+					and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
+						if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
+							nameplateAuras[frame][debuffName] = {
+								["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
+								["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
+								["stacks"] = debuffStack,
+								["spellID"] = debuffSpellID,
+								["type"] = "debuff",
+								["dispelType"] = debuffDispelType,
+							};
+						end
 					end
 				end
-			end
-			if (buffName == nil and debuffName == nil) then
-				break;
+				if (buffName == nil and debuffName == nil) then
+					break;
+				end
 			end
 		end
 		UpdateNameplate(frame);
@@ -457,12 +484,13 @@ do
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
-					totalWidth = totalWidth + icon.size;
+					totalWidth = totalWidth + icon.size + db.IconSpacing;
 					counter = counter + 1;
 				end
 			end
 		end
 		if (frame.NAurasFrame ~= nil) then
+			totalWidth = totalWidth - db.IconSpacing; -- // because we don't need last spacing
 			frame.NAurasFrame:SetWidth(totalWidth);
 		end
 		for k = counter, frame.NAurasIconsCount do
@@ -480,7 +508,7 @@ do
 	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
 		if (db.TimerStyle == CONST_TIMER_STYLES[1]) then
 			if (last > 3600) then
-				icon.cooldown:SetText("Inf");
+				icon.cooldown:SetText("");
 			elseif (last >= 60) then
 				icon.cooldown:SetText(math_floor(last/60).."m");
 			elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
@@ -519,10 +547,12 @@ do
 				icon.borderState = spellInfo.type;
 			end
 		elseif (db.ShowDebuffBorders and spellInfo.type == "debuff") then
-			if (icon.borderState ~= spellInfo.type) then
-				icon.border:SetVertexColor(unpack(db.DebuffBordersColor));
+			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
+			if (icon.borderState ~= preciseType) then
+				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
+				icon.border:SetVertexColor(unpack(color));
 				icon.border:Show();
-				icon.borderState = spellInfo.type;
+				icon.borderState = preciseType;
 			end
 		else
 			if (icon.borderState ~= nil) then
@@ -562,10 +592,9 @@ do
 	function Nameplates_OnFontChanged()
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
-				local width = 0;
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					ResizeIcon(icon, icon.size, width);
-					width = width + icon.size;
+					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+					icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
 				end
 			end
 		end
@@ -581,44 +610,12 @@ do
 						if (icon.size == oldDefaultIconSize) then
 							icon.size = db.DefaultIconSize;
 						end
-						--print(icon.spellID, icon.size, icon.shown)
 						ResizeIcon(icon, icon.size, width);
-						width = width + icon.size;
+						width = width + icon.size + db.IconSpacing;
 					end
 				end
+				width = width - db.IconSpacing; -- // because we don't need last spacing
 				nameplate.NAurasFrame:SetWidth(width);
-			end
-		end
-	end
-	
-	function Nameplates_OnBordersStyleChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				for _, icon in pairs(nameplate.NAurasIcons) do
-					if (db.DisplayBorders) then
-						if (nameplateAuras[nameplate].sortedAuras ~= nil) then
-							for _, spellInfo in pairs(nameplateAuras[nameplate].sortedAuras) do
-								if (SpellNamesCache[spellInfo.spellID] == icon.spellID) then
-									if (icon.borderState ~= spellInfo.type) then
-										if (spellInfo.type == "buff") then
-											icon.border:SetVertexColor(0, 1, 0, 1);
-										else
-											icon.border:SetVertexColor(1, 0, 0, 1);
-										end
-										icon.border:Show();
-										icon.borderState = spellInfo.type;
-									end
-									break;
-								end
-							end
-						end
-					else
-						if (icon.borderState ~= nil) then
-							icon.border:Hide();
-							icon.borderState = nil;
-						end
-					end
-				end
 			end
 		end
 	end
@@ -626,18 +623,6 @@ do
 	function Nameplates_OnSortModeChanged()
 		for nameplate in pairs(NameplatesVisible) do
 			if (nameplate.NAurasFrame and nameplateAuras[nameplate] ~= nil) then
-				UpdateNameplate(nameplate);
-			end
-		end
-	end
-	
-	function Nameplates_OnBordersChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon.border:Hide();
-					icon.borderState = nil;
-				end
 				UpdateNameplate(nameplate);
 			end
 		end
@@ -708,26 +693,10 @@ do
 						local icon = frame.NAurasIcons[counter];
 						-- // setting text
 						UpdateNameplate_SetCooldown(icon, last, spellInfo);
-						-- if (last > 3600) then
-							-- icon.cooldown:SetText("Inf");
-						-- elseif (last >= 60) then
-							-- icon.cooldown:SetText(math_floor(last/60).."m");
-						-- elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
-							-- icon.cooldown:SetText(string_format("%.0f", last));
-						-- else
-							-- icon.cooldown:SetText(string_format("%.1f", last));
-						-- end
 						counter = counter + 1;
-					else
-						--nameplateAuras[frame][spellID] = nil;
 					end
 				end
 			end
-			-- for k = counter, frame.NAurasIconsCount do
-				-- if (frame.NAurasIcons[k].shown) then
-					-- HideCDIcon(frame.NAurasIcons[k]);
-				-- end
-			-- end
 		end
 	end
 	
@@ -1106,7 +1075,7 @@ do
 		-- // sliderIconSize
 		do
 		
-			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -30, 340, "NAuras.GUI.Cat1.SliderIconSize");
+			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -30, 155, "NAuras.GUI.Cat1.SliderIconSize");
 			sliderIconSize.label:SetText("Default icon size");
 			sliderIconSize.slider:SetValueStep(1);
 			sliderIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
@@ -1145,6 +1114,44 @@ do
 			sliderIconSize.lowtext:SetText("1");
 			sliderIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
 			table.insert(GUIFrame.Categories[index], sliderIconSize);
+		
+		end
+		
+		-- // sliderIconSpacing
+		do
+			local minValue, maxValue = 0, 50;
+			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -30, 155, "NAuras.GUI.Cat1.SliderIconSpacing");
+			sliderIconSpacing.label:SetText("Space between icons");
+			sliderIconSpacing.slider:SetValueStep(1);
+			sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
+			sliderIconSpacing.slider:SetValue(db.IconSpacing);
+			sliderIconSpacing.slider:SetScript("OnValueChanged", function(self, value)
+				sliderIconSpacing.editbox:SetText(tostring(math_ceil(value)));
+				db.IconSpacing = math_ceil(value);
+				UpdateAllNameplates(true);
+			end);
+			sliderIconSpacing.editbox:SetText(tostring(db.IconSpacing));
+			sliderIconSpacing.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderIconSpacing.editbox:GetText() ~= "") then
+					local v = tonumber(sliderIconSpacing.editbox:GetText());
+					if (v == nil) then
+						sliderIconSpacing.editbox:SetText(tostring(db.IconSpacing));
+						msg(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderIconSpacing.slider:SetValue(v);
+					end
+					sliderIconSpacing.editbox:ClearFocus();
+				end
+			end);
+			sliderIconSpacing.lowtext:SetText(tostring(minValue));
+			sliderIconSpacing.hightext:SetText(tostring(maxValue));
+			table.insert(GUIFrame.Categories[index], sliderIconSpacing);
 		
 		end
 		
@@ -1231,13 +1238,6 @@ do
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 		
-		-- local checkBoxDisplayBorders = GUICreateCheckBox(160, -180, "Display red/green borders", function(this)
-			-- db.DisplayBorders = this:GetChecked();
-			-- Nameplates_OnBordersStyleChanged();
-		-- end, "NAuras.GUI.Cat1.CheckBoxDisplayBorders");
-		-- checkBoxDisplayBorders:SetChecked(db.DisplayBorders);
-		-- table.insert(GUIFrame.Categories[index], checkBoxDisplayBorders);
-		
 		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
@@ -1249,12 +1249,23 @@ do
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
-				
+			
+		-- // checkBoxShowAurasOnPlayerNameplate
+		do
+		
+			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBox(160, -220, "Display auras on player's nameplate", function(this)
+				db.ShowAurasOnPlayerNameplate = this:GetChecked();
+			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
+			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
+			table.insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
+		
+		end
+			
 		-- // dropdownTimerStyle
 		do
 			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -265);
+			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -300);
 			local info = {};
 			dropdownTimerStyle.initialize = function()
 				wipe(info);
@@ -1281,7 +1292,7 @@ do
 		do
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -300);
+			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -335);
 			local info = {};
 			dropdownSortMode.initialize = function()
 				wipe(info);
@@ -1635,7 +1646,6 @@ do
 					end
 					db.TimerTextSoonToExpireColor = {r, g, b};
 					colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
-					--Nameplates_OnBordersChanged();
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextSoonToExpireColor));
@@ -1663,7 +1673,6 @@ do
 					end
 					db.TimerTextUnderMinuteColor = {r, g, b};
 					colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
-					--Nameplates_OnBordersChanged();
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextUnderMinuteColor));
@@ -1691,7 +1700,6 @@ do
 					end
 					db.TimerTextLongerColor = {r, g, b};
 					colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
-					--Nameplates_OnBordersChanged();
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 				ColorPickerFrame:SetColorRGB(unpack(db.TimerTextLongerColor));
@@ -1911,11 +1919,13 @@ do
 	
 	function GUICategory_Borders(index, value)
 		
+		local debuffArea;
+		
 		-- // checkBoxBuffBorder
 		do
 			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -30, "Show border around buff icons", function(this)
 				db.ShowBuffBorders = this:GetChecked();
-				Nameplates_OnBordersChanged();
+				UpdateAllNameplates();
 			end);
 			checkBoxBuffBorder:SetChecked(db.ShowBuffBorders);
 			checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor));
@@ -1930,7 +1940,7 @@ do
 					end
 					db.BuffBordersColor = {r, g, b};
 					checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor));
-					Nameplates_OnBordersChanged();
+					UpdateAllNameplates(true);
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 				ColorPickerFrame:SetColorRGB(unpack(db.BuffBordersColor));
@@ -1941,15 +1951,45 @@ do
 			table.insert(GUIFrame.Categories[index], checkBoxBuffBorder);
 		end
 		
+		-- // debuffArea
+		do
+		
+			debuffArea = CreateFrame("Frame", "NAuras.GUI.Borders.DebuffArea", GUIFrame);
+			debuffArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			debuffArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			debuffArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			debuffArea:SetPoint("TOPLEFT", 150, -60);
+			debuffArea:SetPoint("LEFT", 150, 85);
+			debuffArea:SetWidth(360);
+			table.insert(GUIFrame.Categories[index], debuffArea);
+		
+		end
+		
 		-- // checkBoxDebuffBorder
 		do
-			local checkBoxDebuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxDebuffBorder", 160, -60, "Show border around debuff icons", function(this)
+			local checkBoxDebuffBorder = GUICreateCheckBox(160, -60, "Show border around debuff icons", function(this)
 				db.ShowDebuffBorders = this:GetChecked();
-				Nameplates_OnBordersChanged();
-			end);
+				UpdateAllNameplates();
+			end, "NAuras.GUI.Borders.CheckBoxDebuffBorder");
+			checkBoxDebuffBorder:SetParent(debuffArea);
+			checkBoxDebuffBorder:SetPoint("TOPLEFT", 15, -15);
 			checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders);
-			checkBoxDebuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.DebuffBordersColor));
-			checkBoxDebuffBorder.ColorButton:SetScript("OnClick", function()
+			table.insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
+		end
+		
+		-- // colorPickerDebuffMagic
+		do
+		
+			local colorPickerDebuffMagic = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffMagic", debuffArea, 15, -45, "Magic");
+			colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor));
+			colorPickerDebuffMagic:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
 				local function callback(restore)
 					local r, g, b;
@@ -1958,17 +1998,130 @@ do
 					else
 						r, g, b = ColorPickerFrame:GetColorRGB();
 					end
-					db.DebuffBordersColor = {r, g, b};
-					checkBoxDebuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.DebuffBordersColor));
-					Nameplates_OnBordersChanged();
+					db.DebuffBordersMagicColor = {r, g, b};
+					colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor));
+					UpdateAllNameplates();
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersColor));
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersMagicColor));
 				ColorPickerFrame.hasOpacity = false;
-				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersColor) };
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersMagicColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
+			table.insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
+		
+		end
+		
+		-- // colorPickerDebuffCurse
+		do
+		
+			local colorPickerDebuffCurse = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffCurse", debuffArea, 135, -45, "Curse");
+			colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor));
+			colorPickerDebuffCurse:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.DebuffBordersCurseColor = {r, g, b};
+					colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor));
+					UpdateAllNameplates();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersCurseColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersCurseColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
+		
+		end
+		
+		-- // colorPickerDebuffDisease
+		do
+		
+			local colorPickerDebuffDisease = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffDisease", debuffArea, 255, -45, "Disease");
+			colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor));
+			colorPickerDebuffDisease:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.DebuffBordersDiseaseColor = {r, g, b};
+					colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor));
+					UpdateAllNameplates();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersDiseaseColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersDiseaseColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
+		
+		end
+		
+		-- // colorPickerDebuffPoison
+		do
+		
+			local colorPickerDebuffPoison = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffPoison", debuffArea, 15, -70, "Poison");
+			colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor));
+			colorPickerDebuffPoison:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.DebuffBordersPoisonColor = {r, g, b};
+					colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor));
+					UpdateAllNameplates();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersPoisonColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersPoisonColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
+		
+		end
+		
+		-- // colorPickerDebuffOther
+		do
+		
+			local colorPickerDebuffOther = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffOther", debuffArea, 135, -70, "Other");
+			colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor));
+			colorPickerDebuffOther:SetScript("OnClick", function()
+				ColorPickerFrame:Hide();
+				local function callback(restore)
+					local r, g, b;
+					if (restore) then
+						r, g, b = unpack(restore);
+					else
+						r, g, b = ColorPickerFrame:GetColorRGB();
+					end
+					db.DebuffBordersOtherColor = {r, g, b};
+					colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor));
+					UpdateAllNameplates();
+				end
+				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
+				ColorPickerFrame:SetColorRGB(unpack(db.DebuffBordersOtherColor));
+				ColorPickerFrame.hasOpacity = false;
+				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersOtherColor) };
+				ColorPickerFrame:Show();
+			end);
+			table.insert(GUIFrame.Categories[index], colorPickerDebuffOther);
+		
 		end
 		
 	end

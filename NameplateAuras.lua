@@ -64,11 +64,12 @@ do
 	};
 	CONST_DISABLED = SPELL_SHOW_MODES[3];
 	CONST_MAX_ICON_SIZE = 75;
-	CONST_TIMER_STYLES = { "texture-with-text", "cooldown-frame-no-text", "cooldown-frame" };
+	CONST_TIMER_STYLES = { "texture-with-text", "cooldown-frame-no-text", "cooldown-frame", "circular-noomnicc-text" };
 	CONST_TIMER_STYLES_LOCALIZATION = {
 		[CONST_TIMER_STYLES[1]] = "Texture with timer",
 		[CONST_TIMER_STYLES[2]] = "Circular",
-		[CONST_TIMER_STYLES[3]] = "Circular with OmniCC support"
+		[CONST_TIMER_STYLES[3]] = "Circular with OmniCC support",
+		[CONST_TIMER_STYLES[4]] = "Circular with timer",
 	};
 	
 end
@@ -168,7 +169,7 @@ do
 			end
 		end
 		-- // starting OnUpdate()
-		if (db.TimerStyle == CONST_TIMER_STYLES[1]) then
+		if (db.TimerStyle == CONST_TIMER_STYLES[1] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
 				ElapsedTimer = ElapsedTimer + elapsed;
 				if (ElapsedTimer >= 0.1) then
@@ -207,7 +208,6 @@ do
 			IconYOffset = 50,
 			FullOpacityAlways = false,
 			Font = "NAuras_TeenBold",
-			DisplayBorders = true, -- deprecated
 			HideBlizzardFrames = true,
 			DefaultIconSize = 45,
 			SortMode = CONST_SORT_MODES[2],
@@ -234,7 +234,6 @@ do
 			DebuffBordersDiseaseColor = { 1, 0.5, 0.1 },
 			DebuffBordersPoisonColor = { 0.1, 1, 0.1 },
 			DebuffBordersOtherColor = { 1, 0.1, 0.1 },
-			DebuffBordersColor = {1, 0, 0}, -- deprecated
 			ShowAurasOnPlayerNameplate = false,
 			IconSpacing = 1,
 		};
@@ -262,8 +261,10 @@ do
 			end
 			NameplateAurasDB[LocalPlayerFullName].DefaultSpells = nil;
 		end
-		if (NameplateAurasDB[LocalPlayerFullName].IconSize ~= nil) then
-			NameplateAurasDB[LocalPlayerFullName].IconSize = nil;
+		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders" }) do
+			if (NameplateAurasDB[LocalPlayerFullName][entry] ~= nil) then
+				NameplateAurasDB[LocalPlayerFullName][entry] = nil;
+			end
 		end
 		-- // creating a fast reference
 		db = NameplateAurasDB[LocalPlayerFullName];
@@ -329,9 +330,8 @@ do
 		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
 		texture:SetWidth(db.DefaultIconSize);
 		texture:SetHeight(db.DefaultIconSize);
-		if (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
+		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
 			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
-			--print("Cooldown is created: ", "NAuras.Cooldown" .. tostring(cooldownCounter));
 			texture.cooldownFrame:SetAllPoints(texture);
 			texture.cooldownFrame:SetReverse(true);
 			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
@@ -357,16 +357,25 @@ do
 					else
 						texture.stacks:SetParent(texture.cooldownFrame);
 					end
-					--print(texture.stacks:GetName(), ": parent is changed");
+				end
+			end);
+			texture.cooldown = texture:CreateFontString(nil, "OVERLAY");
+			hooksecurefunc(texture.cooldown, "SetText", function(self, text)
+				if (text ~= "") then
+					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
+						texture.cooldown:SetParent(texture);
+					else
+						texture.cooldown:SetParent(texture.cooldownFrame);
+					end
 				end
 			end);
 		else
 			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+			texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		end
 		texture.size = db.DefaultIconSize;
 		texture:Hide();
-		texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		texture.cooldown:SetTextColor(0.7, 1, 0);
 		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextXOffset, db.TimerTextYOffset);
 		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
@@ -506,7 +515,7 @@ do
 	end
 	
 	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
-		if (db.TimerStyle == CONST_TIMER_STYLES[1]) then
+		if (db.TimerStyle == CONST_TIMER_STYLES[1] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
 			if (last > 3600) then
 				icon.cooldown:SetText("");
 			elseif (last >= 60) then
@@ -522,6 +531,9 @@ do
 				icon.cooldown:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
 			else
 				icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+			end
+			if (db.TimerStyle == CONST_TIMER_STYLES[4]) then
+				icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 			end
 		elseif (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
 			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
@@ -2628,7 +2640,7 @@ do
 			};
 		end
 		StaticPopupDialogs["NAURAS_MSG"].text = text;
-		StaticPopup_Show ("NAURAS_MSG");
+		StaticPopup_Show("NAURAS_MSG");
 	end
 	
 end

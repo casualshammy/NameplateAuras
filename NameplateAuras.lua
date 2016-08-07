@@ -46,7 +46,7 @@ local GUIFrame;
 local EventFrame;
 local db;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
-local LocalPlayerGUID = UnitGUID("player");
+local LocalPlayerGUID;
 -- consts
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
@@ -139,6 +139,9 @@ local msg;
 do
 
 	function OnStartup()
+		-- // getting player's GUID
+		LocalPlayerGUID = UnitGUID("player");
+		-- // ...
 		InitializeDB();
 		-- // Convert standard spell IDs to spell names
 		for spellID, spellInfo in pairs(DefaultSpells) do
@@ -774,6 +777,21 @@ end
 -------------------------------------------------------------------------------------------------
 do
 
+	local function PopupReloadUI()
+		if (StaticPopupDialogs["NAURAS_MSG_RELOAD"] == nil) then
+			StaticPopupDialogs["NAURAS_MSG_RELOAD"] = {
+				text = "Please reload UI to apply changes",
+				button1 = "Reload UI",
+				OnAccept = function() ReloadUI(); end,
+				timeout = 0,
+				whileDead = true,
+				hideOnEscape = true,
+				preferredIndex = 3,
+			};
+		end
+		StaticPopup_Show("NAURAS_MSG_RELOAD");
+	end
+
 	local function GUICreateCheckBox(x, y, text, func, publicName)
 		local checkBox = CreateFrame("CheckButton", publicName, GUIFrame);
 		checkBox:SetHeight(20);
@@ -1246,12 +1264,14 @@ do
 		
 		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, "Always display icons at full opacity (ReloadUI is required)", function(this)
 			db.FullOpacityAlways = this:GetChecked();
+			PopupReloadUI();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 		
 		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
+			PopupReloadUI();
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
@@ -1287,7 +1307,7 @@ do
 					info.func = function(self)
 						db.TimerStyle = self.value;
 						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
-						msg("Please reload UI to apply changes");
+						PopupReloadUI();
 					end
 					info.checked = (db.TimerStyle == info.value);
 					UIDropDownMenu_AddButton(info);

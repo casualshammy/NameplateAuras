@@ -106,6 +106,7 @@ local Nameplates_OnFontChanged;
 local Nameplates_OnDefaultIconSizeOrOffsetChanged;
 local Nameplates_OnSortModeChanged;
 local Nameplates_OnTextPositionChanged;
+local Nameplates_OnIconAnchorChanged;
 local SortAurasForNameplate;
 
 local OnUpdate;
@@ -239,6 +240,7 @@ do
 			DebuffBordersOtherColor = { 1, 0.1, 0.1 },
 			ShowAurasOnPlayerNameplate = false,
 			IconSpacing = 1,
+			IconAnchor = "LEFT",
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -330,7 +332,7 @@ do
 			frame.NAurasFrame:Show();
 		end
 		local texture = (db.TimerStyle == CONST_TIMER_STYLES[1]) and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
-		texture:SetPoint("LEFT", frame.NAurasFrame, widthUsed, 0);
+		texture:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
 		texture:SetWidth(db.DefaultIconSize);
 		texture:SetHeight(db.DefaultIconSize);
 		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
@@ -599,7 +601,7 @@ do
 	function ResizeIcon(icon, size, widthAlreadyUsed)
 		icon:SetWidth(size);
 		icon:SetHeight(size);
-		icon:SetPoint("LEFT", icon:GetParent(), widthAlreadyUsed, 0);
+		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
 		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
 	end
@@ -654,6 +656,18 @@ do
 				end
 			end
 		end
+	end
+	
+	function Nameplates_OnIconAnchorChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					icon:ClearAllPoints();
+					icon:SetPoint(db.IconAnchor, nameplate.NAurasFrame, 0, 0);
+				end
+			end
+		end
+		UpdateAllNameplates(true);
 	end
 	
 	function SortAurasForNameplate(auras)
@@ -1297,7 +1311,7 @@ do
 		do
 			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -300);
+			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -275);
 			local info = {};
 			dropdownTimerStyle.initialize = function()
 				wipe(info);
@@ -1320,11 +1334,41 @@ do
 			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
 		end
 		
+		-- // dropdownIconAnchor
+		do
+			
+			local anchors = { "TOPLEFT", "LEFT", "BOTTOMLEFT" };
+			local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownIconAnchor, 300);
+			dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -310);
+			local info = {};
+			dropdownIconAnchor.initialize = function()
+				wipe(info);
+				for _, anchor in pairs(anchors) do
+					info.text = anchor;
+					info.value = anchor;
+					info.func = function(self)
+						db.IconAnchor = self.value;
+						_G[dropdownIconAnchor:GetName().."Text"]:SetText(self:GetText());
+						Nameplates_OnIconAnchorChanged();
+					end
+					info.checked = (db.IconAnchor == info.value);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownIconAnchor:GetName().."Text"]:SetText(db.IconAnchor);
+			dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString("NAuras.GUI.Cat1.DropdownIconAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
+			dropdownIconAnchor.text:SetText("Icon anchor:");
+			table.insert(GUIFrame.Categories[index], dropdownIconAnchor);
+		
+		end
+		
 		-- // dropdownSortMode
 		do
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -335);
+			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -345);
 			local info = {};
 			dropdownSortMode.initialize = function()
 				wipe(info);

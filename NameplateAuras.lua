@@ -94,7 +94,7 @@ local AddButtonToBlizzOptions;
 
 local AllocateIcon;
 local UpdateAllNameplates;
-local UpdateOnlyOneNameplate;
+local ProcessAurasForNameplate;
 local UpdateNameplate;
 local UpdateNameplate_SetCooldown;
 local UpdateNameplate_SetStacks;
@@ -241,6 +241,7 @@ do
 			ShowAurasOnPlayerNameplate = false,
 			IconSpacing = 1,
 			IconAnchor = "LEFT",
+			ShowMyAuras = true,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -409,12 +410,12 @@ do
 		end
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame and nameplate.UnitFrame.unit) then
-				UpdateOnlyOneNameplate(nameplate, nameplate.UnitFrame.unit);
+				ProcessAurasForNameplate(nameplate, nameplate.UnitFrame.unit);
 			end
 		end
 	end
 		
-	function UpdateOnlyOneNameplate(frame, unitID)
+	function ProcessAurasForNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
 		if (LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate == true) then
 			for i = 1, 40 do
@@ -423,7 +424,8 @@ do
 					--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
 					if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player"))
 					and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")
-					and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)) then
+					and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)
+					and (db.ShowMyAuras == true or buffCaster ~= "player")) then
 						if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 							nameplateAuras[frame][buffName] = {
 								["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
@@ -437,10 +439,11 @@ do
 				end
 				local debuffName, _, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					--print("UpdateOnlyOneNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
+					--print("ProcessAurasForNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 					if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player"))
 					and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")
-					and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)) then
+					and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)
+					and (db.ShowMyAuras == true or debuffCaster ~= "player")) then
 						if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 							nameplateAuras[frame][debuffName] = {
 								["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
@@ -755,7 +758,7 @@ do
 			Nameplates[nameplate] = true;
 			nameplateAuras[nameplate] = {};
 		end
-		UpdateOnlyOneNameplate(nameplate, unitID);
+		ProcessAurasForNameplate(nameplate, unitID);
 		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 			nameplate.NAurasFrame:Show();
 		end
@@ -777,13 +780,13 @@ do
 		local unitID = ...;
 		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
-			UpdateOnlyOneNameplate(nameplate, unitID);
+			ProcessAurasForNameplate(nameplate, unitID);
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 				nameplate.NAurasFrame:Show();
 			end
 		end
 	end
-	
+		
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1304,6 +1307,18 @@ do
 			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
 			table.insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
+		
+		end
+			
+		-- // checkBoxShowMyAuras
+		do
+		
+			local checkBoxShowMyAuras = GUICreateCheckBox(160, -240, "Show auras cast by myself", function(this)
+				db.ShowMyAuras = this:GetChecked();
+				UpdateAllNameplates(false);
+			end, "NAuras.GUI.Cat1.CheckBoxShowMyAuras");
+			checkBoxShowMyAuras:SetChecked(db.ShowMyAuras);
+			table.insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		
 		end
 			

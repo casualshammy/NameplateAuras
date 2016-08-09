@@ -241,7 +241,7 @@ do
 			ShowAurasOnPlayerNameplate = false,
 			IconSpacing = 1,
 			IconAnchor = "LEFT",
-			ShowMyAuras = true,
+			AlwaysShowMyAuras = true,
 		};
 		for key, value in pairs(defaults) do
 			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
@@ -267,9 +267,10 @@ do
 			end
 			NameplateAurasDB[LocalPlayerFullName].DefaultSpells = nil;
 		end
-		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders" }) do
+		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras" }) do
 			if (NameplateAurasDB[LocalPlayerFullName][entry] ~= nil) then
 				NameplateAurasDB[LocalPlayerFullName][entry] = nil;
+				Print("Old db record is deleted: " .. entry);
 			end
 		end
 		-- // creating a fast reference
@@ -415,17 +416,28 @@ do
 		end
 	end
 		
+	local function ProcessAurasForNameplate_Filter(isBuff, auraName, auraCaster, auraSpellID)
+		if (db.AlwaysShowMyAuras and auraCaster == "player") then
+			return true;
+		else
+			if (SpellShowModesCache[auraName] == "all" or (SpellShowModesCache[auraName] == "my" and auraCaster == "player")) then
+				if (SpellAuraTypeCache[auraName] == "buff/debuff" or (isBuff and SpellAuraTypeCache[auraName] == "buff" or SpellAuraTypeCache[auraName] == "debuff")) then
+					if (SpellCheckIDCache[auraName] == nil or SpellCheckIDCache[auraName] == auraSpellID) then
+						return true;
+					end
+				end
+			end
+		end
+		return false;
+	end
+		
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
 		if (LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate == true) then
 			for i = 1, 40 do
 				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					--print(SpellShowModesCache[buffName], buffName, buffStack, buffDuration, buffExpires, buffCaster, buffSpellID);
-					if ((SpellShowModesCache[buffName] == "all" or (SpellShowModesCache[buffName] == "my" and buffCaster == "player"))
-					and (SpellAuraTypeCache[buffName] == "buff" or SpellAuraTypeCache[buffName] == "buff/debuff")
-					and (SpellCheckIDCache[buffName] == nil or SpellCheckIDCache[buffName] == buffSpellID)
-					and (db.ShowMyAuras == true or buffCaster ~= "player")) then
+					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID)) then
 						if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
 							nameplateAuras[frame][buffName] = {
 								["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
@@ -440,10 +452,7 @@ do
 				local debuffName, _, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
 					--print("ProcessAurasForNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
-					if ((SpellShowModesCache[debuffName] == "all" or (SpellShowModesCache[debuffName] == "my" and debuffCaster == "player"))
-					and (SpellAuraTypeCache[debuffName] == "debuff" or SpellAuraTypeCache[debuffName] == "buff/debuff")
-					and (SpellCheckIDCache[debuffName] == nil or SpellCheckIDCache[debuffName] == debuffSpellID)
-					and (db.ShowMyAuras == true or debuffCaster ~= "player")) then
+					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID)) then
 						if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
 							nameplateAuras[frame][debuffName] = {
 								["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
@@ -493,8 +502,9 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					if (SpellIconSizesCache[spellName] ~= icon.size or iconResized) then
-						icon.size = SpellIconSizesCache[spellName];
+					local normalSize = SpellIconSizesCache[spellName] or db.DefaultIconSize;
+					if (normalSize ~= icon.size or iconResized) then
+						icon.size = normalSize;
 						ResizeIcon(icon, icon.size, totalWidth);
 						iconResized = true;
 					end
@@ -1313,11 +1323,11 @@ do
 		-- // checkBoxShowMyAuras
 		do
 		
-			local checkBoxShowMyAuras = GUICreateCheckBox(160, -240, "Show auras cast by myself", function(this)
-				db.ShowMyAuras = this:GetChecked();
+			local checkBoxShowMyAuras = GUICreateCheckBox(160, -240, "Always show auras cast by myself", function(this)
+				db.AlwaysShowMyAuras = this:GetChecked();
 				UpdateAllNameplates(false);
 			end, "NAuras.GUI.Cat1.CheckBoxShowMyAuras");
-			checkBoxShowMyAuras:SetChecked(db.ShowMyAuras);
+			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
 			table.insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		
 		end

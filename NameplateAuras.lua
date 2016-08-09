@@ -137,29 +137,6 @@ local Print;
 local deepcopy;
 local msg;
 
-local optionsTable;
-do
-	optionsTable = {
-		name = "NameplateAuras",
-		type = 'group',
-		args = {
-			openGUI = {
-				type = 'execute',
-				order = 1,
-				name = 'Open config dialog',
-				desc = nil,
-				func = function()
-					ShowGUI();
-					if (GUIFrame) then
-						InterfaceOptionsFrameCancel:Click();
-					end
-				end,
-			},
-		},
-	};
-end
-
-
 -------------------------------------------------------------------------------------------------
 ----- Initialize
 -------------------------------------------------------------------------------------------------
@@ -197,18 +174,18 @@ do
 		SpellIconSizesCache = { };
 		SpellCheckIDCache = { };
 		-- // Convert standard spell IDs to spell names
-		for spellID, spellInfo in pairs(DefaultSpells) do
-			local spellName = SpellNamesCache[spellID];
-			if (spellName ~= nil and Spells[spellName] == nil) then
-				Spells[spellName] = spellInfo;
-				if (db.CustomSpells2[spellID] == nil) then
-					db.CustomSpells2[spellID] = spellInfo;
-					Print("New spell is added: " .. spellName .. " (id:" .. spellID .. ")");
-				end
-			else
-				Print("<" .. spellName .. "> not exist or is already added (id:" .. spellID .. ", id:" .. (Spells[spellName] ~= nil and Spells[spellName].spellID or "0") .. ")");
-			end
-		end
+		-- for spellID, spellInfo in pairs(DefaultSpells) do
+			-- local spellName = SpellNamesCache[spellID];
+			-- if (spellName ~= nil and Spells[spellName] == nil) then
+				-- Spells[spellName] = spellInfo;
+				-- if (db.CustomSpells2[spellID] == nil) then
+					-- db.CustomSpells2[spellID] = spellInfo;
+					-- Print("New spell is added: " .. spellName .. " (id:" .. spellID .. ")");
+				-- end
+			-- else
+				-- Print("<" .. spellName .. "> not exist or is already added (id:" .. spellID .. ", id:" .. (Spells[spellName] ~= nil and Spells[spellName].spellID or "0") .. ")");
+			-- end
+		-- end
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			local spellName = SpellNamesCache[spellID];
 			if (spellName == nil) then
@@ -257,8 +234,7 @@ do
 		-- // set defaults
 		local aceDBDefaults = {
 			profile = {
-				DefaultSpells = { },
-				CustomSpells2 = { },
+				CustomSpells2 = deepcopy(DefaultSpells),
 				IconXOffset = 0,
 				IconYOffset = 50,
 				FullOpacityAlways = false,
@@ -308,13 +284,30 @@ do
 			Print("DB converting is completed");
 		end
 		-- // adding to blizz options
-		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras", optionsTable);
+		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras", {
+			name = "NameplateAuras",
+			type = 'group',
+			args = {
+				openGUI = {
+					type = 'execute',
+					order = 1,
+					name = 'Open config dialog',
+					desc = nil,
+					func = function()
+						ShowGUI();
+						if (GUIFrame) then
+							InterfaceOptionsFrameCancel:Click();
+						end
+					end,
+				},
+			},
+		});
 		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras", "NameplateAuras");
 		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		ProfileOptionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
 		-- // processing old and invalid entries
-		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras" }) do
+		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells" }) do
 			if (aceDB.profile[entry] ~= nil) then
 				aceDB.profile[entry] = nil;
 				Print("Old db record is deleted: " .. entry);
@@ -1334,7 +1327,7 @@ do
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
-		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways); end);
+		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways); PopupReloadUI(); end);
 		
 		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
@@ -1342,7 +1335,7 @@ do
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
-		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames); end);
+		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames); PopupReloadUI(); end);
 		
 		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -200, "Display tenths of seconds", function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
@@ -1402,7 +1395,7 @@ do
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText("Timer style:");
 			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]); end);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]); PopupReloadUI(); end);
 			
 		end
 		

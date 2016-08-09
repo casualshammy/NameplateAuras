@@ -1,7 +1,7 @@
 ## Interface: 70000
 ## Title: NameplateAuras
 ## Notes: Displays people's buffs/debuffs above their nameplates
-## SavedVariables: NameplateAurasDB
+## SavedVariables: NameplateAurasDB, NameplateAurasAceDB
 
 embeds.xml
 localizations.lua

@@ -45,8 +45,10 @@ local NameplatesVisible = {};
 local GUIFrame;
 local EventFrame;
 local db;
+local aceDB;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
 local LocalPlayerGUID;
+local ProfileOptionsFrame;
 -- consts
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
@@ -74,6 +76,7 @@ do
 	
 end
 
+
 local _G = _G;
 local pairs = pairs;
 local select = select;
@@ -87,10 +90,10 @@ local math_ceil = ceil;
 local math_floor = floor;
 
 local OnStartup;
+local ReloadDB;
 local InitializeDB;
 local GetDefaultDBSpellEntry;
 local UpdateSpellCachesFromDB;
-local AddButtonToBlizzOptions;
 
 local AllocateIcon;
 local UpdateAllNameplates;
@@ -134,6 +137,29 @@ local Print;
 local deepcopy;
 local msg;
 
+local optionsTable;
+do
+	optionsTable = {
+		name = "NameplateAuras",
+		type = 'group',
+		args = {
+			openGUI = {
+				type = 'execute',
+				order = 1,
+				name = 'Open config dialog',
+				desc = nil,
+				func = function()
+					ShowGUI();
+					if (GUIFrame) then
+						InterfaceOptionsFrameCancel:Click();
+					end
+				end,
+			},
+		},
+	};
+end
+
+
 -------------------------------------------------------------------------------------------------
 ----- Initialize
 -------------------------------------------------------------------------------------------------
@@ -144,6 +170,32 @@ do
 		LocalPlayerGUID = UnitGUID("player");
 		-- // ...
 		InitializeDB();
+		-- // ...
+		ReloadDB();
+		-- // starting listening for events
+		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
+		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
+		EventFrame:RegisterEvent("UNIT_AURA");
+		-- // adding slash command
+		SLASH_NAMEPLATEAURAS1 = '/nauras';
+		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
+			if (msg == "t") then
+				Print("Waiting for replies...");
+				SendAddonMessage("NAuras_prefix", "requesting", IsInGroup(2) and "INSTANCE_CHAT" or "RAID");
+			else
+				ShowGUI();
+			end
+		end
+		OnStartup = nil;
+	end
+
+	function ReloadDB()
+		db = aceDB.profile;
+		Spells = {};
+		SpellShowModesCache = { };
+		SpellAuraTypeCache = { };
+		SpellIconSizesCache = { };
+		SpellCheckIDCache = { };
 		-- // Convert standard spell IDs to spell names
 		for spellID, spellInfo in pairs(DefaultSpells) do
 			local spellName = SpellNamesCache[spellID];
@@ -181,100 +233,97 @@ do
 					ElapsedTimer = 0;
 				end
 			end);
+		else
+			EventFrame:SetScript("OnUpdate", nil);
 		end
-		-- // starting listening for events
-		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
-		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
-		EventFrame:RegisterEvent("UNIT_AURA");
-		AddButtonToBlizzOptions();
-		SLASH_NAMEPLATEAURAS1 = '/nauras';
-		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
-			if (msg == "t") then
-				Print("Waiting for replies...");
-				SendAddonMessage("NAuras_prefix", "requesting", IsInGroup(2) and "INSTANCE_CHAT" or "RAID");
-			else
-				ShowGUI();
+		if (GUIFrame) then
+			--GUIFrame:Hide();
+			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
+				func();
 			end
 		end
-		OnStartup = nil;
+		Nameplates_OnFontChanged();
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				nameplate.NAurasFrame:SetPoint("CENTER", nameplate, db.IconXOffset, db.IconYOffset);
+			end
+		end
+		Nameplates_OnTextPositionChanged();
+		Nameplates_OnIconAnchorChanged();
+		UpdateAllNameplates(true);
 	end
-
+	
 	function InitializeDB()
-		-- // if db is not exist for current player, create it
-		if (NameplateAurasDB[LocalPlayerFullName] == nil) then
-			NameplateAurasDB[LocalPlayerFullName] = { };
-		end
 		-- // set defaults
-		local defaults = {
-			DefaultSpells = { },
-			CustomSpells2 = { },
-			IconXOffset = 0,
-			IconYOffset = 50,
-			FullOpacityAlways = false,
-			Font = "NAuras_TeenBold",
-			HideBlizzardFrames = true,
-			DefaultIconSize = 45,
-			SortMode = CONST_SORT_MODES[2],
-			DisplayTenthsOfSeconds = true,
-			FontScale = 1,
-			TimerTextAnchor = "CENTER",
-			TimerTextXOffset = 0,
-			TimerTextYOffset = 0,
-			TimerTextSoonToExpireColor = { 1, 0.1, 0.1 },
-			TimerTextUnderMinuteColor = { 1, 1, 0.1 },
-			TimerTextLongerColor = { 0.7, 1, 0 },
-			StacksFont = "NAuras_TeenBold",
-			StacksFontScale = 1,
-			StacksTextAnchor = "BOTTOMRIGHT",
-			StacksTextXOffset = -3,
-			StacksTextYOffset = 5,
-			StacksTextColor = { 1, 0.1, 0.1 },
-			TimerStyle = CONST_TIMER_STYLES[1],
-			ShowBuffBorders = true,
-			BuffBordersColor = {0, 1, 0},
-			ShowDebuffBorders = true,
-			DebuffBordersMagicColor = { 0.1, 1, 1 },
-			DebuffBordersCurseColor = { 1, 0.1, 1 },
-			DebuffBordersDiseaseColor = { 1, 0.5, 0.1 },
-			DebuffBordersPoisonColor = { 0.1, 1, 0.1 },
-			DebuffBordersOtherColor = { 1, 0.1, 0.1 },
-			ShowAurasOnPlayerNameplate = false,
-			IconSpacing = 1,
-			IconAnchor = "LEFT",
-			AlwaysShowMyAuras = true,
+		local aceDBDefaults = {
+			profile = {
+				DefaultSpells = { },
+				CustomSpells2 = { },
+				IconXOffset = 0,
+				IconYOffset = 50,
+				FullOpacityAlways = false,
+				Font = "NAuras_TeenBold",
+				HideBlizzardFrames = true,
+				DefaultIconSize = 45,
+				SortMode = CONST_SORT_MODES[2],
+				DisplayTenthsOfSeconds = true,
+				FontScale = 1,
+				TimerTextAnchor = "CENTER",
+				TimerTextXOffset = 0,
+				TimerTextYOffset = 0,
+				TimerTextSoonToExpireColor = { 1, 0.1, 0.1 },
+				TimerTextUnderMinuteColor = { 1, 1, 0.1 },
+				TimerTextLongerColor = { 0.7, 1, 0 },
+				StacksFont = "NAuras_TeenBold",
+				StacksFontScale = 1,
+				StacksTextAnchor = "BOTTOMRIGHT",
+				StacksTextXOffset = -3,
+				StacksTextYOffset = 5,
+				StacksTextColor = { 1, 0.1, 0.1 },
+				TimerStyle = CONST_TIMER_STYLES[1],
+				ShowBuffBorders = true,
+				BuffBordersColor = {0, 1, 0},
+				ShowDebuffBorders = true,
+				DebuffBordersMagicColor = { 0.1, 1, 1 },
+				DebuffBordersCurseColor = { 1, 0.1, 1 },
+				DebuffBordersDiseaseColor = { 1, 0.5, 0.1 },
+				DebuffBordersPoisonColor = { 0.1, 1, 0.1 },
+				DebuffBordersOtherColor = { 1, 0.1, 0.1 },
+				ShowAurasOnPlayerNameplate = false,
+				IconSpacing = 1,
+				IconAnchor = "LEFT",
+				AlwaysShowMyAuras = true,
+			},
 		};
-		for key, value in pairs(defaults) do
-			if (NameplateAurasDB[LocalPlayerFullName][key] == nil) then
-				NameplateAurasDB[LocalPlayerFullName][key] = value;
+		
+		-- // ...
+		aceDB = LibStub("AceDB-3.0"):New("NameplateAurasAceDB", aceDBDefaults);
+		-- // convert from old DB
+		if (NameplateAurasDB[LocalPlayerFullName] ~= nil) then
+			Print("Converting DB to Ace3DB...");
+			for index in pairs(NameplateAurasDB[LocalPlayerFullName]) do
+				aceDB.profile[index] = deepcopy(NameplateAurasDB[LocalPlayerFullName][index]);
 			end
+			NameplateAurasDB[LocalPlayerFullName] = nil;
+			Print("DB converting is completed");
 		end
+		-- // adding to blizz options
+		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras", optionsTable);
+		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras", "NameplateAuras");
+		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
+		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
+		ProfileOptionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
 		-- // processing old and invalid entries
-		if (NameplateAurasDB[LocalPlayerFullName].CustomSpells ~= nil and NameplateAurasDB[LocalPlayerFullName].CustomSpells2 == nil) then
-			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].CustomSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize, nil);
-			end
-			NameplateAurasDB[LocalPlayerFullName].CustomSpells = nil;
-		end
-		if (NameplateAurasDB[LocalPlayerFullName].StandardSpells ~= nil and NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"] == nil) then
-			for spellID, enabledState in pairs(NameplateAurasDB[LocalPlayerFullName].StandardSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["DefaultSpells"][spellID] = GetDefaultDBSpellEntry(enabledState, spellID, defaults.DefaultIconSize, nil);
-			end
-			NameplateAurasDB[LocalPlayerFullName].StandardSpells = nil;
-		end
-		if (NameplateAurasDB[LocalPlayerFullName].DefaultSpells ~= nil) then
-			for spellID, spellInfo in pairs(NameplateAurasDB[LocalPlayerFullName].DefaultSpells) do
-				NameplateAurasDB[LocalPlayerFullName]["CustomSpells2"][spellID] = GetDefaultDBSpellEntry(spellInfo.enabledState, spellInfo.spellID, spellInfo.iconSize or defaults.DefaultIconSize, spellInfo.checkSpellID or (DefaultSpells[spellID] ~= nil and DefaultSpells[spellID].checkSpellID or nil));
-			end
-			NameplateAurasDB[LocalPlayerFullName].DefaultSpells = nil;
-		end
 		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras" }) do
-			if (NameplateAurasDB[LocalPlayerFullName][entry] ~= nil) then
-				NameplateAurasDB[LocalPlayerFullName][entry] = nil;
+			if (aceDB.profile[entry] ~= nil) then
+				aceDB.profile[entry] = nil;
 				Print("Old db record is deleted: " .. entry);
 			end
 		end
 		-- // creating a fast reference
-		db = NameplateAurasDB[LocalPlayerFullName];
+		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
+		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
+		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
 	end
 	
 	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
@@ -301,23 +350,7 @@ do
 			SpellCheckIDCache[spellName] = 		nil;
 		end
 	end
-	
-	function AddButtonToBlizzOptions()
-		local frame = CreateFrame("Frame", "NAuras_BlizzOptionsFrame", UIParent);
-		frame.name = "NameplateAuras";
-		InterfaceOptions_AddCategory(frame);
-		local button = GUICreateButton("NAuras_BlizzOptionsButton", frame, "/nauras");
-		button:SetWidth(80);
-		button:SetHeight(40);
-		button:SetPoint("CENTER", frame, "CENTER", 0, 0);
-		button:SetScript("OnClick", function(self, ...)
-			ShowGUI();
-			if (GUIFrame) then
-				InterfaceOptionsFrameCancel:Click();
-			end
-		end);
-	end
-	
+		
 end
 
 -------------------------------------------------------------------------------------------------
@@ -623,8 +656,10 @@ do
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
-					icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
+					if (icon.shown) then
+						icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+						icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
+					end
 				end
 			end
 		end
@@ -1013,8 +1048,8 @@ do
 		scrollFramesTipText:SetText(L["Click on icon to enable/disable tracking"]);
 		
 		GUIFrame.Categories = {};
-		GUIFrame.SpellIcons = {};
-		GUIFrame.CustomSpellsDropdowns = {};
+		GUIFrame.OnDBChangedHandlers = {};
+		table.insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 		
 		local categories = { L["General"], L["Profiles"], "Text", "Icon borders", "Spells" };
 		for index, value in pairs(categories) do
@@ -1171,6 +1206,7 @@ do
 			sliderIconSize.lowtext:SetText("1");
 			sliderIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
 			table.insert(GUIFrame.Categories[index], sliderIconSize);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize)); end);
 		
 		end
 		
@@ -1209,6 +1245,7 @@ do
 			sliderIconSpacing.lowtext:SetText(tostring(minValue));
 			sliderIconSpacing.hightext:SetText(tostring(maxValue));
 			table.insert(GUIFrame.Categories[index], sliderIconSpacing);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(db.IconSpacing)); end);
 		
 		end
 		
@@ -1247,6 +1284,7 @@ do
 			sliderIconXOffset.lowtext:SetText("-200");
 			sliderIconXOffset.hightext:SetText("200");
 			table.insert(GUIFrame.Categories[index], sliderIconXOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(db.IconXOffset)); end);
 		
 		end
 	
@@ -1285,6 +1323,7 @@ do
 			sliderIconYOffset.lowtext:SetText("-200");
 			sliderIconYOffset.hightext:SetText("200");
 			table.insert(GUIFrame.Categories[index], sliderIconYOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(db.IconYOffset)); end);
 		
 		end
 		
@@ -1295,6 +1334,7 @@ do
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
+		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways); end);
 		
 		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
@@ -1302,12 +1342,14 @@ do
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
+		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames); end);
 		
 		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -200, "Display tenths of seconds", function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
 		table.insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
+		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds); end);
 			
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
@@ -1317,6 +1359,7 @@ do
 			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
 			table.insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
 		
 		end
 			
@@ -1329,11 +1372,13 @@ do
 			end, "NAuras.GUI.Cat1.CheckBoxShowMyAuras");
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
 			table.insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
 		end
 			
 		-- // dropdownTimerStyle
 		do
+		
 			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
 			dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -275);
@@ -1357,6 +1402,8 @@ do
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText("Timer style:");
 			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]); end);
+			
 		end
 		
 		-- // dropdownIconAnchor
@@ -1386,11 +1433,13 @@ do
 			dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownIconAnchor.text:SetText("Icon anchor:");
 			table.insert(GUIFrame.Categories[index], dropdownIconAnchor);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(db.IconAnchor); end);
 		
 		end
 		
 		-- // dropdownSortMode
 		do
+		
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSortMode, 300);
 			dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -345);
@@ -1414,104 +1463,22 @@ do
 			dropdownSortMode.text:SetPoint("LEFT", 20, 15);
 			dropdownSortMode.text:SetText("Sort mode:");
 			table.insert(GUIFrame.Categories[index], dropdownSortMode);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(CONST_SORT_MODES_LOCALIZATION[db.SortMode]); end);
+			
 		end
 		
 	end
 	
 	function GUICategory_2(index, value)
-		local textProfilesCurrentProfile = GUIFrame:CreateFontString("NAuras_GUIProfilesTextCurrentProfile", "OVERLAY", "GameFontNormal");
-		textProfilesCurrentProfile:SetPoint("CENTER", GUIFrame, "LEFT", 330, 155);
-		textProfilesCurrentProfile:SetText(format(L["Current profile: [%s]"], LocalPlayerFullName));
-		table.insert(GUIFrame.Categories[index], textProfilesCurrentProfile);
-		
-		local dropdownCopyProfile = CreateFrame("Frame", "NAuras_GUIProfilesDropdownCopyProfile", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownCopyProfile, 210);
-		dropdownCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -80);
-		dropdownCopyProfile.text = dropdownCopyProfile:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownCopyProfile.text:SetPoint("LEFT", 20, 20);
-		dropdownCopyProfile.text:SetText(L["Copy other profile to current profile:"]);
-		table.insert(GUIFrame.Categories[index], dropdownCopyProfile);
-		
-		local buttonCopyProfile = GUICreateButton("NAuras_GUIProfilesButtonCopyProfile", GUIFrame, L["Copy"]);
-		buttonCopyProfile:SetWidth(90);
-		buttonCopyProfile:SetHeight(24);
-		buttonCopyProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 410, -82);
-		buttonCopyProfile:SetScript("OnClick", function(self, ...)
-			if (dropdownCopyProfile.myvalue ~= nil) then
-				NameplateAurasDB[LocalPlayerFullName] = deepcopy(NameplateAurasDB[dropdownCopyProfile.myvalue]);
-				db = NameplateAurasDB[LocalPlayerFullName];
-				Print(format(L["Data from '%s' has been successfully copied to '%s'"], dropdownCopyProfile.myvalue, LocalPlayerFullName));
-				RebuildDropdowns();
-				NAuras_GUIGeneralSliderIconXOffset.slider:SetValue(db.IconXOffset);
-				NAuras_GUIGeneralSliderIconXOffset.editbox:SetText(tostring(db.IconXOffset));
-				NAuras_GUIGeneralSliderIconYOffset.slider:SetValue(db.IconYOffset);
-				NAuras_GUIGeneralSliderIconYOffset.editbox:SetText(tostring(db.IconYOffset));
-				for _, v in pairs(GUIFrame.SpellIcons) do
-					if (db.CDsTable[v.spellID] == true) then
-						v.tex:SetAlpha(1.0);
-					else
-						v.tex:SetAlpha(0.3);
-					end
-				end
-			end
+		local button = GUICreateButton("NAuras.GUI.Profiles.MainButton", GUIFrame, "Open profiles dialog");
+		button:SetWidth(140);
+		button:SetHeight(40);
+		button:SetPoint("CENTER", GUIFrame, "CENTER", 70, 0);
+		button:SetScript("OnClick", function(self, ...)
+			InterfaceOptionsFrame_OpenToCategory(ProfileOptionsFrame);
+			GUIFrame:Hide();
 		end);
-		table.insert(GUIFrame.Categories[index], buttonCopyProfile);
-		
-		local dropdownDeleteProfile = CreateFrame("Frame", "NAuras_GUIProfilesDropdownDeleteProfile", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownDeleteProfile, 210);
-		dropdownDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 150, -120);
-		dropdownDeleteProfile.text = dropdownDeleteProfile:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownDeleteProfile.text:SetPoint("LEFT", 20, 20);
-		dropdownDeleteProfile.text:SetText(L["Delete profile:"]);
-		table.insert(GUIFrame.Categories[index], dropdownDeleteProfile);
-		
-		local buttonDeleteProfile = GUICreateButton("NAuras_GUIProfilesButtonDeleteProfile", GUIFrame, L["Delete"]);
-		buttonDeleteProfile:SetWidth(90);
-		buttonDeleteProfile:SetHeight(24);
-		buttonDeleteProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 410, -122);
-		buttonDeleteProfile:SetScript("OnClick", function(self, ...)
-			if (dropdownDeleteProfile.myvalue ~= nil) then
-				NameplateAurasDB[dropdownDeleteProfile.myvalue] = nil;
-				Print(format(L["Profile '%s' has been successfully deleted"], dropdownDeleteProfile.myvalue));
-				RebuildDropdowns();
-			end
-		end);
-		table.insert(GUIFrame.Categories[index], buttonDeleteProfile);
-		
-		
-		-- /////////////////////////
-		
-		-- local editboxNewProfile = CreateFrame("EditBox", "NAuras_GUIProfilesEditboxNewProfile", GUIFrame)
-		-- editboxNewProfile:SetAutoFocus(false);
-		-- editboxNewProfile:SetFont("Fonts\\FRIZQT__.TTF", 12, nil);
-		-- editboxNewProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 135, -162);
-		-- editboxNewProfile:SetHeight(24);
-		-- editboxNewProfile:SetWidth(230);
-		-- editboxNewProfile:SetJustifyH("LEFT");
-		-- editboxNewProfile:EnableMouse(true);
-		-- editboxNewProfile:SetBackdrop({
-			-- bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			-- edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			-- tile = true, edgeSize = 1, tileSize = 5,
-		-- });
-		-- editboxNewProfile:SetBackdropColor(0, 0, 0, 0.5)
-		-- editboxNewProfile:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
-		-- editboxNewProfile:SetScript("OnEscapePressed", function() editboxNewProfile:ClearFocus(); end);
-		-- table.insert(GUIFrame.Categories[index], editboxNewProfile);
-		
-		-- local buttonNewProfile = GUICreateButton("NAuras_GUIProfilesButtonNewProfile", GUIFrame, "Add"); -- // todo: localize
-		-- buttonNewProfile:SetWidth(90);
-		-- buttonNewProfile:SetHeight(24);
-		-- buttonNewProfile:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 380, -162);
-		-- buttonNewProfile:SetScript("OnClick", function(self, ...)
-			
-		-- end);
-		-- table.insert(GUIFrame.Categories[index], buttonNewProfile);
-		
-		-- /////////////////////////
-		
-		
-		RebuildDropdowns();
+		table.insert(GUIFrame.Categories[index], button);
 	end
 	
 	function GUICategory_Fonts(index, value)
@@ -1563,6 +1530,7 @@ do
 		
 		-- // dropdownFont
 		do
+		
 			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", timerTextArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownFont, 300);
 			dropdownFont:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -18);
@@ -1586,6 +1554,8 @@ do
 			dropdownFont.text:SetPoint("LEFT", 20, 15);
 			dropdownFont.text:SetText("Timer font:");
 			table.insert(GUIFrame.Categories[index], dropdownFont);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFont:GetName() .. "Text"]:SetText(db.Font); end);
+			
 		end
 		
 		-- // sliderTimerFontScale
@@ -1625,6 +1595,7 @@ do
 			sliderTimerFontScale.lowtext:SetText(tostring(minValue));
 			sliderTimerFontScale.hightext:SetText(tostring(maxValue));
 			table.insert(GUIFrame.Categories[index], sliderTimerFontScale);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontScale.editbox:SetText(tostring(db.FontScale)); sliderTimerFontScale.slider:SetValue(db.FontScale); end);
 		
 		end
 		
@@ -1654,6 +1625,7 @@ do
 			dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerTextAnchor.text:SetText("Timer text anchor:");
 			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(db.TimerTextAnchor); end);
 		
 		end
 		
@@ -1691,6 +1663,7 @@ do
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("X offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxTimerTextXOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxTimerTextXOffset:SetText(tostring(db.TimerTextXOffset)); end);
 		
 		end
 		
@@ -1728,6 +1701,7 @@ do
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("Y offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxTimerTextYOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxTimerTextYOffset:SetText(tostring(db.TimerTextYOffset)); end);
 		
 		end
 		
@@ -1755,6 +1729,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor)); end);
 			
 		end
 		
@@ -1782,6 +1757,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor)); end);
 		
 		end
 		
@@ -1809,11 +1785,13 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMore);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor)); end);
 		
 		end
 		
 		-- // dropdownStacksFont
 		do
+		
 			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", stacksTextArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownStacksFont, 285);
 			dropdownStacksFont:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", -4, -18);
@@ -1837,6 +1815,8 @@ do
 			dropdownStacksFont.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksFont.text:SetText("Stacks font:");
 			table.insert(GUIFrame.Categories[index], dropdownStacksFont);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont); end);
+			
 		end
 		
 		-- // sliderStacksFontScale
@@ -1876,6 +1856,7 @@ do
 			sliderStacksFontScale.lowtext:SetText(tostring(minValue));
 			sliderStacksFontScale.hightext:SetText(tostring(maxValue));
 			table.insert(GUIFrame.Categories[index], sliderStacksFontScale);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale)); sliderStacksFontScale.slider:SetValue(db.StacksFontScale); end);
 		
 		end
 		
@@ -1905,6 +1886,7 @@ do
 			dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksAnchor.text:SetText("Stacks text anchor:");
 			table.insert(GUIFrame.Categories[index], dropdownStacksAnchor);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(db.StacksTextAnchor); end);
 		
 		end
 		
@@ -1942,6 +1924,7 @@ do
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("X offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxStacksXOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxStacksXOffset:SetText(tostring(db.StacksTextXOffset)); end);
 		
 		end
 		
@@ -1979,6 +1962,7 @@ do
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText("Y offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxStacksYOffset);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxStacksYOffset:SetText(tostring(db.StacksTextYOffset)); end);
 		
 		end
 		
@@ -2013,6 +1997,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerStacksTextColor);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor)); end);
 		
 		end
 		
@@ -2024,6 +2009,7 @@ do
 		
 		-- // checkBoxBuffBorder
 		do
+		
 			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -30, "Show border around buff icons", function(this)
 				db.ShowBuffBorders = this:GetChecked();
 				UpdateAllNameplates();
@@ -2050,6 +2036,8 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], checkBoxBuffBorder);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxBuffBorder:SetChecked(db.ShowBuffBorders); checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor)); end);
+			
 		end
 		
 		-- // debuffArea
@@ -2075,6 +2063,7 @@ do
 		
 		-- // checkBoxDebuffBorder
 		do
+		
 			local checkBoxDebuffBorder = GUICreateCheckBox(160, -60, "Show border around debuff icons", function(this)
 				db.ShowDebuffBorders = this:GetChecked();
 				UpdateAllNameplates();
@@ -2083,6 +2072,8 @@ do
 			checkBoxDebuffBorder:SetPoint("TOPLEFT", 15, -15);
 			checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders);
 			table.insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders); end);
+			
 		end
 		
 		-- // colorPickerDebuffMagic
@@ -2110,6 +2101,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor)); end);
 		
 		end
 		
@@ -2138,6 +2130,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor)); end);
 		
 		end
 		
@@ -2166,6 +2159,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor)); end);
 		
 		end
 		
@@ -2194,6 +2188,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor)); end);
 		
 		end
 		
@@ -2222,6 +2217,7 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table.insert(GUIFrame.Categories[index], colorPickerDebuffOther);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor)); end);
 		
 		end
 		

@@ -1,6 +1,5 @@
 ﻿local _, addonTable = ...;
 local L = addonTable.L;
-local DefaultSpells = addonTable.DefaultSpells;
 
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
@@ -49,7 +48,7 @@ local aceDB;
 local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
 local LocalPlayerGUID;
 local ProfileOptionsFrame;
--- consts
+-- // consts
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
 do
 	
@@ -168,11 +167,32 @@ do
 
 	function ReloadDB()
 		db = aceDB.profile;
+		-- // resetting all caches
 		Spells = {};
 		SpellShowModesCache = { };
 		SpellAuraTypeCache = { };
 		SpellIconSizesCache = { };
 		SpellCheckIDCache = { };
+		-- // import default spells
+		if (not db.DefaultSpellsAreImported) then
+			local spellNamesAlreadyInUsersDB = { };
+			for spellID in pairs(db.CustomSpells2) do
+				local spellName = SpellNamesCache[spellID];
+				if (spellName ~= nil) then
+					spellNamesAlreadyInUsersDB[SpellNamesCache[spellID]] = true;
+				end
+			end
+			for spellID, spellInfo in pairs(addonTable.DefaultSpells) do
+				local spellName = SpellNamesCache[spellID];
+				if (spellName ~= nil) then
+					if (not spellNamesAlreadyInUsersDB[spellName]) then
+						db.CustomSpells2[spellID] = spellInfo;
+						Print("New spell is added: " .. spellName .. " (id:" .. spellID .. ")");
+					end
+				end
+			end
+			db.DefaultSpellsAreImported = true;
+		end
 		-- // Convert standard spell IDs to spell names
 		-- for spellID, spellInfo in pairs(DefaultSpells) do
 			-- local spellName = SpellNamesCache[spellID];
@@ -186,6 +206,7 @@ do
 				-- Print("<" .. spellName .. "> not exist or is already added (id:" .. spellID .. ", id:" .. (Spells[spellName] ~= nil and Spells[spellName].spellID or "0") .. ")");
 			-- end
 		-- end
+		-- // setting caches...
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			local spellName = SpellNamesCache[spellID];
 			if (spellName == nil) then
@@ -234,7 +255,8 @@ do
 		-- // set defaults
 		local aceDBDefaults = {
 			profile = {
-				CustomSpells2 = deepcopy(DefaultSpells),
+				DefaultSpellsAreImported = false,
+				CustomSpells2 = { },
 				IconXOffset = 0,
 				IconYOffset = 50,
 				FullOpacityAlways = false,
@@ -1327,7 +1349,12 @@ do
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
-		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways); PopupReloadUI(); end);
+		table.insert(GUIFrame.OnDBChangedHandlers, function()
+			if (checkBoxFullOpacityAlways:GetChecked() ~= db.FullOpacityAlways) then
+				PopupReloadUI();
+			end
+			checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
+		end);
 		
 		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
@@ -1335,7 +1362,12 @@ do
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
-		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames); PopupReloadUI(); end);
+		table.insert(GUIFrame.OnDBChangedHandlers, function()
+			if (checkBoxHideBlizzardFrames:GetChecked() ~= db.HideBlizzardFrames) then
+				PopupReloadUI();
+			end
+			checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
+		end);
 		
 		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -200, "Display tenths of seconds", function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
@@ -1395,7 +1427,12 @@ do
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText("Timer style:");
 			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]); PopupReloadUI(); end);
+			table.insert(GUIFrame.OnDBChangedHandlers, function()
+				if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]) then
+					PopupReloadUI();
+				end
+				_G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]);
+			end);
 			
 		end
 		
@@ -2293,7 +2330,7 @@ do
 		do
 		
 			selectSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonSelectSpell", GUIFrame, "Click to select spell");
-			selectSpell:SetWidth(314);
+			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
 			selectSpell:SetPoint("TOPLEFT", 168, -60);
 			selectSpell:SetScript("OnClick", function()
@@ -2335,6 +2372,43 @@ do
 			end);
 			table.insert(GUIFrame.Categories[index], selectSpell);
 			
+		end
+		
+		-- // buttonDeleteAllSpells
+		do
+		
+			local buttonDeleteAllSpells = GUICreateButton(nil, GUIFrame, "X");
+			buttonDeleteAllSpells:SetWidth(24);
+			buttonDeleteAllSpells:SetHeight(24);
+			buttonDeleteAllSpells:SetPoint("LEFT", selectSpell, "RIGHT", 5, 0);
+			buttonDeleteAllSpells:SetScript("OnClick", function(self, ...)
+				StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"] = {
+					text = "Do you really want to delete ALL spells?",
+					button1 = "Yes",
+					button2 = "No",
+					OnAccept = function()
+						for spellID in pairs(db.CustomSpells2) do
+							db.CustomSpells2[spellID] = nil;
+						end
+						ReloadDB();
+					end,
+					timeout = 0,
+					whileDead = true,
+					hideOnEscape = true,
+					preferredIndex = 3,
+				};
+				StaticPopup_Show("NAURAS_MSG_DELETE_ALL_SPELLS");
+			end);
+			buttonDeleteAllSpells:SetScript("OnEnter", function(self, ...)
+				GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT");
+				GameTooltip:SetText("Delete all spells");
+				GameTooltip:Show();
+			end)
+			buttonDeleteAllSpells:SetScript("OnLeave", function(self, ...)
+				GameTooltip:Hide();
+			end)
+			table.insert(GUIFrame.Categories[index], buttonDeleteAllSpells);
+		
 		end
 	
 		-- // dropdownSpellShowMode
@@ -2662,7 +2736,7 @@ do
 		button.Highlight:SetColorTexture(0.6, 0.6, 0.6, 0.2);
 		button:SetHighlightTexture(button.Highlight);
 
-		button.Text = button:CreateFontString(publicName.."Text", "OVERLAY", "GameFontNormal");
+		button.Text = button:CreateFontString((publicName ~= nil) and (publicName .. "Text") or nil, "OVERLAY", "GameFontNormal");
 		button.Text:SetPoint("CENTER", 0, 0);
 		button.Text:SetJustifyH("CENTER");
 		button.Text:SetTextColor(1, 0.82, 0, 1);

@@ -291,6 +291,7 @@ do
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
 				AlwaysShowMyAuras = true,
+				BordersBackdrop = { edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 4 },
 			},
 		};
 		
@@ -372,7 +373,7 @@ end
 ----- Nameplates
 -------------------------------------------------------------------------------------------------
 do
-	local cooldownCounter = 0;
+	
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -381,70 +382,65 @@ do
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
-		local texture = (db.TimerStyle == CONST_TIMER_STYLES[1]) and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
-		texture:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
-		texture:SetWidth(db.DefaultIconSize);
-		texture:SetHeight(db.DefaultIconSize);
+		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
+		icon:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
+		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
+		icon.overlay = CreateFrame("Frame", nil, icon);
+		icon.overlay:SetAllPoints(icon);
+		icon.overlay:SetFrameStrata("HIGH");
+		icon.texture = icon:CreateTexture(nil, "BORDER");
+		icon.texture:SetAllPoints(icon);
+		icon.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
 		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
-			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
-			texture.cooldownFrame:SetAllPoints(texture);
-			texture.cooldownFrame:SetReverse(true);
+			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
+			icon.cooldownFrame:SetAllPoints(icon);
+			icon.cooldownFrame:SetReverse(true);
 			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
-				texture.cooldownFrame:SetDrawEdge(false);
-				texture.cooldownFrame:SetDrawSwipe(true);
-				texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
-				texture.cooldownFrame:SetHideCountdownNumbers(true);
+				icon.cooldownFrame:SetDrawEdge(false);
+				icon.cooldownFrame:SetDrawSwipe(true);
+				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+				icon.cooldownFrame:SetHideCountdownNumbers(true);
 			end
-			texture.texture = texture:CreateTexture(nil, "BORDER");
-			texture.texture:SetAllPoints(texture);
-			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
-			texture.SetCooldown = function(self, startTime, duration)
+			icon.SetCooldown = function(self, startTime, duration)
 				if (startTime == 0) then duration = 0; end
-				texture.cooldownFrame:SetCooldown(startTime, duration);
+				icon.cooldownFrame:SetCooldown(startTime, duration);
 			end;
-			cooldownCounter = cooldownCounter + 1;
-			texture.border = texture:CreateTexture(nil, "OVERLAY");
-			texture.stacks = texture:CreateFontString("NAuras.Cooldown" .. tostring(cooldownCounter) .. ".Stacks", "OVERLAY");
-			hooksecurefunc(texture.stacks, "SetText", function(self, text)
+			icon.stacks = icon:CreateFontString(nil, "OVERLAY");
+			hooksecurefunc(icon.stacks, "SetText", function(self, text)
 				if (text ~= "") then
-					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
-						texture.stacks:SetParent(texture);
+					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
+						icon.stacks:SetParent(icon);
 					else
-						texture.stacks:SetParent(texture.cooldownFrame);
+						icon.stacks:SetParent(icon.cooldownFrame);
 					end
 				end
 			end);
-			texture.cooldown = texture:CreateFontString(nil, "OVERLAY");
-			hooksecurefunc(texture.cooldown, "SetText", function(self, text)
+			icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
+			hooksecurefunc(icon.cooldown, "SetText", function(self, text)
 				if (text ~= "") then
-					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
-						texture.cooldown:SetParent(texture);
+					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
+						icon.cooldown:SetParent(icon);
 					else
-						texture.cooldown:SetParent(texture.cooldownFrame);
+						icon.cooldown:SetParent(icon.cooldownFrame);
 					end
 				end
 			end);
 		else
-			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
-			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
-			texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+			icon.stacks = icon:CreateFontString(nil, "OVERLAY");
+			icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
 		end
-		texture.size = db.DefaultIconSize;
-		texture:Hide();
-		texture.cooldown:SetTextColor(0.7, 1, 0);
-		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextXOffset, db.TimerTextYOffset);
-		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
-		texture.border:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\CooldownFrameBorder.tga");
-		texture.border:SetVertexColor(1, 0.35, 0);
-		texture.border:SetAllPoints(texture);
-		texture.border:Hide();
-		texture.stacks:SetTextColor(unpack(db.StacksTextColor));
-		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextXOffset, db.StacksTextYOffset);
-		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
-		texture.stackcount = 0;
+		icon.size = db.DefaultIconSize;
+		icon:Hide();
+		icon.cooldown:SetTextColor(0.7, 1, 0);
+		icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextXOffset, db.TimerTextYOffset);
+		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
+		icon.stacks:SetTextColor(unpack(db.StacksTextColor));
+		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextXOffset, db.StacksTextYOffset);
+		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
+		icon.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
-		tinsert(frame.NAurasIcons, texture);
+		tinsert(frame.NAurasIcons, icon);
 	end
 		
 	function UpdateAllNameplates(force)
@@ -619,30 +615,18 @@ do
 	
 	function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == "buff") then
-			if (icon.borderState ~= spellInfo.type) then
-				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
-				icon.border:Show();
-				icon.borderState = spellInfo.type;
-			end
+			icon.overlay:SetBackdrop(db.BordersBackdrop);
+			icon.overlay:SetBackdropBorderColor(unpack(db.BuffBordersColor));
 		elseif (db.ShowDebuffBorders and spellInfo.type == "debuff") then
-			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
-			if (icon.borderState ~= preciseType) then
-				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
-				icon.border:SetVertexColor(unpack(color));
-				icon.border:Show();
-				icon.borderState = preciseType;
-			end
+			local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
+			icon.overlay:SetBackdrop(db.BordersBackdrop);
+			icon.overlay:SetBackdropBorderColor(unpack(color));
 		else
-			if (icon.borderState ~= nil) then
-				icon.border:Hide();
-				icon.borderState = nil;
-			end
+			icon.overlay:SetBackdrop(nil);
 		end
 	end
 	
 	function HideCDIcon(icon)
-		icon.border:Hide();
-		icon.borderState = nil;
 		icon.cooldown:Hide();
 		icon.stacks:Hide();
 		icon:Hide();

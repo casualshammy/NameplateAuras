@@ -49,7 +49,7 @@ local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
 local LocalPlayerGUID;
 local ProfileOptionsFrame;
 -- // consts
-local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION;
+local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS;
 do
 	
 	SPELL_SHOW_MODES = { "my", "all", "disabled" };
@@ -72,7 +72,10 @@ do
 		[CONST_TIMER_STYLES[3]] = "Circular with OmniCC support",
 		[CONST_TIMER_STYLES[4]] = "Circular with timer",
 	};
-	
+	CONST_BORDERS = {
+		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
+		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",
+	};
 end
 
 
@@ -109,6 +112,7 @@ local Nameplates_OnDefaultIconSizeOrOffsetChanged;
 local Nameplates_OnSortModeChanged;
 local Nameplates_OnTextPositionChanged;
 local Nameplates_OnIconAnchorChanged;
+local Nameplates_OnBorderThicknessChanged;
 local SortAurasForNameplate;
 
 local OnUpdate;
@@ -291,7 +295,7 @@ do
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
 				AlwaysShowMyAuras = true,
-				BordersBackdrop = { edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 4 },
+				BorderThickness = 2,
 			},
 		};
 		
@@ -373,7 +377,7 @@ end
 ----- Nameplates
 -------------------------------------------------------------------------------------------------
 do
-	
+	local cooldownCounter = 0;
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -382,65 +386,69 @@ do
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
-		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
-		icon:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
-		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
-		icon.overlay = CreateFrame("Frame", nil, icon);
-		icon.overlay:SetAllPoints(icon);
-		icon.overlay:SetFrameStrata("HIGH");
-		icon.texture = icon:CreateTexture(nil, "BORDER");
-		icon.texture:SetAllPoints(icon);
-		icon.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
+		local texture = (db.TimerStyle == CONST_TIMER_STYLES[1]) and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
+		texture:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
+		texture:SetSize(db.DefaultIconSize, db.DefaultIconSize);
 		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
-			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
-			icon.cooldownFrame:SetAllPoints(icon);
-			icon.cooldownFrame:SetReverse(true);
+			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
+			texture.cooldownFrame:SetAllPoints(texture);
+			texture.cooldownFrame:SetReverse(true);
 			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
-				icon.cooldownFrame:SetDrawEdge(false);
-				icon.cooldownFrame:SetDrawSwipe(true);
-				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
-				icon.cooldownFrame:SetHideCountdownNumbers(true);
+				texture.cooldownFrame:SetDrawEdge(false);
+				texture.cooldownFrame:SetDrawSwipe(true);
+				texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+				texture.cooldownFrame:SetHideCountdownNumbers(true);
 			end
-			icon.SetCooldown = function(self, startTime, duration)
+			texture.texture = texture:CreateTexture(nil, "BORDER");
+			texture.texture:SetAllPoints(texture);
+			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
+			texture.SetCooldown = function(self, startTime, duration)
 				if (startTime == 0) then duration = 0; end
-				icon.cooldownFrame:SetCooldown(startTime, duration);
+				texture.cooldownFrame:SetCooldown(startTime, duration);
 			end;
-			icon.stacks = icon:CreateFontString(nil, "OVERLAY");
-			hooksecurefunc(icon.stacks, "SetText", function(self, text)
+			cooldownCounter = cooldownCounter + 1;
+			texture.border = texture:CreateTexture(nil, "OVERLAY");
+			texture.stacks = texture:CreateFontString("NAuras.Cooldown" .. tostring(cooldownCounter) .. ".Stacks", "OVERLAY");
+			hooksecurefunc(texture.stacks, "SetText", function(self, text)
 				if (text ~= "") then
-					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
-						icon.stacks:SetParent(icon);
+					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
+						texture.stacks:SetParent(texture);
 					else
-						icon.stacks:SetParent(icon.cooldownFrame);
+						texture.stacks:SetParent(texture.cooldownFrame);
 					end
 				end
 			end);
-			icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
-			hooksecurefunc(icon.cooldown, "SetText", function(self, text)
+			texture.cooldown = texture:CreateFontString(nil, "OVERLAY");
+			hooksecurefunc(texture.cooldown, "SetText", function(self, text)
 				if (text ~= "") then
-					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
-						icon.cooldown:SetParent(icon);
+					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
+						texture.cooldown:SetParent(texture);
 					else
-						icon.cooldown:SetParent(icon.cooldownFrame);
+						texture.cooldown:SetParent(texture.cooldownFrame);
 					end
 				end
 			end);
 		else
-			icon.stacks = icon:CreateFontString(nil, "OVERLAY");
-			icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
+			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
+			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+			texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 		end
-		icon.size = db.DefaultIconSize;
-		icon:Hide();
-		icon.cooldown:SetTextColor(0.7, 1, 0);
-		icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextXOffset, db.TimerTextYOffset);
-		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
-		icon.stacks:SetTextColor(unpack(db.StacksTextColor));
-		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextXOffset, db.StacksTextYOffset);
-		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
-		icon.stackcount = 0;
+		texture.size = db.DefaultIconSize;
+		texture:Hide();
+		texture.cooldown:SetTextColor(0.7, 1, 0);
+		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextXOffset, db.TimerTextYOffset);
+		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
+		texture.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
+		texture.border:SetVertexColor(1, 0.35, 0);
+		texture.border:SetAllPoints(texture);
+		texture.border:Hide();
+		texture.stacks:SetTextColor(unpack(db.StacksTextColor));
+		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextXOffset, db.StacksTextYOffset);
+		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
+		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
-		tinsert(frame.NAurasIcons, icon);
+		tinsert(frame.NAurasIcons, texture);
 	end
 		
 	function UpdateAllNameplates(force)
@@ -615,18 +623,30 @@ do
 	
 	function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == "buff") then
-			icon.overlay:SetBackdrop(db.BordersBackdrop);
-			icon.overlay:SetBackdropBorderColor(unpack(db.BuffBordersColor));
+			if (icon.borderState ~= spellInfo.type) then
+				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
+				icon.border:Show();
+				icon.borderState = spellInfo.type;
+			end
 		elseif (db.ShowDebuffBorders and spellInfo.type == "debuff") then
-			local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
-			icon.overlay:SetBackdrop(db.BordersBackdrop);
-			icon.overlay:SetBackdropBorderColor(unpack(color));
+			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
+			if (icon.borderState ~= preciseType) then
+				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
+				icon.border:SetVertexColor(unpack(color));
+				icon.border:Show();
+				icon.borderState = preciseType;
+			end
 		else
-			icon.overlay:SetBackdrop(nil);
+			if (icon.borderState ~= nil) then
+				icon.border:Hide();
+				icon.borderState = nil;
+			end
 		end
 	end
 	
 	function HideCDIcon(icon)
+		icon.border:Hide();
+		icon.borderState = nil;
 		icon.cooldown:Hide();
 		icon.stacks:Hide();
 		icon:Hide();
@@ -644,8 +664,7 @@ do
 	end
 	
 	function ResizeIcon(icon, size, widthAlreadyUsed)
-		icon:SetWidth(size);
-		icon:SetHeight(size);
+		icon:SetSize(size, size);
 		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
 		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
@@ -715,6 +734,16 @@ do
 			end
 		end
 		UpdateAllNameplates(true);
+	end
+	
+	function Nameplates_OnBorderThicknessChanged()
+		for nameplate in pairs(Nameplates) do
+			if (nameplate.NAurasFrame) then
+				for _, icon in pairs(nameplate.NAurasIcons) do
+					icon.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
+				end
+			end
+		end
 	end
 	
 	function SortAurasForNameplate(auras)
@@ -2021,10 +2050,51 @@ do
 		
 		local debuffArea;
 		
+		-- // sliderBorderThickness
+		do
+		
+			local minValue, maxValue = 1, 5;
+			local sliderBorderThickness = GUICreateSlider(GUIFrame, 160, -30, 325, "NAuras.GUI.Borders.SliderBorderThickness");
+			sliderBorderThickness.label:SetText("Border thickness");
+			sliderBorderThickness.slider:SetValueStep(1);
+			sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
+			sliderBorderThickness.slider:SetValue(db.BorderThickness);
+			sliderBorderThickness.slider:SetScript("OnValueChanged", function(self, value)
+				local actualValue = tonumber(string_format("%.0f", value));
+				sliderBorderThickness.editbox:SetText(tostring(actualValue));
+				db.BorderThickness = actualValue;
+				Nameplates_OnBorderThicknessChanged();
+			end);
+			sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness));
+			sliderBorderThickness.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderBorderThickness.editbox:GetText() ~= "") then
+					local v = tonumber(sliderBorderThickness.editbox:GetText());
+					if (v == nil) then
+						sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness));
+						msg(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderBorderThickness.slider:SetValue(v);
+					end
+					sliderBorderThickness.editbox:ClearFocus();
+				end
+			end);
+			sliderBorderThickness.lowtext:SetText(tostring(minValue));
+			sliderBorderThickness.hightext:SetText(tostring(maxValue));
+			table.insert(GUIFrame.Categories[index], sliderBorderThickness);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness)); sliderBorderThickness.slider:SetValue(db.BorderThickness); end);
+			
+		end
+		
 		-- // checkBoxBuffBorder
 		do
 		
-			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -30, "Show border around buff icons", function(this)
+			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -90, "Show border around buff icons", function(this)
 				db.ShowBuffBorders = this:GetChecked();
 				UpdateAllNameplates();
 			end);
@@ -2068,8 +2138,8 @@ do
 			});
 			debuffArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			debuffArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-			debuffArea:SetPoint("TOPLEFT", 150, -60);
-			debuffArea:SetPoint("LEFT", 150, 85);
+			debuffArea:SetPoint("TOPLEFT", 150, -120);
+			debuffArea:SetPoint("LEFT", 150, 25);
 			debuffArea:SetWidth(360);
 			table.insert(GUIFrame.Categories[index], debuffArea);
 		

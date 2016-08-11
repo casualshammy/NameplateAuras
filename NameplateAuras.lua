@@ -401,6 +401,7 @@ do
 			end
 			texture.texture = texture:CreateTexture(nil, "BORDER");
 			texture.texture:SetAllPoints(texture);
+			texture.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
 			texture.SetCooldown = function(self, startTime, duration)
 				if (startTime == 0) then duration = 0; end
@@ -432,6 +433,7 @@ do
 			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
 			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
 			texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
+			texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 		end
 		texture.size = db.DefaultIconSize;
 		texture:Hide();

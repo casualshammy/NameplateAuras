@@ -582,7 +582,7 @@ do
 		end
 		-- // hide standart buff frame
 		if (db.HideBlizzardFrames and frame.UnitFrame.BuffFrame ~= nil) then
-			frame.UnitFrame.BuffFrame:Hide();
+			frame.UnitFrame.BuffFrame:SetAlpha(0);
 		end
 	end
 	

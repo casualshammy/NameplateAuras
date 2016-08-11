@@ -762,9 +762,9 @@ do
 		elseif (db.SortMode == CONST_SORT_MODES[3]) then
 			table.sort(t, function(item1, item2) return item1.expires > item2.expires end);
 		elseif (db.SortMode == CONST_SORT_MODES[4]) then
-			table.sort(t, function(item1, item2) return SpellIconSizesCache[SpellNamesCache[item1.spellID]] < SpellIconSizesCache[SpellNamesCache[item2.spellID]] end);
+			table.sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNamesCache[item1.spellID]] or db.DefaultIconSize) < (SpellIconSizesCache[SpellNamesCache[item2.spellID]] or db.DefaultIconSize) end);
 		elseif (db.SortMode == CONST_SORT_MODES[5]) then
-			table.sort(t, function(item1, item2) return SpellIconSizesCache[SpellNamesCache[item1.spellID]] > SpellIconSizesCache[SpellNamesCache[item2.spellID]] end);
+			table.sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNamesCache[item1.spellID]] or db.DefaultIconSize) > (SpellIconSizesCache[SpellNamesCache[item2.spellID]] or db.DefaultIconSize) end);
 		elseif (db.SortMode == CONST_SORT_MODES[6]) then
 			table.sort(t, function(item1, item2)
 				if (item1.type ~= item2.type) then

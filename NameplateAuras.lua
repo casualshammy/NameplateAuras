@@ -90,12 +90,10 @@ local string_format = format;
 local GetTime = GetTime;
 local math_ceil = ceil;
 local math_floor = floor;
+local wipe = wipe;
+local C_NamePlate_GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit;
 
-local OnStartup;
-local ReloadDB;
-local InitializeDB;
-local GetDefaultDBSpellEntry;
-local UpdateSpellCachesFromDB;
+local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
 
 local AllocateIcon;
 local UpdateAllNameplates;
@@ -117,10 +115,7 @@ local SortAurasForNameplate;
 
 local OnUpdate;
 
-local PLAYER_ENTERING_WORLD;
-local NAME_PLATE_UNIT_ADDED;
-local NAME_PLATE_UNIT_REMOVED;
-local UNIT_AURA;
+local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA;
 
 local ShowGUI;
 local InitializeGUI;
@@ -136,9 +131,7 @@ local CreateGUICategory;
 local GUICreateSlider;
 local GUICreateButton;
 
-local Print;
-local deepcopy;
-local msg;
+local Print, deepcopy, msg;
 
 -------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -294,7 +287,7 @@ do
 				ShowAurasOnPlayerNameplate = false,
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
-				AlwaysShowMyAuras = true,
+				AlwaysShowMyAuras = false,
 				BorderThickness = 2,
 			},
 		};
@@ -825,7 +818,7 @@ do
 
 	function NAME_PLATE_UNIT_ADDED(...)
 		local unitID = ...;
-		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		NameplatesVisible[nameplate] = true;
 		if (not Nameplates[nameplate]) then
 			nameplate.NAurasIcons = {};
@@ -841,7 +834,7 @@ do
 	
 	function NAME_PLATE_UNIT_REMOVED(...)
 		local unitID = ...;
-		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		NameplatesVisible[nameplate] = nil;
 		if (nameplateAuras[nameplate] ~= nil) then
 			wipe(nameplateAuras[nameplate]);
@@ -853,7 +846,7 @@ do
 	
 	function UNIT_AURA(...)
 		local unitID = ...;
-		local nameplate = C_NamePlate.GetNamePlateForUnit(unitID);
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
 			ProcessAurasForNameplate(nameplate, unitID);
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then

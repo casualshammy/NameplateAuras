@@ -6,7 +6,6 @@ SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\me
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
 NameplateAurasDB = {};
-local nameplateAuras = {};
 local TextureCache = setmetatable({}, {
 	__index = function(t, key)
 		local texture = GetSpellTexture(key);
@@ -33,22 +32,19 @@ local SpellIDsCache = setmetatable({}, {
 		return nil;
 	end
 });
-local Spells = {};
-local SpellShowModesCache = { };
-local SpellAuraTypeCache = { };
-local SpellIconSizesCache = { }; -- // key is a spell name
-local SpellCheckIDCache = { };
-local ElapsedTimer = 0;
-local Nameplates = {};
-local NameplatesVisible = {};
-local GUIFrame;
-local EventFrame;
-local db;
-local aceDB;
-local LocalPlayerFullName = UnitName("player").." - "..GetRealmName();
-local LocalPlayerGUID;
-local ProfileOptionsFrame;
--- // consts
+local nameplateAuras 		= {};
+local Spells 				= {};
+local SpellShowModesCache 	= { };
+local SpellAuraTypeCache 	= { };
+local SpellIconSizesCache 	= { }; -- // key is a spell name
+local SpellCheckIDCache 	= { };
+local ElapsedTimer 			= 0;
+local Nameplates 			= {};
+local NameplatesVisible 	= {};
+local LocalPlayerFullName 	= UnitName("player").." - "..GetRealmName();
+local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
+
+-- // consts: you should not change existing values
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS;
 do
 	
@@ -78,59 +74,17 @@ do
 	};
 end
 
-
-local _G = _G;
-local pairs = pairs;
-local select = select;
-local WorldFrame = WorldFrame;
-local string_match = strmatch;
-local string_gsub = gsub;
-local string_find = strfind;
-local string_format = format;
-local GetTime = GetTime;
-local math_ceil = ceil;
-local math_floor = floor;
-local wipe = wipe;
-local C_NamePlate_GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit;
+-- // upvalues
+local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff =
+		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff;
 
 local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
-
-local AllocateIcon;
-local UpdateAllNameplates;
-local ProcessAurasForNameplate;
-local UpdateNameplate;
-local UpdateNameplate_SetCooldown;
-local UpdateNameplate_SetStacks;
-local UpdateNameplate_SetBorder;
-local HideCDIcon;
-local ShowCDIcon;
-local ResizeIcon;
-local Nameplates_OnFontChanged;
-local Nameplates_OnDefaultIconSizeOrOffsetChanged;
-local Nameplates_OnSortModeChanged;
-local Nameplates_OnTextPositionChanged;
-local Nameplates_OnIconAnchorChanged;
-local Nameplates_OnBorderThicknessChanged;
-local SortAurasForNameplate;
-
+local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, UpdateNameplate_SetCooldown, UpdateNameplate_SetStacks, UpdateNameplate_SetBorder, HideCDIcon, ShowCDIcon,
+	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged,
+	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate;
 local OnUpdate;
-
 local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA;
-
-local ShowGUI;
-local InitializeGUI;
-local GUICategory_1;
-local GUICategory_2;
-local GUICategory_4;
-local GUICategory_Fonts;
-local GUICategory_Borders;
-local OnGUICategoryClick;
-local ShowGUICategory;
-local RebuildDropdowns;
-local CreateGUICategory;
-local GUICreateSlider;
-local GUICreateButton;
-
+local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_Borders;
 local Print, deepcopy, msg;
 
 -------------------------------------------------------------------------------------------------
@@ -264,6 +218,7 @@ do
 				DisplayTenthsOfSeconds = true,
 				FontScale = 1,
 				TimerTextAnchor = "CENTER",
+				TimerTextAnchorIcon = "UNKNOWN",
 				TimerTextXOffset = 0,
 				TimerTextYOffset = 0,
 				TimerTextSoonToExpireColor = { 1, 0.1, 0.1 },
@@ -272,6 +227,7 @@ do
 				StacksFont = "NAuras_TeenBold",
 				StacksFontScale = 1,
 				StacksTextAnchor = "BOTTOMRIGHT",
+				StacksTextAnchorIcon = "UNKNOWN",
 				StacksTextXOffset = -3,
 				StacksTextYOffset = 5,
 				StacksTextColor = { 1, 0.1, 0.1 },
@@ -333,6 +289,12 @@ do
 				Print("Old db record is deleted: " .. entry);
 			end
 		end
+		if (aceDB.profile.TimerTextAnchorIcon == aceDBDefaults.profile.TimerTextAnchorIcon) then
+			aceDB.profile.TimerTextAnchorIcon = aceDB.profile.TimerTextAnchor;
+		end
+		if (aceDB.profile.StacksTextAnchorIcon == aceDBDefaults.profile.StacksTextAnchorIcon) then
+			aceDB.profile.StacksTextAnchorIcon = aceDB.profile.StacksTextAnchor;
+		end
 		-- // creating a fast reference
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
@@ -370,7 +332,7 @@ end
 ----- Nameplates
 -------------------------------------------------------------------------------------------------
 do
-	local cooldownCounter = 0;
+	
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -400,9 +362,8 @@ do
 				if (startTime == 0) then duration = 0; end
 				texture.cooldownFrame:SetCooldown(startTime, duration);
 			end;
-			cooldownCounter = cooldownCounter + 1;
 			texture.border = texture:CreateTexture(nil, "OVERLAY");
-			texture.stacks = texture:CreateFontString("NAuras.Cooldown" .. tostring(cooldownCounter) .. ".Stacks", "OVERLAY");
+			texture.stacks = texture:CreateFontString(nil, "OVERLAY");
 			hooksecurefunc(texture.stacks, "SetText", function(self, text)
 				if (text ~= "") then
 					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
@@ -431,14 +392,14 @@ do
 		texture.size = db.DefaultIconSize;
 		texture:Hide();
 		texture.cooldown:SetTextColor(0.7, 1, 0);
-		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextXOffset, db.TimerTextYOffset);
+		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
 		texture.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
 		texture.border:SetVertexColor(1, 0.35, 0);
 		texture.border:SetAllPoints(texture);
 		texture.border:Hide();
 		texture.stacks:SetTextColor(unpack(db.StacksTextColor));
-		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextXOffset, db.StacksTextYOffset);
+		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		texture.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
@@ -711,9 +672,9 @@ do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
 					icon.cooldown:ClearAllPoints();
-					icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextXOffset, db.TimerTextYOffset);
+					icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 					icon.stacks:ClearAllPoints();
-					icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextXOffset, db.StacksTextYOffset);
+					icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 				end
 			end
 		end
@@ -994,19 +955,219 @@ do
 		return colorButton;
 	end
 	
-	function ShowGUI()
-		if (not InCombatLockdown()) then
-			if (not GUIFrame) then
-				InitializeGUI();
-			end
-			GUIFrame:Show();
-			OnGUICategoryClick(GUIFrame.CategoryButtons[1]);
-		else
-			Print(L["Options are not available in combat!"]);
-		end
+	local function GUICreateSlider(parent, x, y, size, publicName)
+		local frame = CreateFrame("Frame", publicName, parent);
+		frame:SetHeight(100);
+		frame:SetWidth(size);
+		frame:SetPoint("TOPLEFT", x, y);
+
+		frame.label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+		frame.label:SetPoint("TOPLEFT");
+		frame.label:SetPoint("TOPRIGHT");
+		frame.label:SetJustifyH("CENTER");
+		--frame.label:SetHeight(15);
+		
+		frame.slider = CreateFrame("Slider", nil, frame);
+		frame.slider:SetOrientation("HORIZONTAL")
+		frame.slider:SetHeight(15)
+		frame.slider:SetHitRectInsets(0, 0, -10, 0)
+		frame.slider:SetBackdrop({
+			bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
+			edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
+			tile = true, tileSize = 8, edgeSize = 8,
+			insets = { left = 3, right = 3, top = 6, bottom = 6 }
+		});
+		frame.slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+		frame.slider:SetPoint("TOP", frame.label, "BOTTOM")
+		frame.slider:SetPoint("LEFT", 3, 0)
+		frame.slider:SetPoint("RIGHT", -3, 0)
+
+		frame.lowtext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+		frame.lowtext:SetPoint("TOPLEFT", frame.slider, "BOTTOMLEFT", 2, 3)
+
+		frame.hightext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+		frame.hightext:SetPoint("TOPRIGHT", frame.slider, "BOTTOMRIGHT", -2, 3)
+
+		frame.editbox = CreateFrame("EditBox", nil, frame)
+		frame.editbox:SetAutoFocus(false)
+		frame.editbox:SetFontObject(GameFontHighlightSmall)
+		frame.editbox:SetPoint("TOP", frame.slider, "BOTTOM")
+		frame.editbox:SetHeight(14)
+		frame.editbox:SetWidth(70)
+		frame.editbox:SetJustifyH("CENTER")
+		frame.editbox:EnableMouse(true)
+		frame.editbox:SetBackdrop({
+			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			tile = true, edgeSize = 1, tileSize = 5,
+		});
+		frame.editbox:SetBackdropColor(0, 0, 0, 0.5)
+		frame.editbox:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
+		frame.editbox:SetScript("OnEscapePressed", function() frame.editbox:ClearFocus(); end)
+		frame:Hide();
+		return frame;
 	end
 	
-	function InitializeGUI()
+	local function GUICreateButton(publicName, parentFrame, text)
+		-- After creation we need to set up :SetWidth, :SetHeight, :SetPoint, :SetScript
+		local button = CreateFrame("Button", publicName, parentFrame);
+		button.Background = button:CreateTexture(nil, "BORDER");
+		button.Background:SetPoint("TOPLEFT", 1, -1);
+		button.Background:SetPoint("BOTTOMRIGHT", -1, 1);
+		button.Background:SetColorTexture(0, 0, 0, 1);
+
+		button.Border = button:CreateTexture(nil, "BACKGROUND");
+		button.Border:SetPoint("TOPLEFT", 0, 0);
+		button.Border:SetPoint("BOTTOMRIGHT", 0, 0);
+		button.Border:SetColorTexture(unpack({0.73, 0.26, 0.21, 1}));
+
+		button.Normal = button:CreateTexture(nil, "ARTWORK");
+		button.Normal:SetPoint("TOPLEFT", 2, -2);
+		button.Normal:SetPoint("BOTTOMRIGHT", -2, 2);
+		button.Normal:SetColorTexture(unpack({0.38, 0, 0, 1}));
+		button:SetNormalTexture(button.Normal);
+
+		button.Disabled = button:CreateTexture(nil, "OVERLAY");
+		button.Disabled:SetPoint("TOPLEFT", 3, -3);
+		button.Disabled:SetPoint("BOTTOMRIGHT", -3, 3);
+		button.Disabled:SetColorTexture(0.6, 0.6, 0.6, 0.2);
+		button:SetDisabledTexture(button.Disabled);
+
+		button.Highlight = button:CreateTexture(nil, "OVERLAY");
+		button.Highlight:SetPoint("TOPLEFT", 3, -3);
+		button.Highlight:SetPoint("BOTTOMRIGHT", -3, 3);
+		button.Highlight:SetColorTexture(0.6, 0.6, 0.6, 0.2);
+		button:SetHighlightTexture(button.Highlight);
+
+		button.Text = button:CreateFontString((publicName ~= nil) and (publicName .. "Text") or nil, "OVERLAY", "GameFontNormal");
+		button.Text:SetPoint("CENTER", 0, 0);
+		button.Text:SetJustifyH("CENTER");
+		button.Text:SetTextColor(1, 0.82, 0, 1);
+		button.Text:SetText(text);
+
+		button:SetScript("OnMouseDown", function(self) self.Text:SetPoint("CENTER", 1, -1) end);
+		button:SetScript("OnMouseUp", function(self) self.Text:SetPoint("CENTER", 0, 0) end);
+		return button;
+	end
+	
+	local function CreateSpellSelector()
+		local scrollAreaBackground = CreateFrame("Frame", "NAuras.SpellSelector", GUIFrame);
+		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -60);
+		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
+		scrollAreaBackground:SetBackdrop({
+			bgFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
+			edgeFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Border",
+			tile = true, edgeSize = 3, tileSize = 1,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 }
+		});
+		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
+		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
+		scrollAreaBackground:SetBackdropBorderColor(0.3, 0.3, 0.5, 1);
+		scrollAreaBackground:Hide();
+		
+		scrollAreaBackground.scrollArea = CreateFrame("ScrollFrame", "NAuras.SpellSelector.ScrollArea", scrollAreaBackground, "UIPanelScrollFrameTemplate");
+		scrollAreaBackground.scrollArea:SetPoint("TOPLEFT", scrollAreaBackground, "TOPLEFT", 5, -5);
+		scrollAreaBackground.scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
+		scrollAreaBackground.scrollArea:Show();
+		
+		local scrollAreaChildFrame = CreateFrame("Frame", "NAuras.SpellSelector.ScrollArea.Child", scrollAreaBackground.scrollArea);
+		scrollAreaBackground.scrollArea:SetScrollChild(scrollAreaChildFrame);
+		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
+		scrollAreaChildFrame:SetWidth(288);
+		scrollAreaChildFrame:SetHeight(288);
+		
+		scrollAreaBackground.buttons = { };
+		
+		local function GetButton(counter)
+			if (scrollAreaBackground.buttons[counter] == nil) then
+				local button = GUICreateButton("NAuras.SpellSelector.Button" .. tostring(counter), scrollAreaChildFrame, "");
+				button:SetWidth(280);
+				button:SetHeight(20);
+				button:SetPoint("TOPLEFT", 38, -counter * 22 + 15);
+				button.Icon = button:CreateTexture();
+				button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
+				button.Icon:SetWidth(20);
+				button.Icon:SetHeight(20);
+				button:Hide();
+				scrollAreaBackground.buttons[counter] = button;
+				--print("New button is created: " .. tostring(counter));
+				return button;
+				--button:SetScript("OnClick", function() scrollAreaBackground.selectedItem =  end);
+			else
+				return scrollAreaBackground.buttons[counter];
+			end
+		end
+		
+		scrollAreaBackground.SetList = function(t)
+			for _, button in pairs(scrollAreaBackground.buttons) do
+				button:Hide();
+			end
+			local counter = 1;
+			for index, value in pairs(t) do
+				local button = GetButton(counter);
+				button.Text:SetText(value.text);
+				button.Icon:SetTexture(value.icon);
+				button:SetScript("OnClick", function()
+					value:func();
+					scrollAreaBackground:Hide();
+				end);
+				button:Show();
+				counter = counter + 1;
+			end
+		end
+		
+		scrollAreaBackground.GetButtonByText = function(text)
+			for _, button in pairs(scrollAreaBackground.buttons) do
+				if (button.Text:GetText() == text) then
+					return button;
+				end
+			end
+			return nil;
+		end
+		
+		return scrollAreaBackground;
+	end
+	
+	local function ShowGUICategory(index)
+		for i, v in pairs(GUIFrame.Categories) do
+			for k, l in pairs(v) do
+				l:Hide();
+			end
+		end
+		for i, v in pairs(GUIFrame.Categories[index]) do
+			v:Show();
+		end
+		-- if (index > 2) then
+			-- NAuras_GUIScrollFramesTipText:Show();
+		-- else
+		NAuras_GUIScrollFramesTipText:Hide();
+		-- end
+	end
+	
+	local function OnGUICategoryClick(self, ...)
+		GUIFrame.CategoryButtons[GUIFrame.ActiveCategory].text:SetTextColor(1, 0.82, 0);
+		GUIFrame.CategoryButtons[GUIFrame.ActiveCategory]:UnlockHighlight();
+		GUIFrame.ActiveCategory = self.index;
+		self.text:SetTextColor(1, 1, 1);
+		self:LockHighlight();
+		PlaySound("igMainMenuOptionCheckBoxOn");
+		ShowGUICategory(GUIFrame.ActiveCategory);
+	end
+	
+	local function CreateGUICategory()
+		local b = CreateFrame("Button", nil, GUIFrame.outline);
+		b:SetWidth(GUIFrame.outline:GetWidth() - 8);
+		b:SetHeight(18);
+		b:SetScript("OnClick", OnGUICategoryClick);
+		b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
+		b:GetHighlightTexture():SetAlpha(0.7);
+		b.text = b:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		b.text:SetPoint("LEFT", 3, 0);
+		GUIFrame.CategoryButtons[#GUIFrame.CategoryButtons + 1] = b;
+		return b;
+	end
+	
+	local function InitializeGUI()
 		GUIFrame = CreateFrame("Frame", "NAuras_GUIFrame", UIParent);
 		GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
 		GUIFrame:SetScript("OnEvent", function() GUIFrame:Hide(); end);
@@ -1106,83 +1267,17 @@ do
 			end
 		end
 	end
-
-	function CreateSpellSelector()
-		local scrollAreaBackground = CreateFrame("Frame", "NAuras.SpellSelector", GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -60);
-		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
-		scrollAreaBackground:SetBackdrop({
-			bgFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
-			edgeFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Border",
-			tile = true, edgeSize = 3, tileSize = 1,
-			insets = { left = 3, right = 3, top = 3, bottom = 3 }
-		});
-		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
-		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
-		scrollAreaBackground:SetBackdropBorderColor(0.3, 0.3, 0.5, 1);
-		scrollAreaBackground:Hide();
-		
-		scrollAreaBackground.scrollArea = CreateFrame("ScrollFrame", "NAuras.SpellSelector.ScrollArea", scrollAreaBackground, "UIPanelScrollFrameTemplate");
-		scrollAreaBackground.scrollArea:SetPoint("TOPLEFT", scrollAreaBackground, "TOPLEFT", 5, -5);
-		scrollAreaBackground.scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
-		scrollAreaBackground.scrollArea:Show();
-		
-		local scrollAreaChildFrame = CreateFrame("Frame", "NAuras.SpellSelector.ScrollArea.Child", scrollAreaBackground.scrollArea);
-		scrollAreaBackground.scrollArea:SetScrollChild(scrollAreaChildFrame);
-		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
-		scrollAreaChildFrame:SetWidth(288);
-		scrollAreaChildFrame:SetHeight(288);
-		
-		scrollAreaBackground.buttons = { };
-		
-		local function GetButton(counter)
-			if (scrollAreaBackground.buttons[counter] == nil) then
-				local button = GUICreateButton("NAuras.SpellSelector.Button" .. tostring(counter), scrollAreaChildFrame, "");
-				button:SetWidth(280);
-				button:SetHeight(20);
-				button:SetPoint("TOPLEFT", 38, -counter * 22 + 15);
-				button.Icon = button:CreateTexture();
-				button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
-				button.Icon:SetWidth(20);
-				button.Icon:SetHeight(20);
-				button:Hide();
-				scrollAreaBackground.buttons[counter] = button;
-				--print("New button is created: " .. tostring(counter));
-				return button;
-				--button:SetScript("OnClick", function() scrollAreaBackground.selectedItem =  end);
-			else
-				return scrollAreaBackground.buttons[counter];
+	
+	function ShowGUI()
+		if (not InCombatLockdown()) then
+			if (not GUIFrame) then
+				InitializeGUI();
 			end
+			GUIFrame:Show();
+			OnGUICategoryClick(GUIFrame.CategoryButtons[1]);
+		else
+			Print(L["Options are not available in combat!"]);
 		end
-		
-		scrollAreaBackground.SetList = function(t)
-			for _, button in pairs(scrollAreaBackground.buttons) do
-				button:Hide();
-			end
-			local counter = 1;
-			for index, value in pairs(t) do
-				local button = GetButton(counter);
-				button.Text:SetText(value.text);
-				button.Icon:SetTexture(value.icon);
-				button:SetScript("OnClick", function()
-					value:func();
-					scrollAreaBackground:Hide();
-				end);
-				button:Show();
-				counter = counter + 1;
-			end
-		end
-		
-		scrollAreaBackground.GetButtonByText = function(text)
-			for _, button in pairs(scrollAreaBackground.buttons) do
-				if (button.Text:GetText() == text) then
-					return button;
-				end
-			end
-			return nil;
-		end
-		
-		return scrollAreaBackground;
 	end
 	
 	function GUICategory_1(index, value)
@@ -1570,7 +1665,7 @@ do
 		do
 		
 			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", timerTextArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownFont, 300);
+			UIDropDownMenu_SetWidth(dropdownFont, 315);
 			dropdownFont:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -18);
 			local info = {};
 			dropdownFont.initialize = function()
@@ -1600,7 +1695,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderTimerFontScale = GUICreateSlider(timerTextArea, 10, -58, 325, "NAuras.GUI.Fonts.SliderTimerFontScale");
+			local sliderTimerFontScale = GUICreateSlider(timerTextArea, 10, -58, 340, "NAuras.GUI.Fonts.SliderTimerFontScale");
 			sliderTimerFontScale.label:SetText("Timer font scale");
 			sliderTimerFontScale.slider:SetValueStep(0.1);
 			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1641,7 +1736,7 @@ do
 		do
 			
 			local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", timerTextArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 120);
+			UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 95);
 			dropdownTimerTextAnchor:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -108);
 			local info = {};
 			dropdownTimerTextAnchor.initialize = function()
@@ -1661,9 +1756,39 @@ do
 			_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(db.TimerTextAnchor);
 			dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
-			dropdownTimerTextAnchor.text:SetText("Timer text anchor:");
+			dropdownTimerTextAnchor.text:SetText("Anchor: text");
 			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(db.TimerTextAnchor); end);
+		
+		end
+		
+		-- // dropdownTimerTextAnchorIcon
+		do
+			
+			local dropdownTimerTextAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon", timerTextArea, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownTimerTextAnchorIcon, 95);
+			dropdownTimerTextAnchorIcon:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", 115, -108);
+			local info = {};
+			dropdownTimerTextAnchorIcon.initialize = function()
+				wipe(info);
+				for _, anchorPoint in pairs(textAnchors) do
+					info.text = anchorPoint;
+					info.value = anchorPoint;
+					info.func = function(self)
+						db.TimerTextAnchorIcon = self.value;
+						_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnTextPositionChanged();
+					end
+					info.checked = anchorPoint == db.TimerTextAnchorIcon;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(db.TimerTextAnchorIcon);
+			dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 15);
+			dropdownTimerTextAnchorIcon.text:SetText("Anchor: icon");
+			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(db.TimerTextAnchorIcon); end);
 		
 		end
 		
@@ -1673,9 +1798,9 @@ do
 			local editboxTimerTextXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextXOffset", timerTextArea);
 			editboxTimerTextXOffset:SetAutoFocus(false);
 			editboxTimerTextXOffset:SetFontObject(GameFontHighlightSmall);
-			editboxTimerTextXOffset:SetPoint("TOPLEFT", timerTextArea, 160, -113);
+			editboxTimerTextXOffset:SetPoint("TOPLEFT", timerTextArea, 255, -113);
 			editboxTimerTextXOffset:SetHeight(20);
-			editboxTimerTextXOffset:SetWidth(80);
+			editboxTimerTextXOffset:SetWidth(40);
 			editboxTimerTextXOffset:SetJustifyH("RIGHT");
 			editboxTimerTextXOffset:EnableMouse(true);
 			editboxTimerTextXOffset:SetBackdrop({
@@ -1698,7 +1823,7 @@ do
 			end);
 			editboxTimerTextXOffset:SetText(tostring(db.TimerTextXOffset));
 			local text = editboxTimerTextXOffset:CreateFontString("NAuras.GUI.Fonts.EditboxTimerTextXOffset.Label", "ARTWORK", "GameFontNormalSmall");
-			text:SetPoint("LEFT", 5, 15);
+			text:SetPoint("LEFT", 0, 15);
 			text:SetText("X offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxTimerTextXOffset);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxTimerTextXOffset:SetText(tostring(db.TimerTextXOffset)); end);
@@ -1711,9 +1836,9 @@ do
 			local editboxTimerTextYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxTimerTextYOffset", timerTextArea);
 			editboxTimerTextYOffset:SetAutoFocus(false);
 			editboxTimerTextYOffset:SetFontObject(GameFontHighlightSmall);
-			editboxTimerTextYOffset:SetPoint("TOPLEFT", timerTextArea, 250, -113);
+			editboxTimerTextYOffset:SetPoint("TOPLEFT", timerTextArea, 305, -113);
 			editboxTimerTextYOffset:SetHeight(20);
-			editboxTimerTextYOffset:SetWidth(80);
+			editboxTimerTextYOffset:SetWidth(40);
 			editboxTimerTextYOffset:SetJustifyH("RIGHT");
 			editboxTimerTextYOffset:EnableMouse(true);
 			editboxTimerTextYOffset:SetBackdrop({
@@ -1736,7 +1861,7 @@ do
 			end);
 			editboxTimerTextYOffset:SetText(tostring(db.TimerTextYOffset));
 			local text = editboxTimerTextYOffset:CreateFontString("NAuras.GUI.Fonts.EditboxTimerTextYOffset.Label", "ARTWORK", "GameFontNormalSmall");
-			text:SetPoint("LEFT", 5, 15);
+			text:SetPoint("LEFT", 0, 15);
 			text:SetText("Y offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxTimerTextYOffset);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxTimerTextYOffset:SetText(tostring(db.TimerTextYOffset)); end);
@@ -1831,7 +1956,7 @@ do
 		do
 		
 			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", stacksTextArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownStacksFont, 285);
+			UIDropDownMenu_SetWidth(dropdownStacksFont, 300);
 			dropdownStacksFont:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", -4, -18);
 			local info = {};
 			dropdownStacksFont.initialize = function()
@@ -1861,7 +1986,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(stacksTextArea, 10, -58, 325, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			local sliderStacksFontScale = GUICreateSlider(stacksTextArea, 10, -58, 340, "NAuras.GUI.Fonts.SliderStacksFontScale");
 			sliderStacksFontScale.label:SetText("Stacks text's font scale");
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1902,7 +2027,7 @@ do
 		do
 			
 			local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", stacksTextArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownStacksAnchor, 120);
+			UIDropDownMenu_SetWidth(dropdownStacksAnchor, 95);
 			dropdownStacksAnchor:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", -4, -108);
 			local info = {};
 			dropdownStacksAnchor.initialize = function()
@@ -1922,9 +2047,39 @@ do
 			_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(db.StacksTextAnchor);
 			dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
-			dropdownStacksAnchor.text:SetText("Stacks text anchor:");
+			dropdownStacksAnchor.text:SetText("Anchor: text");
 			table.insert(GUIFrame.Categories[index], dropdownStacksAnchor);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(db.StacksTextAnchor); end);
+		
+		end
+		
+		-- // dropdownStacksAnchorIcon
+		do
+			
+			local dropdownStacksAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchorIcon", stacksTextArea, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownStacksAnchorIcon, 95);
+			dropdownStacksAnchorIcon:SetPoint("TOPLEFT", stacksTextArea, "TOPLEFT", 115, -108);
+			local info = {};
+			dropdownStacksAnchorIcon.initialize = function()
+				wipe(info);
+				for _, anchorPoint in pairs(textAnchors) do
+					info.text = anchorPoint;
+					info.value = anchorPoint;
+					info.func = function(self)
+						db.StacksTextAnchorIcon = self.value;
+						_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
+						Nameplates_OnTextPositionChanged();
+					end
+					info.checked = anchorPoint == db.StacksTextAnchorIcon;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(db.StacksTextAnchorIcon);
+			dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 15);
+			dropdownStacksAnchorIcon.text:SetText("Anchor: icon");
+			table.insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(db.StacksTextAnchorIcon); end);
 		
 		end
 		
@@ -1934,9 +2089,9 @@ do
 			local editboxStacksXOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksXOffset", stacksTextArea);
 			editboxStacksXOffset:SetAutoFocus(false);
 			editboxStacksXOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksXOffset:SetPoint("TOPLEFT", stacksTextArea, 160, -113);
+			editboxStacksXOffset:SetPoint("TOPLEFT", stacksTextArea, 255, -113);
 			editboxStacksXOffset:SetHeight(20);
-			editboxStacksXOffset:SetWidth(80);
+			editboxStacksXOffset:SetWidth(40);
 			editboxStacksXOffset:SetJustifyH("RIGHT");
 			editboxStacksXOffset:EnableMouse(true);
 			editboxStacksXOffset:SetBackdrop({
@@ -1959,7 +2114,7 @@ do
 			end);
 			editboxStacksXOffset:SetText(tostring(db.StacksTextXOffset));
 			local text = editboxStacksXOffset:CreateFontString("NAuras.GUI.Fonts.EditboxStacksXOffset.Label", "ARTWORK", "GameFontNormalSmall");
-			text:SetPoint("LEFT", 5, 15);
+			text:SetPoint("LEFT", 0, 15);
 			text:SetText("X offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxStacksXOffset);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxStacksXOffset:SetText(tostring(db.StacksTextXOffset)); end);
@@ -1972,9 +2127,9 @@ do
 			local editboxStacksYOffset = CreateFrame("EditBox", "NAuras.GUI.Fonts.EditboxStacksYOffset", stacksTextArea);
 			editboxStacksYOffset:SetAutoFocus(false);
 			editboxStacksYOffset:SetFontObject(GameFontHighlightSmall);
-			editboxStacksYOffset:SetPoint("TOPLEFT", stacksTextArea, 250, -113);
+			editboxStacksYOffset:SetPoint("TOPLEFT", stacksTextArea, 305, -113);
 			editboxStacksYOffset:SetHeight(20);
-			editboxStacksYOffset:SetWidth(80);
+			editboxStacksYOffset:SetWidth(40);
 			editboxStacksYOffset:SetJustifyH("RIGHT");
 			editboxStacksYOffset:EnableMouse(true);
 			editboxStacksYOffset:SetBackdrop({
@@ -1997,7 +2152,7 @@ do
 			end);
 			editboxStacksYOffset:SetText(tostring(db.StacksTextYOffset));
 			local text = editboxStacksYOffset:CreateFontString("NAuras.GUI.Fonts.EditboxStacksYOffset.Label", "ARTWORK", "GameFontNormalSmall");
-			text:SetPoint("LEFT", 5, 15);
+			text:SetPoint("LEFT", 0, 15);
 			text:SetText("Y offset:"); -- todo:localization
 			table.insert(GUIFrame.Categories[index], editboxStacksYOffset);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() editboxStacksYOffset:SetText(tostring(db.StacksTextYOffset)); end);
@@ -2623,177 +2778,6 @@ do
 		end
 		
 		
-	end
-	
-	function OnGUICategoryClick(self, ...)
-		GUIFrame.CategoryButtons[GUIFrame.ActiveCategory].text:SetTextColor(1, 0.82, 0);
-		GUIFrame.CategoryButtons[GUIFrame.ActiveCategory]:UnlockHighlight();
-		GUIFrame.ActiveCategory = self.index;
-		self.text:SetTextColor(1, 1, 1);
-		self:LockHighlight();
-		PlaySound("igMainMenuOptionCheckBoxOn");
-		ShowGUICategory(GUIFrame.ActiveCategory);
-	end
-	
-	function ShowGUICategory(index)
-		for i, v in pairs(GUIFrame.Categories) do
-			for k, l in pairs(v) do
-				l:Hide();
-			end
-		end
-		for i, v in pairs(GUIFrame.Categories[index]) do
-			v:Show();
-		end
-		-- if (index > 2) then
-			-- NAuras_GUIScrollFramesTipText:Show();
-		-- else
-		NAuras_GUIScrollFramesTipText:Hide();
-		-- end
-	end
-	
-	function RebuildDropdowns()
-		local info = {};
-		NAuras_GUIProfilesDropdownCopyProfile.myvalue = nil;
-		UIDropDownMenu_SetText(NAuras_GUIProfilesDropdownCopyProfile, "");
-		local initCopyProfile = function()
-			wipe(info);
-			for index in pairs(NameplateAurasDB) do
-				if (index ~= LocalPlayerFullName) then
-					info.text = index;
-					info.func = function(self)
-						NAuras_GUIProfilesDropdownCopyProfile.myvalue = index;
-						UIDropDownMenu_SetText(NAuras_GUIProfilesDropdownCopyProfile, index);
-					end
-					info.notCheckable = true;
-					UIDropDownMenu_AddButton(info);
-				end
-			end
-		end
-		UIDropDownMenu_Initialize(NAuras_GUIProfilesDropdownCopyProfile, initCopyProfile);
-		
-		NAuras_GUIProfilesDropdownDeleteProfile.myvalue = nil;
-		UIDropDownMenu_SetText(NAuras_GUIProfilesDropdownDeleteProfile, "");
-		local initDeleteProfile = function()
-			wipe(info);
-			for index in pairs(NameplateAurasDB) do
-				info.text = index;
-				info.func = function(self)
-					NAuras_GUIProfilesDropdownDeleteProfile.myvalue = index;
-					UIDropDownMenu_SetText(NAuras_GUIProfilesDropdownDeleteProfile, index);
-				end
-				info.notCheckable = true;
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		UIDropDownMenu_Initialize(NAuras_GUIProfilesDropdownDeleteProfile, initDeleteProfile);
-	end
-	
-	function CreateGUICategory()
-		local b = CreateFrame("Button", nil, GUIFrame.outline);
-		b:SetWidth(GUIFrame.outline:GetWidth() - 8);
-		b:SetHeight(18);
-		b:SetScript("OnClick", OnGUICategoryClick);
-		b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
-		b:GetHighlightTexture():SetAlpha(0.7);
-		b.text = b:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-		b.text:SetPoint("LEFT", 3, 0);
-		GUIFrame.CategoryButtons[#GUIFrame.CategoryButtons + 1] = b;
-		return b;
-	end
-	
-	function GUICreateSlider(parent, x, y, size, publicName)
-		local frame = CreateFrame("Frame", publicName, parent);
-		frame:SetHeight(100);
-		frame:SetWidth(size);
-		frame:SetPoint("TOPLEFT", x, y);
-
-		frame.label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		frame.label:SetPoint("TOPLEFT");
-		frame.label:SetPoint("TOPRIGHT");
-		frame.label:SetJustifyH("CENTER");
-		--frame.label:SetHeight(15);
-		
-		frame.slider = CreateFrame("Slider", nil, frame);
-		frame.slider:SetOrientation("HORIZONTAL")
-		frame.slider:SetHeight(15)
-		frame.slider:SetHitRectInsets(0, 0, -10, 0)
-		frame.slider:SetBackdrop({
-			bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-			edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-			tile = true, tileSize = 8, edgeSize = 8,
-			insets = { left = 3, right = 3, top = 6, bottom = 6 }
-		});
-		frame.slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-		frame.slider:SetPoint("TOP", frame.label, "BOTTOM")
-		frame.slider:SetPoint("LEFT", 3, 0)
-		frame.slider:SetPoint("RIGHT", -3, 0)
-
-		frame.lowtext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		frame.lowtext:SetPoint("TOPLEFT", frame.slider, "BOTTOMLEFT", 2, 3)
-
-		frame.hightext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		frame.hightext:SetPoint("TOPRIGHT", frame.slider, "BOTTOMRIGHT", -2, 3)
-
-		frame.editbox = CreateFrame("EditBox", nil, frame)
-		frame.editbox:SetAutoFocus(false)
-		frame.editbox:SetFontObject(GameFontHighlightSmall)
-		frame.editbox:SetPoint("TOP", frame.slider, "BOTTOM")
-		frame.editbox:SetHeight(14)
-		frame.editbox:SetWidth(70)
-		frame.editbox:SetJustifyH("CENTER")
-		frame.editbox:EnableMouse(true)
-		frame.editbox:SetBackdrop({
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			tile = true, edgeSize = 1, tileSize = 5,
-		});
-		frame.editbox:SetBackdropColor(0, 0, 0, 0.5)
-		frame.editbox:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
-		frame.editbox:SetScript("OnEscapePressed", function() frame.editbox:ClearFocus(); end)
-		frame:Hide();
-		return frame;
-	end
-	
-	function GUICreateButton(publicName, parentFrame, text)
-		-- After creation we need to set up :SetWidth, :SetHeight, :SetPoint, :SetScript
-		local button = CreateFrame("Button", publicName, parentFrame);
-		button.Background = button:CreateTexture(nil, "BORDER");
-		button.Background:SetPoint("TOPLEFT", 1, -1);
-		button.Background:SetPoint("BOTTOMRIGHT", -1, 1);
-		button.Background:SetColorTexture(0, 0, 0, 1);
-
-		button.Border = button:CreateTexture(nil, "BACKGROUND");
-		button.Border:SetPoint("TOPLEFT", 0, 0);
-		button.Border:SetPoint("BOTTOMRIGHT", 0, 0);
-		button.Border:SetColorTexture(unpack({0.73, 0.26, 0.21, 1}));
-
-		button.Normal = button:CreateTexture(nil, "ARTWORK");
-		button.Normal:SetPoint("TOPLEFT", 2, -2);
-		button.Normal:SetPoint("BOTTOMRIGHT", -2, 2);
-		button.Normal:SetColorTexture(unpack({0.38, 0, 0, 1}));
-		button:SetNormalTexture(button.Normal);
-
-		button.Disabled = button:CreateTexture(nil, "OVERLAY");
-		button.Disabled:SetPoint("TOPLEFT", 3, -3);
-		button.Disabled:SetPoint("BOTTOMRIGHT", -3, 3);
-		button.Disabled:SetColorTexture(0.6, 0.6, 0.6, 0.2);
-		button:SetDisabledTexture(button.Disabled);
-
-		button.Highlight = button:CreateTexture(nil, "OVERLAY");
-		button.Highlight:SetPoint("TOPLEFT", 3, -3);
-		button.Highlight:SetPoint("BOTTOMRIGHT", -3, 3);
-		button.Highlight:SetColorTexture(0.6, 0.6, 0.6, 0.2);
-		button:SetHighlightTexture(button.Highlight);
-
-		button.Text = button:CreateFontString((publicName ~= nil) and (publicName .. "Text") or nil, "OVERLAY", "GameFontNormal");
-		button.Text:SetPoint("CENTER", 0, 0);
-		button.Text:SetJustifyH("CENTER");
-		button.Text:SetTextColor(1, 0.82, 0, 1);
-		button.Text:SetText(text);
-
-		button:SetScript("OnMouseDown", function(self) self.Text:SetPoint("CENTER", 1, -1) end);
-		button:SetScript("OnMouseUp", function(self) self.Text:SetPoint("CENTER", 0, 0) end);
-		return button;
 	end
 	
 end

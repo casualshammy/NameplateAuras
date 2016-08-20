@@ -45,7 +45,7 @@ local LocalPlayerFullName 	= UnitName("player").." - "..GetRealmName();
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
 
 -- // consts: you should not change existing values
-local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS;
+local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_DISABLED, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS, CONST_TIMER_TEXT_MODES;
 do
 	
 	SPELL_SHOW_MODES = { "my", "all", "disabled" };
@@ -72,6 +72,8 @@ do
 		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
 		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",
 	};
+	
+	CONST_TIMER_TEXT_MODES = { "relative", "absolute" };
 end
 
 -- // upvalues
@@ -217,6 +219,8 @@ do
 				SortMode = CONST_SORT_MODES[2],
 				DisplayTenthsOfSeconds = true,
 				FontScale = 1,
+				TimerTextSizeMode = CONST_TIMER_TEXT_MODES[1],
+				TimerTextSize = 20,
 				TimerTextAnchor = "CENTER",
 				TimerTextAnchorIcon = "UNKNOWN",
 				TimerTextXOffset = 0,
@@ -341,70 +345,68 @@ do
 			frame.NAurasFrame:SetPoint("CENTER", frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 		end
-		local texture = (db.TimerStyle == CONST_TIMER_STYLES[1]) and frame.NAurasFrame:CreateTexture(nil, "BORDER") or CreateFrame("Frame", nil, frame.NAurasFrame);
-		texture:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
-		texture:SetSize(db.DefaultIconSize, db.DefaultIconSize);
+		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
+		icon:SetPoint(db.IconAnchor, frame.NAurasFrame, widthUsed, 0);
+		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
+		icon.texture = icon:CreateTexture(nil, "BORDER");
+		icon.texture:SetAllPoints(icon);
+		icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+		icon.border = icon:CreateTexture(nil, "OVERLAY");
+		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
+		icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
 		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
-			texture.cooldownFrame = CreateFrame("Cooldown", nil, texture, "CooldownFrameTemplate");
-			texture.cooldownFrame:SetAllPoints(texture);
-			texture.cooldownFrame:SetReverse(true);
+			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
+			icon.cooldownFrame:SetAllPoints(icon);
+			icon.cooldownFrame:SetReverse(true);
 			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
-				texture.cooldownFrame:SetDrawEdge(false);
-				texture.cooldownFrame:SetDrawSwipe(true);
-				texture.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
-				texture.cooldownFrame:SetHideCountdownNumbers(true);
+				icon.cooldownFrame:SetDrawEdge(false);
+				icon.cooldownFrame:SetDrawSwipe(true);
+				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
+				icon.cooldownFrame:SetHideCountdownNumbers(true);
 			end
-			texture.texture = texture:CreateTexture(nil, "BORDER");
-			texture.texture:SetAllPoints(texture);
-			texture.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-			texture.SetTexture = function(self, textureID) self.texture:SetTexture(textureID); end;
-			texture.SetCooldown = function(self, startTime, duration)
+			icon.SetCooldown = function(self, startTime, duration)
 				if (startTime == 0) then duration = 0; end
-				texture.cooldownFrame:SetCooldown(startTime, duration);
+				icon.cooldownFrame:SetCooldown(startTime, duration);
 			end;
-			texture.border = texture:CreateTexture(nil, "OVERLAY");
-			texture.stacks = texture:CreateFontString(nil, "OVERLAY");
-			hooksecurefunc(texture.stacks, "SetText", function(self, text)
+			hooksecurefunc(icon.stacks, "SetText", function(self, text)
 				if (text ~= "") then
-					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
-						texture.stacks:SetParent(texture);
+					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
+						icon.stacks:SetParent(icon);
 					else
-						texture.stacks:SetParent(texture.cooldownFrame);
+						icon.stacks:SetParent(icon.cooldownFrame);
 					end
 				end
 			end);
-			texture.cooldown = texture:CreateFontString(nil, "OVERLAY");
-			hooksecurefunc(texture.cooldown, "SetText", function(self, text)
+			hooksecurefunc(icon.cooldown, "SetText", function(self, text)
 				if (text ~= "") then
-					if (texture.cooldownFrame:GetCooldownDuration() == 0) then
-						texture.cooldown:SetParent(texture);
+					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
+						icon.cooldown:SetParent(icon);
 					else
-						texture.cooldown:SetParent(texture.cooldownFrame);
+						icon.cooldown:SetParent(icon.cooldownFrame);
 					end
 				end
 			end);
-		else
-			texture.border = frame.NAurasFrame:CreateTexture(nil, "OVERLAY");
-			texture.stacks = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
-			texture.cooldown = frame.NAurasFrame:CreateFontString(nil, "OVERLAY");
-			texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 		end
-		texture.size = db.DefaultIconSize;
-		texture:Hide();
-		texture.cooldown:SetTextColor(0.7, 1, 0);
-		texture.cooldown:SetPoint(db.TimerTextAnchor, texture, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
-		texture.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
-		texture.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
-		texture.border:SetVertexColor(1, 0.35, 0);
-		texture.border:SetAllPoints(texture);
-		texture.border:Hide();
-		texture.stacks:SetTextColor(unpack(db.StacksTextColor));
-		texture.stacks:SetPoint(db.StacksTextAnchor, texture, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
-		texture.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
-		texture.stackcount = 0;
+		icon.size = db.DefaultIconSize;
+		icon:Hide();
+		icon.cooldown:SetTextColor(0.7, 1, 0);
+		icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
+		if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
+		elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+		end
+		icon.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
+		icon.border:SetVertexColor(1, 0.35, 0);
+		icon.border:SetAllPoints(icon);
+		icon.border:Hide();
+		icon.stacks:SetTextColor(unpack(db.StacksTextColor));
+		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
+		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
+		icon.stackcount = 0;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
-		tinsert(frame.NAurasIcons, texture);
+		tinsert(frame.NAurasIcons, icon);
 	end
 		
 	function UpdateAllNameplates(force)
@@ -501,7 +503,7 @@ do
 					end
 					local icon = frame.NAurasIcons[counter];
 					if (icon.spellID ~= spellName) then
-						icon:SetTexture(TextureCache[spellInfo.spellID]);
+						icon.texture:SetTexture(TextureCache[spellInfo.spellID]);
 						icon.spellID = spellName;
 					end
 					UpdateNameplate_SetCooldown(icon, last, spellInfo);
@@ -622,7 +624,11 @@ do
 	function ResizeIcon(icon, size, widthAlreadyUsed)
 		icon:SetSize(size, size);
 		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
-		icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
+		if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
+		elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+		end
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
 	end
 	
@@ -631,7 +637,11 @@ do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
 					if (icon.shown) then
-						icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+						if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+							icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+						elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+							icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+						end
 						icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
 					end
 				end
@@ -1617,7 +1627,7 @@ do
 	function GUICategory_Fonts(index, value)
 		
 		local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
-		local timerTextArea, stacksTextArea;
+		local timerTextArea, stacksTextArea, sliderTimerFontScale, sliderTimerFontSize;
 		
 		-- // timerTextArea
 		do
@@ -1695,7 +1705,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderTimerFontScale = GUICreateSlider(timerTextArea, 10, -58, 340, "NAuras.GUI.Fonts.SliderTimerFontScale");
+			sliderTimerFontScale = GUICreateSlider(timerTextArea, 150, -58, 200, "NAuras.GUI.Fonts.SliderTimerFontScale");
 			sliderTimerFontScale.label:SetText("Timer font scale");
 			sliderTimerFontScale.slider:SetValueStep(0.1);
 			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1727,8 +1737,99 @@ do
 			end);
 			sliderTimerFontScale.lowtext:SetText(tostring(minValue));
 			sliderTimerFontScale.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderTimerFontScale);
+			-- // table.insert(GUIFrame.Categories[index], sliderTimerFontScale);
 			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontScale.editbox:SetText(tostring(db.FontScale)); sliderTimerFontScale.slider:SetValue(db.FontScale); end);
+		
+		end
+		
+		-- // sliderTimerFontSize
+		do
+			
+			local minValue, maxValue = 6, 96;
+			sliderTimerFontSize = GUICreateSlider(timerTextArea, 150, -58, 200, "NAuras.GUI.Fonts.SliderTimerFontSize");
+			sliderTimerFontSize.label:SetText("Timer font size");
+			sliderTimerFontSize.slider:SetValueStep(1);
+			sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
+			sliderTimerFontSize.slider:SetValue(db.TimerTextSize);
+			sliderTimerFontSize.slider:SetScript("OnValueChanged", function(self, value)
+				local actualValue = tonumber(string_format("%.0f", value));
+				sliderTimerFontSize.editbox:SetText(tostring(actualValue));
+				db.TimerTextSize = actualValue;
+				Nameplates_OnFontChanged();
+			end);
+			sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize));
+			sliderTimerFontSize.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderTimerFontSize.editbox:GetText() ~= "") then
+					local v = tonumber(sliderTimerFontSize.editbox:GetText());
+					if (v == nil) then
+						sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize));
+						msg(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderTimerFontSize.slider:SetValue(v);
+					end
+					sliderTimerFontSize.editbox:ClearFocus();
+				end
+			end);
+			sliderTimerFontSize.lowtext:SetText(tostring(minValue));
+			sliderTimerFontSize.hightext:SetText(tostring(maxValue));
+			-- // table.insert(GUIFrame.Categories[index], sliderTimerFontSize);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize)); sliderTimerFontSize.slider:SetValue(db.TimerTextSize); end);
+		
+		end
+		
+		-- // dropdownTimerTextSizeMode
+		do
+		
+			local dropdownTimerTextSizeMode = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextSizeMode", timerTextArea, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownTimerTextSizeMode, 95);
+			dropdownTimerTextSizeMode:SetPoint("TOPLEFT", timerTextArea, "TOPLEFT", -4, -65);
+			local info = {};
+			dropdownTimerTextSizeMode.initialize = function()
+				wipe(info);
+				for _, sizeMode in pairs(CONST_TIMER_TEXT_MODES) do
+					info.text = sizeMode;
+					info.value = sizeMode;
+					info.func = function(self)
+						db.TimerTextSizeMode = self.value;
+						_G[dropdownTimerTextSizeMode:GetName() .. "Text"]:SetText(self:GetText());
+						if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+							sliderTimerFontScale:Show();
+							sliderTimerFontSize:Hide();
+						elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+							sliderTimerFontScale:Hide();
+							sliderTimerFontSize:Show();
+						end
+						Nameplates_OnFontChanged();
+					end
+					info.checked = sizeMode == db.TimerTextSizeMode;
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownTimerTextSizeMode:GetName() .. "Text"]:SetText(db.TimerTextSizeMode);
+			dropdownTimerTextSizeMode.text = dropdownTimerTextSizeMode:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextSizeMode.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerTextSizeMode.text:SetPoint("LEFT", 20, 15);
+			dropdownTimerTextSizeMode.text:SetText("Font size style");
+			table.insert(GUIFrame.Categories[index], dropdownTimerTextSizeMode);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextSizeMode:GetName() .. "Text"]:SetText(db.TimerTextSizeMode); end);
+			dropdownTimerTextSizeMode:SetScript("OnShow", function(self)
+				if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+					sliderTimerFontScale:Show();
+					sliderTimerFontSize:Hide();
+				elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+					sliderTimerFontScale:Hide();
+					sliderTimerFontSize:Show();
+				end
+			end);
+			dropdownTimerTextSizeMode:SetScript("OnHide", function(self)
+				sliderTimerFontScale:Hide();
+				sliderTimerFontSize:Hide();
+			end);
 		
 		end
 		

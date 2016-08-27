@@ -5,6 +5,10 @@ local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
+-- // upvalues
+local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower =
+		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower;
+
 NameplateAurasDB = {};
 local TextureCache = setmetatable({}, {
 	__index = function(t, key)
@@ -24,7 +28,7 @@ local SpellIDsCache = setmetatable({}, {
 	__index = function(t, key)
 		for spellID = 1, 500000 do
 			local spellName = GetSpellInfo(spellID);
-			if (spellName == key) then
+			if (spellName ~= nil and string_lower(spellName) == string_lower(key)) then
 				t[key] = spellID;
 				return spellID;
 			end
@@ -75,10 +79,6 @@ do
 	
 	CONST_TIMER_TEXT_MODES = { "relative", "absolute" };
 end
-
--- // upvalues
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff;
 
 local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, UpdateNameplate_SetCooldown, UpdateNameplate_SetStacks, UpdateNameplate_SetBorder, HideCDIcon, ShowCDIcon,

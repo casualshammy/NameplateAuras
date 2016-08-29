@@ -6,8 +6,10 @@ SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\me
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
 -- // upvalues
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower;
+local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
+			UnitReaction, UnitGUID, UnitIsEnemy =
+		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
+			UnitReaction, UnitGUID, UnitIsEnemy;
 
 NameplateAurasDB = {};
 local TextureCache = setmetatable({}, {
@@ -249,6 +251,7 @@ do
 				IconAnchor = "LEFT",
 				AlwaysShowMyAuras = false,
 				BorderThickness = 2,
+				ShowAboveFriendlyUnits = true,
 			},
 		};
 		
@@ -443,7 +446,7 @@ do
 		
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
-		if (LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate == true) then
+		if ((LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or UnitIsEnemy("player", unitID))) then -- // 5 - friendly
 			for i = 1, 40 do
 				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
@@ -1295,7 +1298,7 @@ do
 		-- // sliderIconSize
 		do
 		
-			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -30, 155, "NAuras.GUI.Cat1.SliderIconSize");
+			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -25, 155, "NAuras.GUI.Cat1.SliderIconSize");
 			sliderIconSize.label:SetText("Default icon size");
 			sliderIconSize.slider:SetValueStep(1);
 			sliderIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
@@ -1341,7 +1344,7 @@ do
 		-- // sliderIconSpacing
 		do
 			local minValue, maxValue = 0, 50;
-			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -30, 155, "NAuras.GUI.Cat1.SliderIconSpacing");
+			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -25, 155, "NAuras.GUI.Cat1.SliderIconSpacing");
 			sliderIconSpacing.label:SetText("Space between icons");
 			sliderIconSpacing.slider:SetValueStep(1);
 			sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
@@ -1380,7 +1383,7 @@ do
 		-- // sliderIconXOffset
 		do
 		
-			local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -90, 155, "NAuras_GUIGeneralSliderIconXOffset");
+			local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -85, 155, "NAuras_GUIGeneralSliderIconXOffset");
 			sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 			sliderIconXOffset.slider:SetValueStep(1);
 			sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -1419,7 +1422,7 @@ do
 		-- // sliderIconYOffset
 		do
 		
-			local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -90, 155, "NAuras_GUIGeneralSliderIconYOffset");
+			local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -85, 155, "NAuras_GUIGeneralSliderIconYOffset");
 			sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 			sliderIconYOffset.slider:SetValueStep(1);
 			sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -1456,7 +1459,7 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -160, "Always display icons at full opacity (ReloadUI is required)", function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -140, "Always display icons at full opacity (ReloadUI is required)", function(this)
 			db.FullOpacityAlways = this:GetChecked();
 			PopupReloadUI();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
@@ -1469,7 +1472,7 @@ do
 			checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		end);
 		
-		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -180, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
+		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -160, "Hide Blizzard's aura frames (Reload UI is required)", function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 			PopupReloadUI();
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
@@ -1482,7 +1485,7 @@ do
 			checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		end);
 		
-		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -200, "Display tenths of seconds", function(this)
+		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -180, "Display tenths of seconds", function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
@@ -1492,7 +1495,7 @@ do
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
 		
-			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBox(160, -220, "Display auras on player's nameplate", function(this)
+			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBox(160, -200, "Display auras on player's nameplate", function(this)
 				db.ShowAurasOnPlayerNameplate = this:GetChecked();
 			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
@@ -1500,7 +1503,20 @@ do
 			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
 		
 		end
-			
+		
+		-- // checkBoxShowAboveFriendlyUnits
+		do
+		
+			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBox(160, -220, "Display auras on nameplates of friendly units", function(this)
+				db.ShowAboveFriendlyUnits = this:GetChecked();
+				UpdateAllNameplates(true);
+			end, "NAuras.GUI.Cat1.CheckBoxShowAboveFriendlyUnits");
+			checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits);
+			table.insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
+			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits); end);
+		
+		end
+		
 		-- // checkBoxShowMyAuras
 		do
 		

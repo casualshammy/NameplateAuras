@@ -7,9 +7,9 @@ SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAur
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsEnemy =
+			UnitReaction, UnitGUID, UnitIsFriend =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsEnemy;
+			UnitReaction, UnitGUID, UnitIsFriend;
 
 NameplateAurasDB = {};
 local TextureCache = setmetatable({}, {
@@ -446,7 +446,7 @@ do
 		
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
-		if ((LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or UnitIsEnemy("player", unitID))) then -- // 5 - friendly
+		if ((LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not UnitIsFriend("player", unitID))) then -- // 5 - friendly
 			for i = 1, 40 do
 				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then

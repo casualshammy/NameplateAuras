@@ -112,7 +112,13 @@ do
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
 			if (msg == "t") then
 				Print("Waiting for replies...");
-				SendAddonMessage("NAuras_prefix", "requesting", IsInGroup(2) and "INSTANCE_CHAT" or "RAID");
+				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
+					SendAddonMessage("NAuras_prefix", "requesting", "INSTANCE_CHAT");
+				elseif (IsInRaid()) then
+					SendAddonMessage("NAuras_prefix", "requesting", "RAID");
+				else
+					SendAddonMessage("NAuras_prefix", "requesting", "GUILD");
+				end
 			else
 				ShowGUI();
 			end
@@ -340,6 +346,8 @@ end
 -------------------------------------------------------------------------------------------------
 do
 	
+	local cooldownFrameCount = 0;
+	
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -358,7 +366,8 @@ do
 		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
 		icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
 		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
-			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
+			icon.cooldownFrame = CreateFrame("Cooldown", "NAurasCooldownFrame" .. tostring(cooldownFrameCount), icon, "CooldownFrameTemplate");
+			cooldownFrameCount = cooldownFrameCount + 1;
 			icon.cooldownFrame:SetAllPoints(icon);
 			icon.cooldownFrame:SetReverse(true);
 			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
@@ -2970,7 +2979,7 @@ end);
 local funFrame = CreateFrame("Frame");
 funFrame:RegisterEvent("CHAT_MSG_ADDON");
 funFrame:SetScript("OnEvent", function(self, event, ...)
-	local prefix, message, _, sender = ...;
+	local prefix, message, channel, sender = ...;
 	if (prefix == "NAuras_prefix") then
 		if (string_find(message, "reporting")) then
 			local _, toWhom = strsplit(":", message, 2);
@@ -2979,7 +2988,7 @@ funFrame:SetScript("OnEvent", function(self, event, ...)
 				Print(sender.." is using NAuras");
 			end
 		elseif (string_find(message, "requesting")) then
-			SendAddonMessage("NAuras_prefix", "reporting:"..sender, IsInGroup(2) and "INSTANCE_CHAT" or "RAID");
+			SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
 		end
 	end
 end);

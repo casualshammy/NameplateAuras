@@ -110,15 +110,17 @@ do
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
-			if (msg == "t") then
-				Print("Waiting for replies...");
+			if (msg == "t" or msg == "ver") then
+				local c = UNKNOWN;
 				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
-					SendAddonMessage("NAuras_prefix", "requesting", "INSTANCE_CHAT");
+					c = "INSTANCE_CHAT";
 				elseif (IsInRaid()) then
-					SendAddonMessage("NAuras_prefix", "requesting", "RAID");
+					c = "RAID";
 				else
-					SendAddonMessage("NAuras_prefix", "requesting", "GUILD");
+					c = "GUILD";
 				end
+				Print("Waiting for replies from " .. c);
+				SendAddonMessage("NAuras_prefix", "requesting", c);
 			else
 				ShowGUI();
 			end

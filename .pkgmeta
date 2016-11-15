@@ -30,3 +30,6 @@ externals:
 	libs/AceGUI-3.0:
 		url: svn://svn.wowace.com/wow/ace3/mainline/trunk/AceGUI-3.0
 		tag: latest
+	libs/AceLocale-3.0:
+		url: svn://svn.wowace.com/wow/ace3/mainline/trunk/AceLocale-3.0
+		tag: latest

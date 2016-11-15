@@ -4,6 +4,6 @@
 ## SavedVariables: NameplateAurasDB, NameplateAurasAceDB
 
 embeds.xml
-localizations.lua
+locales\localizations.xml
 spells.lua
 NameplateAuras.lua

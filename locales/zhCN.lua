@@ -11,19 +11,33 @@ L["Always display icons at full opacity (ReloadUI is required)"] = "始终完全
 L["Always show auras cast by myself"] = "始终显示自己释放的光环"
 L["Anchor point"] = "锚点"
 L["Anchor to icon"] = "锚定到图标"
+--Translation missing 
+L["Any"] = "Any"
 L["Aura type"] = "光环类型"
 L["Border thickness"] = "边框粗细"
+--Translation missing 
+L["BOTTOM"] = "Bottom"
+--Translation missing 
+L["BOTTOMLEFT"] = "Bottom left"
+--Translation missing 
+L["BOTTOMRIGHT"] = "Bottom right"
+--Translation missing 
+L["Buff"] = "Buff"
 L["By aura type (de/buff) + expire time"] = "以光环类型 (减/增益) + 过期时间"
 L["By expire time, ascending"] = "以过期时间,升序"
 L["By expire time, descending"] = "以过期时间,降序"
 L["By icon size, ascending"] = "以图标大小,升序"
 L["By icon size, descending"] = "以图标大小,降序"
+--Translation missing 
+L["CENTER"] = "Center"
 L["Check spell ID"] = "检查法术ID"
 L["Circular"] = "圆形"
 L["Circular with OmniCC support"] = "OmniCC 支持的圆形"
 L["Circular with timer"] = "圆形计时器"
 L["Click to select spell"] = "单击选择法术"
 L["Curse"] = "诅咒"
+--Translation missing 
+L["Debuff"] = "Debuff"
 L["Default icon size"] = "默认图标大小"
 L["Delete all spells"] = "删除所有法术"
 L["Delete spell"] = "删除法术"
@@ -45,6 +59,8 @@ L["Icon borders"] = "图标边框"
 L["Icon size"] = "图标大小"
 L["Icon X-coord offset"] = "图标横向位移"
 L["Icon Y-coord offset"] = "图标纵向位移"
+--Translation missing 
+L["LEFT"] = "Left"
 L["Magic"] = "魔法"
 L["Mode"] = "模式"
 L["No"] = "否"
@@ -58,6 +74,8 @@ L["Please reload UI to apply changes"] = "请重新加载用户界面来应用�
 L["Poison"] = "毒药"
 L["Profiles"] = "配置文件"
 L["Reload UI"] = "重新加载用户界面"
+--Translation missing 
+L["RIGHT"] = "Right"
 L[ [=[Scale font size
 according to
 icon size]=] ] = [=[缩放字体大小
@@ -80,6 +98,12 @@ L["Text color"] = "文字颜色"
 L["Texture with timer"] = "计时器材质"
 L["Timer style:"] = "时间风格:"
 L["Timer text"] = "计时器文字"
+--Translation missing 
+L["TOP"] = "Top"
+--Translation missing 
+L["TOPLEFT"] = "Top left"
+--Translation missing 
+L["TOPRIGHT"] = "Top right"
 L["Unknown spell: %s"] = "未知法术: %s"
 L["Value must be a number"] = "值必须是数字"
 L["X offset"] = "横向位移"

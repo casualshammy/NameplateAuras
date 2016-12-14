@@ -2,6 +2,7 @@
 ## Title: NameplateAuras
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasDB, NameplateAurasAceDB
+## Version: @project-version@
 
 embeds.xml
 locales\localizations.xml

@@ -8,26 +8,26 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort;
 
 NameplateAurasDB = {};
-local TextureCache = setmetatable({}, {
+local SpellTextureByID = setmetatable({}, {
 	__index = function(t, key)
 		local texture = GetSpellTexture(key);
 		t[key] = texture;
 		return texture;
 	end
 });
-local SpellNamesCache = setmetatable({}, {
+local SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
 		local spellName = GetSpellInfo(key);
 		t[key] = spellName;
 		return spellName;
 	end
 });
-local SpellIDsCache = setmetatable({}, {
+local SpellIDByName = setmetatable({}, {
 	__index = function(t, key)
 		for spellID = 1, 500000 do
 			local spellName = GetSpellInfo(spellID);
@@ -57,13 +57,11 @@ local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
 local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS, CONST_TIMER_TEXT_MODES;
 do
 	
-	SPELL_SHOW_MODES = { "disabled", "all", "my" };--, "hostile", "friendly"
+	SPELL_SHOW_MODES = { "disabled", "all", "my" };
 	SPELL_SHOW_MODES_LOCALIZATION = {
 		[SPELL_SHOW_MODES[1]] = L["Disabled"],
 		[SPELL_SHOW_MODES[2]] = L["All auras"],
 		[SPELL_SHOW_MODES[3]] = L["Only my auras"],
-		--[SPELL_SHOW_MODES[4]] = L["Only auras cast by enemies"],
-		--[SPELL_SHOW_MODES[5]] = L["Only auras cast by friends"],
 	};
 	SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
 	SPELL_SHOW_TYPES_LOCALIZATION = {
@@ -101,7 +99,7 @@ local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNamepla
 	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged,
 	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate;
 local OnUpdate;
-local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA, CHAT_MSG_ADDON;
+--local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA, CHAT_MSG_ADDON;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
 local Print, deepcopy, msg;
 
@@ -157,13 +155,13 @@ do
 		if (not db.DefaultSpellsAreImported) then
 			local spellNamesAlreadyInUsersDB = { };
 			for spellID in pairs(db.CustomSpells2) do
-				local spellName = SpellNamesCache[spellID];
+				local spellName = SpellNameByID[spellID];
 				if (spellName ~= nil) then
-					spellNamesAlreadyInUsersDB[SpellNamesCache[spellID]] = true;
+					spellNamesAlreadyInUsersDB[SpellNameByID[spellID]] = true;
 				end
 			end
 			for spellID, spellInfo in pairs(addonTable.DefaultSpells) do
-				local spellName = SpellNamesCache[spellID];
+				local spellName = SpellNameByID[spellID];
 				if (spellName ~= nil) then
 					if (not spellNamesAlreadyInUsersDB[spellName]) then
 						db.CustomSpells2[spellID] = spellInfo;
@@ -175,7 +173,7 @@ do
 		end
 		-- // setting caches...
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			local spellName = SpellNamesCache[spellID];
+			local spellName = SpellNameByID[spellID];
 			if (spellName == nil) then
 				Print("<"..spellName.."> isn't exist. Removing from database...");
 				db.CustomSpells2[spellID] = nil;
@@ -208,17 +206,12 @@ do
 			EventFrame:SetScript("OnUpdate", nil);
 		end
 		if (GUIFrame) then
-			--GUIFrame:Hide();
 			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
 				func();
 			end
 		end
 		Nameplates_OnFontChanged();
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				nameplate.NAurasFrame:SetPoint("CENTER", nameplate, db.IconXOffset, db.IconYOffset);
-			end
-		end
+		Nameplates_OnFrameAnchorChanged();
 		Nameplates_OnTextPositionChanged();
 		Nameplates_OnIconAnchorChanged();
 		UpdateAllNameplates(true);
@@ -340,7 +333,7 @@ do
 	end
 	
 	function UpdateSpellCachesFromDB(spellID)
-		local spellName = SpellNamesCache[spellID];
+		local spellName = SpellNameByID[spellID];
 		if (db.CustomSpells2[spellID] ~= nil) then
 			SpellShowModesCache[spellName] = 	db.CustomSpells2[spellID].enabledState;
 			SpellAuraTypeCache[spellName] = 	db.CustomSpells2[spellID].auraType;
@@ -472,7 +465,28 @@ do
 		end
 		return false;
 	end
-		
+	
+	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack)
+		if (nameplateAuras[frame][auraName] == nil or nameplateAuras[frame][auraName].expires < auraExpires or nameplateAuras[frame][auraName].stacks ~= auraStack) then
+			return true;
+		end
+		return false;
+	end
+	
+	-- // todo: delete-start
+	local function aaaaa()
+		local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
+		if (calls > 0) then
+			print("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: " .. string_format("%.5f", (usage/calls)) .. ", total calls: " .. calls);
+		else
+			print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
+		end
+		C_Timer.After(300, aaaaa);
+	end
+	
+	C_Timer.After(60, aaaaa);
+	-- // todo: delete-end
+	
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(nameplateAuras[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
@@ -481,7 +495,7 @@ do
 				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
 					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend)) then
-						if (nameplateAuras[frame][buffName] == nil or nameplateAuras[frame][buffName].expires < buffExpires or nameplateAuras[frame][buffName].stacks ~= buffStack) then
+						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack)) then
 							nameplateAuras[frame][buffName] = {
 								["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
 								["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
@@ -496,7 +510,7 @@ do
 				if (debuffName ~= nil) then
 					--print("ProcessAurasForNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
-						if (nameplateAuras[frame][debuffName] == nil or nameplateAuras[frame][debuffName].expires < debuffExpires or nameplateAuras[frame][debuffName].stacks ~= debuffStack) then
+						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
 							nameplateAuras[frame][debuffName] = {
 								["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
 								["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
@@ -527,7 +541,7 @@ do
 			end
 			nameplateAuras[frame].sortedAuras = SortAurasForNameplate(nameplateAuras[frame]);
 			for _, spellInfo in pairs(nameplateAuras[frame].sortedAuras) do
-				local spellName = SpellNamesCache[spellInfo.spellID];
+				local spellName = SpellNameByID[spellInfo.spellID];
 				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
 				if (last > 0) then
@@ -536,7 +550,7 @@ do
 					end
 					local icon = frame.NAurasIcons[counter];
 					if (icon.spellID ~= spellName) then
-						icon.texture:SetTexture(TextureCache[spellInfo.spellID]);
+						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
 						icon.spellID = spellName;
 					end
 					UpdateNameplate_SetCooldown(icon, last, spellInfo);
@@ -759,21 +773,21 @@ do
 		local t = { };
 		for _, spellInfo in pairs(auras) do
 			if (spellInfo.spellID ~= nil) then
-				table.insert(t, spellInfo);
+				table_insert(t, spellInfo);
 			end
 		end
 		if (db.SortMode == CONST_SORT_MODES[1]) then
 			-- // do nothing
 		elseif (db.SortMode == CONST_SORT_MODES[2]) then
-			table.sort(t, function(item1, item2) return item1.expires < item2.expires end);
+			table_sort(t, function(item1, item2) return item1.expires < item2.expires end);
 		elseif (db.SortMode == CONST_SORT_MODES[3]) then
-			table.sort(t, function(item1, item2) return item1.expires > item2.expires end);
+			table_sort(t, function(item1, item2) return item1.expires > item2.expires end);
 		elseif (db.SortMode == CONST_SORT_MODES[4]) then
-			table.sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNamesCache[item1.spellID]] or db.DefaultIconSize) < (SpellIconSizesCache[SpellNamesCache[item2.spellID]] or db.DefaultIconSize) end);
+			table_sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNameByID[item1.spellID]] or db.DefaultIconSize) < (SpellIconSizesCache[SpellNameByID[item2.spellID]] or db.DefaultIconSize) end);
 		elseif (db.SortMode == CONST_SORT_MODES[5]) then
-			table.sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNamesCache[item1.spellID]] or db.DefaultIconSize) > (SpellIconSizesCache[SpellNamesCache[item2.spellID]] or db.DefaultIconSize) end);
+			table_sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNameByID[item1.spellID]] or db.DefaultIconSize) > (SpellIconSizesCache[SpellNameByID[item2.spellID]] or db.DefaultIconSize) end);
 		elseif (db.SortMode == CONST_SORT_MODES[6]) then
-			table.sort(t, function(item1, item2)
+			table_sort(t, function(item1, item2)
 				if (item1.type ~= item2.type) then
 					return (item1.type == "debuff") and true or false;
 				end
@@ -810,76 +824,6 @@ do
 						counter = counter + 1;
 					end
 				end
-			end
-		end
-	end
-	
-end
-
---------------------------------------------------------------------------------------------------
------ Events
---------------------------------------------------------------------------------------------------
-do
-	
-	function PLAYER_ENTERING_WORLD()
-		if (OnStartup) then
-			OnStartup();
-		end
-		for nameplate in pairs(nameplateAuras) do
-			wipe(nameplateAuras[nameplate]);
-		end
-	end
-
-	function NAME_PLATE_UNIT_ADDED(...)
-		local unitID = ...;
-		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		NameplatesVisible[nameplate] = true;
-		if (not Nameplates[nameplate]) then
-			nameplate.NAurasIcons = {};
-			nameplate.NAurasIconsCount = 0;
-			Nameplates[nameplate] = true;
-			nameplateAuras[nameplate] = {};
-		end
-		ProcessAurasForNameplate(nameplate, unitID);
-		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:Show();
-		end
-	end
-	
-	function NAME_PLATE_UNIT_REMOVED(...)
-		local unitID = ...;
-		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		NameplatesVisible[nameplate] = nil;
-		if (nameplateAuras[nameplate] ~= nil) then
-			wipe(nameplateAuras[nameplate]);
-		end
-		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:Hide();
-		end
-	end
-	
-	function UNIT_AURA(...)
-		local unitID = ...;
-		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
-			ProcessAurasForNameplate(nameplate, unitID);
-			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-				nameplate.NAurasFrame:Show();
-			end
-		end
-	end
-	
-	function CHAT_MSG_ADDON(...)
-		local prefix, message, channel, sender = ...;
-		if (prefix == "NAuras_prefix") then
-			if (string_find(message, "reporting")) then
-				local _, toWhom = strsplit(":", message, 2);
-				local myName = UnitName("player").."-"..string_gsub(GetRealmName(), " ", "");
-				if (toWhom == myName and sender ~= myName) then
-					Print(sender.." is using NAuras");
-				end
-			elseif (string_find(message, "requesting")) then
-				SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
 			end
 		end
 	end
@@ -1302,7 +1246,7 @@ do
 		
 		GUIFrame.Categories = {};
 		GUIFrame.OnDBChangedHandlers = {};
-		table.insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 		
 		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"] };
 		for index, value in pairs(categories) do
@@ -1394,8 +1338,8 @@ do
 			end);
 			sliderIconSize.lowtext:SetText("1");
 			sliderIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
-			table.insert(GUIFrame.Categories[index], sliderIconSize);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize)); end);
+			table_insert(GUIFrame.Categories[index], sliderIconSize);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize)); end);
 		
 		end
 		
@@ -1433,8 +1377,8 @@ do
 			end);
 			sliderIconSpacing.lowtext:SetText(tostring(minValue));
 			sliderIconSpacing.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderIconSpacing);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(db.IconSpacing)); end);
+			table_insert(GUIFrame.Categories[index], sliderIconSpacing);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(db.IconSpacing)); end);
 		
 		end
 		
@@ -1472,8 +1416,8 @@ do
 			end);
 			sliderIconXOffset.lowtext:SetText("-200");
 			sliderIconXOffset.hightext:SetText("200");
-			table.insert(GUIFrame.Categories[index], sliderIconXOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(db.IconXOffset)); end);
+			table_insert(GUIFrame.Categories[index], sliderIconXOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(db.IconXOffset)); end);
 		
 		end
 	
@@ -1511,8 +1455,8 @@ do
 			end);
 			sliderIconYOffset.lowtext:SetText("-200");
 			sliderIconYOffset.hightext:SetText("200");
-			table.insert(GUIFrame.Categories[index], sliderIconYOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(db.IconYOffset)); end);
+			table_insert(GUIFrame.Categories[index], sliderIconYOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(db.IconYOffset)); end);
 		
 		end
 		
@@ -1522,8 +1466,8 @@ do
 			PopupReloadUI();
 		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
-		table.insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
-		table.insert(GUIFrame.OnDBChangedHandlers, function()
+		table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxFullOpacityAlways:GetChecked() ~= db.FullOpacityAlways) then
 				PopupReloadUI();
 			end
@@ -1535,8 +1479,8 @@ do
 			PopupReloadUI();
 		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
-		table.insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
-		table.insert(GUIFrame.OnDBChangedHandlers, function()
+		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxHideBlizzardFrames:GetChecked() ~= db.HideBlizzardFrames) then
 				PopupReloadUI();
 			end
@@ -1547,8 +1491,8 @@ do
 			db.DisplayTenthsOfSeconds = this:GetChecked();
 		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
-		table.insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
-		table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds); end);
+		table_insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds); end);
 			
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
@@ -1557,8 +1501,8 @@ do
 				db.ShowAurasOnPlayerNameplate = this:GetChecked();
 			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
-			table.insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
+			table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
 		
 		end
 		
@@ -1570,8 +1514,8 @@ do
 				UpdateAllNameplates(true);
 			end, "NAuras.GUI.Cat1.CheckBoxShowAboveFriendlyUnits");
 			checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits);
-			table.insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits); end);
+			table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits); end);
 		
 		end
 		
@@ -1583,8 +1527,8 @@ do
 				UpdateAllNameplates(false);
 			end, "NAuras.GUI.Cat1.CheckBoxShowMyAuras");
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
-			table.insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
+			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
 		end
 			
@@ -1613,8 +1557,8 @@ do
 			dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString("NAuras.GUI.Cat1.DropdownTimerStyle.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText(L["Timer style:"]);
-			table.insert(GUIFrame.Categories[index], dropdownTimerStyle);
-			table.insert(GUIFrame.OnDBChangedHandlers, function()
+			table_insert(GUIFrame.Categories[index], dropdownTimerStyle);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]) then
 					PopupReloadUI();
 				end
@@ -1650,8 +1594,8 @@ do
 			dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString("NAuras.GUI.Cat1.DropdownIconAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
-			table.insert(GUIFrame.Categories[index], dropdownIconAnchor);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[db.IconAnchor]); end);
+			table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[db.IconAnchor]); end);
 		
 		end
 		
@@ -1682,8 +1626,8 @@ do
 			dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString("NAuras.GUI.Cat1.DropdownFrameAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
-			table.insert(GUIFrame.Categories[index], dropdownFrameAnchor);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[db.FrameAnchor]); end);
+			table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[db.FrameAnchor]); end);
 		
 		end
 		
@@ -1712,8 +1656,8 @@ do
 			dropdownSortMode.text = dropdownSortMode:CreateFontString("NAuras.GUI.Cat1.DropdownSortMode.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownSortMode.text:SetPoint("LEFT", 20, 15);
 			dropdownSortMode.text:SetText(L["Sort mode:"]);
-			table.insert(GUIFrame.Categories[index], dropdownSortMode);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(CONST_SORT_MODES_LOCALIZATION[db.SortMode]); end);
+			table_insert(GUIFrame.Categories[index], dropdownSortMode);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(CONST_SORT_MODES_LOCALIZATION[db.SortMode]); end);
 			
 		end
 		
@@ -1728,7 +1672,7 @@ do
 			InterfaceOptionsFrame_OpenToCategory(ProfileOptionsFrame);
 			GUIFrame:Hide();
 		end);
-		table.insert(GUIFrame.Categories[index], button);
+		table_insert(GUIFrame.Categories[index], button);
 	end
 	
 	function GUICategory_Fonts(index, value)
@@ -1772,8 +1716,8 @@ do
 			dropdownFont.text = dropdownFont:CreateFontString("NAuras.GUI.Fonts.DropdownFont.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownFont.text:SetPoint("LEFT", 20, 15);
 			dropdownFont.text:SetText(L["Font"]);
-			table.insert(GUIFrame.Categories[index], dropdownFont);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFont:GetName() .. "Text"]:SetText(db.Font); end);
+			table_insert(GUIFrame.Categories[index], dropdownFont);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFont:GetName() .. "Text"]:SetText(db.Font); end);
 			
 		end
 		
@@ -1813,7 +1757,7 @@ do
 			end);
 			sliderTimerFontScale.lowtext:SetText(tostring(minValue));
 			sliderTimerFontScale.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontScale.editbox:SetText(tostring(db.FontScale)); sliderTimerFontScale.slider:SetValue(db.FontScale); end);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontScale.editbox:SetText(tostring(db.FontScale)); sliderTimerFontScale.slider:SetValue(db.FontScale); end);
 		
 		end
 		
@@ -1853,7 +1797,7 @@ do
 			end);
 			sliderTimerFontSize.lowtext:SetText(tostring(minValue));
 			sliderTimerFontSize.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize)); sliderTimerFontSize.slider:SetValue(db.TimerTextSize); end);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize)); sliderTimerFontSize.slider:SetValue(db.TimerTextSize); end);
 		
 		end
 		
@@ -1873,8 +1817,8 @@ icon size]=] ], function(this)
 				end
 			end, "NAuras.GUI.TimerText.CheckBoxUseRelativeFontSize");
 			checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
-			table.insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
-			table.insert(GUIFrame.OnDBChangedHandlers, function()
+			table_insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
 			end);
 			checkBoxUseRelativeFontSize:SetScript("OnShow", function(self)
@@ -1918,8 +1862,8 @@ icon size]=] ], function(this)
 			dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
-			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[db.TimerTextAnchor]); end);
+			table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[db.TimerTextAnchor]); end);
 		
 		end
 		
@@ -1948,8 +1892,8 @@ icon size]=] ], function(this)
 			dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
-			table.insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[db.TimerTextAnchorIcon]); end);
+			table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[db.TimerTextAnchorIcon]); end);
 		
 		end
 				
@@ -1989,8 +1933,8 @@ icon size]=] ], function(this)
 			end);
 			sliderTimerTextXOffset.lowtext:SetText(tostring(minValue));
 			sliderTimerTextXOffset.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderTimerTextXOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextXOffset.editbox:SetText(tostring(db.TimerTextXOffset)); sliderTimerTextXOffset.slider:SetValue(db.TimerTextXOffset); end);
+			table_insert(GUIFrame.Categories[index], sliderTimerTextXOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextXOffset.editbox:SetText(tostring(db.TimerTextXOffset)); sliderTimerTextXOffset.slider:SetValue(db.TimerTextXOffset); end);
 		
 		end
 		
@@ -2030,8 +1974,8 @@ icon size]=] ], function(this)
 			end);
 			sliderTimerTextYOffset.lowtext:SetText(tostring(minValue));
 			sliderTimerTextYOffset.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderTimerTextYOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextYOffset.editbox:SetText(tostring(db.TimerTextYOffset)); sliderTimerTextYOffset.slider:SetValue(db.TimerTextYOffset); end);
+			table_insert(GUIFrame.Categories[index], sliderTimerTextYOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextYOffset.editbox:SetText(tostring(db.TimerTextYOffset)); sliderTimerTextYOffset.slider:SetValue(db.TimerTextYOffset); end);
 		
 		end
 		
@@ -2058,8 +2002,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.TimerTextSoonToExpireColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor)); end);
 			
 		end
 		
@@ -2086,8 +2030,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.TimerTextUnderMinuteColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor)); end);
 		
 		end
 		
@@ -2114,8 +2058,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.TimerTextLongerColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerTimerTextMore);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerTimerTextMore);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor)); end);
 		
 		end
 
@@ -2161,8 +2105,8 @@ icon size]=] ], function(this)
 			dropdownStacksFont.text = dropdownStacksFont:CreateFontString("NAuras.GUI.Fonts.DropdownStacksFont.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksFont.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksFont.text:SetText(L["Font"]);
-			table.insert(GUIFrame.Categories[index], dropdownStacksFont);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont); end);
+			table_insert(GUIFrame.Categories[index], dropdownStacksFont);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont); end);
 			
 		end
 		
@@ -2202,8 +2146,8 @@ icon size]=] ], function(this)
 			end);
 			sliderStacksFontScale.lowtext:SetText(tostring(minValue));
 			sliderStacksFontScale.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderStacksFontScale);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale)); sliderStacksFontScale.slider:SetValue(db.StacksFontScale); end);
+			table_insert(GUIFrame.Categories[index], sliderStacksFontScale);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale)); sliderStacksFontScale.slider:SetValue(db.StacksFontScale); end);
 		
 		end
 		
@@ -2232,8 +2176,8 @@ icon size]=] ], function(this)
 			dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchor.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksAnchor.text:SetText(L["Anchor point"]);
-			table.insert(GUIFrame.Categories[index], dropdownStacksAnchor);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[db.StacksTextAnchor]); end);
+			table_insert(GUIFrame.Categories[index], dropdownStacksAnchor);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[db.StacksTextAnchor]); end);
 		
 		end
 		
@@ -2262,8 +2206,8 @@ icon size]=] ], function(this)
 			dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
-			table.insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[db.StacksTextAnchorIcon]); end);
+			table_insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[db.StacksTextAnchorIcon]); end);
 		
 		end
 		
@@ -2303,8 +2247,8 @@ icon size]=] ], function(this)
 			end);
 			sliderStacksTextXOffset.lowtext:SetText(tostring(minValue));
 			sliderStacksTextXOffset.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderStacksTextXOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextXOffset.editbox:SetText(tostring(db.StacksTextXOffset)); sliderStacksTextXOffset.slider:SetValue(db.StacksTextXOffset); end);
+			table_insert(GUIFrame.Categories[index], sliderStacksTextXOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextXOffset.editbox:SetText(tostring(db.StacksTextXOffset)); sliderStacksTextXOffset.slider:SetValue(db.StacksTextXOffset); end);
 		
 		end
 		
@@ -2344,8 +2288,8 @@ icon size]=] ], function(this)
 			end);
 			sliderStacksTextYOffset.lowtext:SetText(tostring(minValue));
 			sliderStacksTextYOffset.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderStacksTextYOffset);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextYOffset.editbox:SetText(tostring(db.StacksTextYOffset)); sliderStacksTextYOffset.slider:SetValue(db.StacksTextYOffset); end);
+			table_insert(GUIFrame.Categories[index], sliderStacksTextYOffset);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextYOffset.editbox:SetText(tostring(db.StacksTextYOffset)); sliderStacksTextYOffset.slider:SetValue(db.StacksTextYOffset); end);
 		
 		end
 		
@@ -2379,8 +2323,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.StacksTextColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerStacksTextColor);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerStacksTextColor);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor)); end);
 		
 		end
 		
@@ -2426,8 +2370,8 @@ icon size]=] ], function(this)
 			end);
 			sliderBorderThickness.lowtext:SetText(tostring(minValue));
 			sliderBorderThickness.hightext:SetText(tostring(maxValue));
-			table.insert(GUIFrame.Categories[index], sliderBorderThickness);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness)); sliderBorderThickness.slider:SetValue(db.BorderThickness); end);
+			table_insert(GUIFrame.Categories[index], sliderBorderThickness);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness)); sliderBorderThickness.slider:SetValue(db.BorderThickness); end);
 			
 		end
 		
@@ -2459,8 +2403,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.BuffBordersColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], checkBoxBuffBorder);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxBuffBorder:SetChecked(db.ShowBuffBorders); checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor)); end);
+			table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxBuffBorder:SetChecked(db.ShowBuffBorders); checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor)); end);
 			
 		end
 		
@@ -2481,7 +2425,7 @@ icon size]=] ], function(this)
 			debuffArea:SetPoint("TOPLEFT", 150, -120);
 			debuffArea:SetPoint("LEFT", 150, 25);
 			debuffArea:SetWidth(360);
-			table.insert(GUIFrame.Categories[index], debuffArea);
+			table_insert(GUIFrame.Categories[index], debuffArea);
 		
 		end
 		
@@ -2495,8 +2439,8 @@ icon size]=] ], function(this)
 			checkBoxDebuffBorder:SetParent(debuffArea);
 			checkBoxDebuffBorder:SetPoint("TOPLEFT", 15, -15);
 			checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders);
-			table.insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders); end);
+			table_insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders); end);
 			
 		end
 		
@@ -2524,8 +2468,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersMagicColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor)); end);
 		
 		end
 		
@@ -2553,8 +2497,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersCurseColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor)); end);
 		
 		end
 		
@@ -2582,8 +2526,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersDiseaseColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor)); end);
 		
 		end
 		
@@ -2611,8 +2555,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersPoisonColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor)); end);
 		
 		end
 		
@@ -2640,8 +2584,8 @@ icon size]=] ], function(this)
 				ColorPickerFrame.previousValues = { unpack(db.DebuffBordersOtherColor) };
 				ColorPickerFrame:Show();
 			end);
-			table.insert(GUIFrame.Categories[index], colorPickerDebuffOther);
-			table.insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor)); end);
+			table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor)); end);
 		
 		end
 		
@@ -2669,7 +2613,7 @@ icon size]=] ], function(this)
 			spellArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -85);
 			spellArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 0);
 			spellArea:SetWidth(360);
-			table.insert(controls, spellArea);
+			table_insert(controls, spellArea);
 		
 		end
 		
@@ -2696,7 +2640,7 @@ icon size]=] ], function(this)
 			local text = editboxAddSpell:CreateFontString("NAuras.GUI.Cat4.EditboxAddSpell.Label", "ARTWORK", "GameFontNormalSmall");
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText(L["Add new spell: "]);
-			table.insert(GUIFrame.Categories[index], editboxAddSpell);
+			table_insert(GUIFrame.Categories[index], editboxAddSpell);
 			
 			buttonAddSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonAddSpell", GUIFrame, L["Add spell"]);
 			buttonAddSpell:SetWidth(110);
@@ -2708,15 +2652,15 @@ icon size]=] ], function(this)
 					msg(format(L[ [=[You should enter spell name instead of spell id.
 Use "%s" option if you want to track spell with specific id]=] ], L["Check spell ID"]));
 				else
-					local spellID = SpellIDsCache[text];
+					local spellID = SpellIDByName[text];
 					if (spellID ~= nil) then
-						local spellName = SpellNamesCache[spellID];
+						local spellName = SpellNameByID[spellID];
 						if (spellName == nil) then
 							Print(format(L["Unknown spell: %s"], text));
 						else
 							local alreadyExist = false;
 							for spellIDCustom in pairs(db.CustomSpells2) do
-								local spellNameCustom = SpellNamesCache[spellIDCustom];
+								local spellNameCustom = SpellNameByID[spellIDCustom];
 								if (spellNameCustom == spellName) then
 									alreadyExist = true;
 								end
@@ -2738,7 +2682,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 					end
 				end
 			end);
-			table.insert(GUIFrame.Categories[index], buttonAddSpell);
+			table_insert(GUIFrame.Categories[index], buttonAddSpell);
 			
 		end
 	
@@ -2777,7 +2721,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			buttonDeleteAllSpells:SetScript("OnLeave", function(self, ...)
 				GameTooltip:Hide();
 			end)
-			table.insert(GUIFrame.Categories[index], buttonDeleteAllSpells);
+			table_insert(GUIFrame.Categories[index], buttonDeleteAllSpells);
 		
 		end
 	
@@ -2793,17 +2737,17 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			selectSpell:SetScript("OnClick", function()
 				local t = { };
 				for _, spellInfo in pairs(db.CustomSpells2) do
-					table.insert(t, {
-						icon = TextureCache[spellInfo.spellID],
-						text = SpellNamesCache[spellInfo.spellID],
+					table_insert(t, {
+						icon = SpellTextureByID[spellInfo.spellID],
+						text = SpellNameByID[spellInfo.spellID],
 						info = spellInfo,
 						func = function(self)
 							for _, control in pairs(controls) do
 								control:Show();
 							end
 							selectedSpell = self.info.spellID;
-							print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize, db.CustomSpells2[selectedSpell].auraType, db.CustomSpells2[selectedSpell].checkSpellID,
-								db.CustomSpells2[selectedSpell].showOnFriends, db.CustomSpells2[selectedSpell].showOnEnemies);
+							--print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize, db.CustomSpells2[selectedSpell].auraType, db.CustomSpells2[selectedSpell].checkSpellID,
+							--	db.CustomSpells2[selectedSpell].showOnFriends, db.CustomSpells2[selectedSpell].showOnEnemies);
 							selectSpell.Text:SetText(self.text);
 							_G[dropdownSpellShowMode:GetName().."Text"]:SetText(SPELL_SHOW_MODES_LOCALIZATION[db.CustomSpells2[selectedSpell].enabledState]);
 							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
@@ -2815,7 +2759,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 						end,
 					});
 				end
-				table.sort(t, function(item1, item2) return SpellNamesCache[item1.info.spellID] < SpellNamesCache[item2.info.spellID] end);
+				table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
 				GUIFrame.SpellSelector:Show();
 				GUIFrame.SpellSelector.SetList(t);
 				GUIFrame.SpellSelector:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -90);
@@ -2830,7 +2774,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				selectSpell.Text:SetText(L["Click to select spell"]);
 				GUIFrame.SpellSelector:Hide();
 			end);
-			table.insert(GUIFrame.Categories[index], selectSpell);
+			table_insert(GUIFrame.Categories[index], selectSpell);
 			
 		end
 		
@@ -2859,7 +2803,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				end
 			end
 			_G[dropdownSpellShowMode:GetName().."Text"]:SetText("");
-			table.insert(controls, dropdownSpellShowMode);
+			table_insert(controls, dropdownSpellShowMode);
 			
 		end
 		
@@ -2888,7 +2832,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				end
 			end
 			_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
-			table.insert(controls, dropdownSpellShowType);
+			table_insert(controls, dropdownSpellShowType);
 		
 		end
 		
@@ -2934,7 +2878,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			end);
 			sliderSpellIconSize.lowtext:SetText("1");
 			sliderSpellIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
-			table.insert(controls, sliderSpellIconSize);
+			table_insert(controls, sliderSpellIconSize);
 			
 		end
 		
@@ -2971,7 +2915,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				end
 				self:ClearFocus();
 			end);
-			table.insert(controls, editboxSpellID);
+			table_insert(controls, editboxSpellID);
 		
 		end
 		
@@ -2985,14 +2929,14 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			buttonDeleteSpell:SetPoint("BOTTOMRIGHT", spellArea, "BOTTOMRIGHT", -20, 10);
 			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 				db.CustomSpells2[selectedSpell] = nil;
-				Spells[SpellNamesCache[selectedSpell]] = nil;
+				Spells[SpellNameByID[selectedSpell]] = nil;
 				UpdateSpellCachesFromDB(selectedSpell);
 				selectSpell.Text:SetText(L["Click to select spell"]);
 				for _, control in pairs(controls) do
 					control:Hide();
 				end
 			end);
-			table.insert(controls, buttonDeleteSpell);
+			table_insert(controls, buttonDeleteSpell);
 		
 		end
 		
@@ -3005,7 +2949,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			end, "NAuras.GUI.Spells.CheckboxShowOnFriends");
 			checkboxShowOnFriends:SetParent(spellArea);
 			checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -180);
-			table.insert(controls, checkboxShowOnFriends);
+			table_insert(controls, checkboxShowOnFriends);
 		end
 		
 		-- // checkboxShowOnEnemies
@@ -3017,7 +2961,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			end, "NAuras.GUI.Spells.CheckboxShowOnEnemies");
 			checkboxShowOnEnemies:SetParent(spellArea);
 			checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -200);
-			table.insert(controls, checkboxShowOnEnemies);
+			table_insert(controls, checkboxShowOnEnemies);
 		end
 		
 	end
@@ -3075,19 +3019,70 @@ end
 --------------------------------------------------------------------------------------------------
 ----- Frame for events
 --------------------------------------------------------------------------------------------------
-EventFrame = CreateFrame("Frame");
-EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
-EventFrame:RegisterEvent("CHAT_MSG_ADDON");
-EventFrame:SetScript("OnEvent", function(self, event, ...)
-	if (event == "UNIT_AURA") then
-		UNIT_AURA(...);
-	elseif (event == "NAME_PLATE_UNIT_ADDED") then
-		NAME_PLATE_UNIT_ADDED(...);
-	elseif (event == "NAME_PLATE_UNIT_REMOVED") then
-		NAME_PLATE_UNIT_REMOVED(...);
-	elseif (event == "PLAYER_ENTERING_WORLD") then
-		PLAYER_ENTERING_WORLD();
-	elseif (event == "CHAT_MSG_ADDON") then
-		CHAT_MSG_ADDON(...);
+do
+	
+	EventFrame = CreateFrame("Frame");
+	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
+	EventFrame:RegisterEvent("CHAT_MSG_ADDON");
+	EventFrame:SetScript("OnEvent", function(self, event, ...) self[event](...); end);
+	
+	function EventFrame.PLAYER_ENTERING_WORLD()
+		if (OnStartup) then
+			OnStartup();
+		end
+		for nameplate in pairs(nameplateAuras) do
+			wipe(nameplateAuras[nameplate]);
+		end
 	end
-end);
+
+	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
+		NameplatesVisible[nameplate] = true;
+		if (not Nameplates[nameplate]) then
+			nameplate.NAurasIcons = {};
+			nameplate.NAurasIconsCount = 0;
+			Nameplates[nameplate] = true;
+			nameplateAuras[nameplate] = {};
+		end
+		ProcessAurasForNameplate(nameplate, unitID);
+		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
+			nameplate.NAurasFrame:Show();
+		end
+	end
+	
+	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
+		NameplatesVisible[nameplate] = nil;
+		if (nameplateAuras[nameplate] ~= nil) then
+			wipe(nameplateAuras[nameplate]);
+		end
+		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
+			nameplate.NAurasFrame:Hide();
+		end
+	end
+	
+	function EventFrame.UNIT_AURA(unitID)
+		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
+		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
+			ProcessAurasForNameplate(nameplate, unitID);
+			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
+				nameplate.NAurasFrame:Show();
+			end
+		end
+	end
+	
+	function EventFrame.CHAT_MSG_ADDON(prefix, message, channel, sender)
+		if (prefix == "NAuras_prefix") then
+			if (string_find(message, "reporting")) then
+				local _, toWhom = strsplit(":", message, 2);
+				local myName = UnitName("player").."-"..string_gsub(GetRealmName(), " ", "");
+				if (toWhom == myName) then
+					Print(sender.." is using NAuras");
+				end
+			elseif (string_find(message, "requesting")) then
+				SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
+			end
+		end
+	end
+	
+end

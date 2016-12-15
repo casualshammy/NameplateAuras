@@ -91,4 +91,6 @@ L["BOTTOMLEFT"] = "Bottom left";
 L["Buff"] = true;
 L["Debuff"] = true;
 L["Any"] = true;
-		
+L["options:aura-options:allow-multiple-instances"] = "Allow multiple instances of this aura";
+L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.
+Otherwise you will see only one instance of this aura (the longest one)]=];

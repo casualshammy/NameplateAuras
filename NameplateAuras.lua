@@ -8,9 +8,9 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove;
 
 NameplateAurasDB = {};
 local SpellTextureByID = setmetatable({}, {
@@ -39,18 +39,20 @@ local SpellIDByName = setmetatable({}, {
 		return nil;
 	end
 });
-local nameplateAuras 		= { };
-local Spells 				= { };
-local SpellShowModesCache 	= { }; -- // key is a spell name
-local SpellAuraTypeCache 	= { }; -- // key is a spell name
-local SpellIconSizesCache 	= { }; -- // key is a spell name
-local SpellCheckIDCache 	= { }; -- // key is a spell name
-local SpellShowOnFriends	= { }; -- // key is a spell name
-local SpellShowOnEnemies	= { }; -- // key is a spell name
-local ElapsedTimer 			= 0;
-local Nameplates 			= { };
-local NameplatesVisible 	= { };
-local LocalPlayerFullName 	= UnitName("player").." - "..GetRealmName();
+local AurasPerNameplate 			= { };
+local SortedAurasPerNameplate 		= { };
+local Spells 						= { };
+local SpellShowModesCache 			= { }; -- // key is a spell name
+local SpellAuraTypeCache 			= { }; -- // key is a spell name
+local SpellIconSizesCache 			= { }; -- // key is a spell name
+local SpellCheckIDCache 			= { }; -- // key is a spell name
+local SpellShowOnFriends			= { }; -- // key is a spell name
+local SpellShowOnEnemies			= { }; -- // key is a spell name
+local SpellAllowMultipleInstances	= { }; -- // key is a spell name
+local ElapsedTimer 					= 0;
+local Nameplates 					= { };
+local NameplatesVisible 			= { };
+local LocalPlayerFullName 			= UnitName("player").." - "..GetRealmName();
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
 
 -- // consts: you should not change existing values
@@ -101,7 +103,7 @@ local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNamepla
 local OnUpdate;
 --local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA, CHAT_MSG_ADDON;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
-local Print, deepcopy, msg;
+local Print, deepcopy, msg, table_contains_value;
 
 --------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -184,6 +186,9 @@ do
 				end
 				if (spellInfo.showOnEnemies == nil) then
 					spellInfo.showOnEnemies = true;
+				end
+				if (spellInfo.allowMultipleInstances == nil) then
+					spellInfo.allowMultipleInstances = false;
 				end
 				if (spellInfo.spellID == nil) then
 					db.CustomSpells2[spellID].spellID = spellID;
@@ -335,19 +340,21 @@ do
 	function UpdateSpellCachesFromDB(spellID)
 		local spellName = SpellNameByID[spellID];
 		if (db.CustomSpells2[spellID] ~= nil) then
-			SpellShowModesCache[spellName] = 	db.CustomSpells2[spellID].enabledState;
-			SpellAuraTypeCache[spellName] = 	db.CustomSpells2[spellID].auraType;
-			SpellIconSizesCache[spellName] = 	db.CustomSpells2[spellID].iconSize;
-			SpellCheckIDCache[spellName] = 		db.CustomSpells2[spellID].checkSpellID;
-			SpellShowOnFriends[spellName] = 	db.CustomSpells2[spellID].showOnFriends;
-			SpellShowOnEnemies[spellName] = 	db.CustomSpells2[spellID].showOnEnemies;
+			SpellShowModesCache[spellName] = 			db.CustomSpells2[spellID].enabledState;
+			SpellAuraTypeCache[spellName] = 			db.CustomSpells2[spellID].auraType;
+			SpellIconSizesCache[spellName] = 			db.CustomSpells2[spellID].iconSize;
+			SpellCheckIDCache[spellName] = 				db.CustomSpells2[spellID].checkSpellID;
+			SpellShowOnFriends[spellName] = 			db.CustomSpells2[spellID].showOnFriends;
+			SpellShowOnEnemies[spellName] = 			db.CustomSpells2[spellID].showOnEnemies;
+			SpellAllowMultipleInstances[spellName] =	db.CustomSpells2[spellID].allowMultipleInstances;
 		else
-			SpellShowModesCache[spellName] = 	nil;
-			SpellAuraTypeCache[spellName] = 	nil;
-			SpellIconSizesCache[spellName] = 	nil;
-			SpellCheckIDCache[spellName] = 		nil;
-			SpellShowOnFriends[spellName] = 	nil;
-			SpellShowOnEnemies[spellName] = 	nil;
+			SpellShowModesCache[spellName] = 			nil;
+			SpellAuraTypeCache[spellName] = 			nil;
+			SpellIconSizesCache[spellName] = 			nil;
+			SpellCheckIDCache[spellName] = 				nil;
+			SpellShowOnFriends[spellName] = 			nil;
+			SpellShowOnEnemies[spellName] = 			nil;
+			SpellAllowMultipleInstances[spellName] =	nil;
 		end
 	end
 		
@@ -467,28 +474,40 @@ do
 	end
 	
 	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack)
-		if (nameplateAuras[frame][auraName] == nil or nameplateAuras[frame][auraName].expires < auraExpires or nameplateAuras[frame][auraName].stacks ~= auraStack) then
+		if (SpellAllowMultipleInstances[auraName]) then
+			return true;
+		else
+			for index, value in pairs(AurasPerNameplate[frame]) do
+				if (value.spellName == auraName) then
+					if (value.expires < auraExpires or value.stacks ~= auraStack) then
+						AurasPerNameplate[frame][index] = nil;
+						return true;
+					else
+						return false;
+					end
+				end
+			end
 			return true;
 		end
-		return false;
+		error("Fatal error in <ProcessAurasForNameplate_MultipleAuraInstances>");
 	end
 	
 	-- // todo: delete-start
-	local function aaaaa()
-		local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
-		if (calls > 0) then
-			print("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: " .. string_format("%.5f", (usage/calls)) .. ", total calls: " .. calls);
-		else
-			print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
-		end
-		C_Timer.After(300, aaaaa);
-	end
+	-- local function aaaaa()
+		-- local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
+		-- if (calls > 0) then
+			-- print(format("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: %.5f, total calls: %s", (usage/calls), calls));
+		-- else
+			-- print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
+		-- end
+		-- C_Timer.After(300, aaaaa);
+	-- end
 	
-	C_Timer.After(60, aaaaa);
+	-- C_Timer.After(60, aaaaa);
 	-- // todo: delete-end
 	
 	function ProcessAurasForNameplate(frame, unitID)
-		wipe(nameplateAuras[frame]);
+		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
 		if ((LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
@@ -496,13 +515,14 @@ do
 				if (buffName ~= nil) then
 					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack)) then
-							nameplateAuras[frame][buffName] = {
+							table_insert(AurasPerNameplate[frame], {
 								["duration"] = buffDuration ~= 0 and buffDuration or 4000000000,
 								["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
 								["stacks"] = buffStack,
 								["spellID"] = buffSpellID,
-								["type"] = "buff"
-							};
+								["type"] = "buff",
+								["spellName"] = buffName
+							});
 						end
 					end
 				end
@@ -511,14 +531,15 @@ do
 					--print("ProcessAurasForNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
-							nameplateAuras[frame][debuffName] = {
+							table_insert(AurasPerNameplate[frame], {
 								["duration"] = debuffDuration ~= 0 and debuffDuration or 4000000000,
 								["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
 								["stacks"] = debuffStack,
 								["spellID"] = debuffSpellID,
 								["type"] = "debuff",
 								["dispelType"] = debuffDispelType,
-							};
+								["spellName"] = debuffName
+							});
 						end
 					end
 				end
@@ -534,13 +555,13 @@ do
 		local counter = 1;
 		local totalWidth = 0;
 		local iconResized = false;
-		if (nameplateAuras[frame]) then
+		if (AurasPerNameplate[frame]) then
 			local currentTime = GetTime();
-			if (nameplateAuras[frame].sortedAuras ~= nil) then
-				wipe(nameplateAuras[frame].sortedAuras);
+			if (SortedAurasPerNameplate[frame] ~= nil) then
+				wipe(SortedAurasPerNameplate[frame]);
 			end
-			nameplateAuras[frame].sortedAuras = SortAurasForNameplate(nameplateAuras[frame]);
-			for _, spellInfo in pairs(nameplateAuras[frame].sortedAuras) do
+			SortedAurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
+			for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
 				local spellName = SpellNameByID[spellInfo.spellID];
 				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
@@ -718,7 +739,7 @@ do
 	
 	function Nameplates_OnSortModeChanged()
 		for nameplate in pairs(NameplatesVisible) do
-			if (nameplate.NAurasFrame and nameplateAuras[nameplate] ~= nil) then
+			if (nameplate.NAurasFrame and AurasPerNameplate[nameplate] ~= nil) then
 				UpdateNameplate(nameplate);
 			end
 		end
@@ -812,8 +833,8 @@ do
 		local currentTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
 			local counter = 1;
-			if (nameplateAuras[frame]) then
-				for _, spellInfo in pairs(nameplateAuras[frame].sortedAuras) do
+			if (AurasPerNameplate[frame]) then
+				for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
 					local duration = spellInfo.duration;
 					local last = spellInfo.expires - currentTime;
 					if (last > 0) then
@@ -835,6 +856,17 @@ end
 --------------------------------------------------------------------------------------------------
 do
 
+	local function SetTooltip(frame, text)
+		frame:HookScript("OnEnter", function(self, ...)
+			GameTooltip:SetOwner(self, "ANCHOR_CURSOR");
+			GameTooltip:SetText(text);
+			GameTooltip:Show();
+		end)
+		frame:HookScript("OnLeave", function(self, ...)
+			GameTooltip:Hide();
+		end)
+	end
+
 	local function PopupReloadUI()
 		if (StaticPopupDialogs["NAURAS_MSG_RELOAD"] == nil) then
 			StaticPopupDialogs["NAURAS_MSG_RELOAD"] = {
@@ -850,19 +882,34 @@ do
 		StaticPopup_Show("NAURAS_MSG_RELOAD");
 	end
 
-	local function GUICreateCheckBox(x, y, text, func, publicName)
-		local checkBox = CreateFrame("CheckButton", publicName, GUIFrame);
+	local function GUICreateCheckBoxEx(publicName, text, func)
+		local checkBox = CreateFrame("CheckButton", publicName);
 		checkBox:SetHeight(20);
 		checkBox:SetWidth(20);
-		checkBox:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", x, y);
 		checkBox:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up");
 		checkBox:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down");
 		checkBox:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight");
 		checkBox:SetDisabledCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check-Disabled");
 		checkBox:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check");
-		checkBox.Text = checkBox:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		checkBox.Text:SetPoint("LEFT", 20, 0);
-		checkBox.Text:SetText(text);
+		checkBox.textFrame = CreateFrame("frame", nil, checkBox);
+		checkBox.textFrame:SetPoint("LEFT", checkBox, "RIGHT", 0, 0);
+		checkBox.textFrame:EnableMouse(true);
+		checkBox.textFrame:HookScript("OnEnter", function(self, ...) checkBox:LockHighlight(); end);
+		checkBox.textFrame:HookScript("OnLeave", function(self, ...) checkBox:UnlockHighlight(); end);
+		checkBox.textFrame:Show();
+		checkBox.textFrame:HookScript("OnMouseDown", function(self) checkBox:SetButtonState("PUSHED"); end);
+		checkBox.textFrame:HookScript("OnMouseUp", function(self) checkBox:SetButtonState("NORMAL"); checkBox:Click(); end);
+		checkBox.Text = checkBox.textFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+		checkBox.Text:SetPoint("LEFT", 0, 0);
+		checkBox.SetText = function(self, _text)
+			checkBox.Text:SetText(_text);
+			checkBox.textFrame:SetWidth(checkBox.Text:GetStringWidth() + checkBox:GetWidth());
+			checkBox.textFrame:SetHeight(max(checkBox.Text:GetStringHeight(), checkBox:GetHeight()));
+		end;
+		local handlersToBeCopied = { "OnEnter", "OnLeave" };
+		hooksecurefunc(checkBox, "HookScript", function(self, script, proc) if (table_contains_value(handlersToBeCopied, script)) then checkBox.textFrame:HookScript(script, proc); end end);
+		hooksecurefunc(checkBox, "SetScript",  function(self, script, proc) if (table_contains_value(handlersToBeCopied, script)) then checkBox.textFrame:SetScript(script, proc); end end);
+		checkBox:SetText(text);
 		checkBox:EnableMouse(true);
 		checkBox:SetScript("OnClick", func);
 		checkBox:Hide();
@@ -870,14 +917,15 @@ do
 	end
 	
 	local function GUICreateCheckBoxWithColorPicker(publicName, x, y, text, checkedChangedCallback)
-		local checkBox = GUICreateCheckBox(x, y, text, checkedChangedCallback, publicName);
-		checkBox.Text:SetPoint("LEFT", 40, 0);
+		local checkBox = GUICreateCheckBoxEx(publicName, text, checkedChangedCallback);
+		
+		checkBox.textFrame:SetPoint("LEFT", checkBox, "RIGHT", 20, 0);
 		
 		checkBox.ColorButton = CreateFrame("Button", nil, checkBox);
 		checkBox.ColorButton:SetPoint("LEFT", 19, 0);
 		checkBox.ColorButton:SetWidth(20);
 		checkBox.ColorButton:SetHeight(20);
-		checkBox.ColorButton:Hide();
+		checkBox.ColorButton:Show();
 
 		checkBox.ColorButton:EnableMouse(true);
 
@@ -905,9 +953,9 @@ do
 		checkBox.ColorButton.checkers:SetPoint("CENTER", checkBox.ColorButton.colorSwatch);
 		checkBox.ColorButton.checkers:Show();
 		
-		checkBox:HookScript("OnShow", function(self) self.ColorButton:Show(); end);
-		checkBox:HookScript("OnHide", function(self) self.ColorButton:Hide(); end);
-		
+		--checkBox:HookScript("OnShow", function(self) self.ColorButton:Show(); end);
+		--checkBox:HookScript("OnHide", function(self) self.ColorButton:Hide(); end);
+				
 		return checkBox;
 	end
 	
@@ -1064,13 +1112,13 @@ do
 	
 	local function CreateSpellSelector()
 		local scrollAreaBackground = CreateFrame("Frame", "NAuras.SpellSelector", GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -60);
+		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -65);
 		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
 		scrollAreaBackground:SetBackdrop({
-			bgFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Smudge.tga",
-			edgeFile = 	"Interface\\AddOns\\NameplateAuras\\media\\Border",
-			tile = true, edgeSize = 3, tileSize = 1,
-			insets = { left = 3, right = 3, top = 3, bottom = 3 }
+			bgFile = 	"Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = 	"Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = true, edgeSize = 16, tileSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
 		});
 		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
 		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
@@ -1100,6 +1148,7 @@ do
 				button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
 				button.Icon:SetWidth(20);
 				button.Icon:SetHeight(20);
+				button.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 				button:Hide();
 				scrollAreaBackground.buttons[counter] = button;
 				--print("New button is created: " .. tostring(counter));
@@ -1123,6 +1172,16 @@ do
 					value:func();
 					scrollAreaBackground:Hide();
 				end);
+				if (value.tooltipSpellID ~= nil) then
+					button:SetScript("OnEnter", function(self, ...)
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetSpellByID(value.tooltipSpellID);
+						GameTooltip:Show();
+					end)
+					button:SetScript("OnLeave", function(self, ...)
+						GameTooltip:Hide();
+					end)
+				end
 				button:Show();
 				counter = counter + 1;
 			end
@@ -1461,11 +1520,13 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBox(160, -140, L["Always display icons at full opacity (ReloadUI is required)"], function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBoxEx("NAuras_GUI_General_CheckBoxFullOpacityAlways", L["Always display icons at full opacity (ReloadUI is required)"], function(this)
 			db.FullOpacityAlways = this:GetChecked();
 			PopupReloadUI();
-		end, "NAuras_GUI_General_CheckBoxFullOpacityAlways");
+		end);
 		checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
+		checkBoxFullOpacityAlways:SetParent(GUIFrame);
+		checkBoxFullOpacityAlways:SetPoint("TOPLEFT", 160, -140);
 		table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxFullOpacityAlways:GetChecked() ~= db.FullOpacityAlways) then
@@ -1474,11 +1535,13 @@ do
 			checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		end);
 		
-		local checkBoxHideBlizzardFrames = GUICreateCheckBox(160, -160, L["Hide Blizzard's aura frames (Reload UI is required)"], function(this)
+		local checkBoxHideBlizzardFrames = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames", L["Hide Blizzard's aura frames (Reload UI is required)"], function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 			PopupReloadUI();
-		end, "NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames");
+		end);
 		checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
+		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
+		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", 160, -160);
 		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxHideBlizzardFrames:GetChecked() ~= db.HideBlizzardFrames) then
@@ -1487,20 +1550,24 @@ do
 			checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		end);
 		
-		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBox(160, -180, L["Display tenths of seconds"], function(this)
+		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds", L["Display tenths of seconds"], function(this)
 			db.DisplayTenthsOfSeconds = this:GetChecked();
-		end, "NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds");
+		end);
 		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
+		checkBoxDisplayTenthsOfSeconds:SetParent(GUIFrame);
+		checkBoxDisplayTenthsOfSeconds:SetPoint("TOPLEFT", 160, -180);
 		table_insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds); end);
 			
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
 		
-			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBox(160, -200, L["Display auras on player's nameplate"], function(this)
+			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate", L["Display auras on player's nameplate"], function(this)
 				db.ShowAurasOnPlayerNameplate = this:GetChecked();
-			end, "NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate");
+			end);
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
+			checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
+			checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -200);
 			table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
 		
@@ -1509,11 +1576,13 @@ do
 		-- // checkBoxShowAboveFriendlyUnits
 		do
 		
-			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBox(160, -220, L["Display auras on nameplates of friendly units"], function(this)
+			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowAboveFriendlyUnits", L["Display auras on nameplates of friendly units"], function(this)
 				db.ShowAboveFriendlyUnits = this:GetChecked();
 				UpdateAllNameplates(true);
-			end, "NAuras.GUI.Cat1.CheckBoxShowAboveFriendlyUnits");
+			end);
 			checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits);
+			checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
+			checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -220);
 			table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits); end);
 		
@@ -1522,11 +1591,13 @@ do
 		-- // checkBoxShowMyAuras
 		do
 		
-			local checkBoxShowMyAuras = GUICreateCheckBox(160, -240, L["Always show auras cast by myself"], function(this)
+			local checkBoxShowMyAuras = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowMyAuras", L["Always show auras cast by myself"], function(this)
 				db.AlwaysShowMyAuras = this:GetChecked();
 				UpdateAllNameplates(false);
-			end, "NAuras.GUI.Cat1.CheckBoxShowMyAuras");
+			end);
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
+			checkBoxShowMyAuras:SetParent(GUIFrame);
+			checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -240);
 			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
@@ -1804,7 +1875,7 @@ do
 		-- // checkBoxUseRelativeFontSize
 		do
 		
-			local checkBoxUseRelativeFontSize = GUICreateCheckBox(160, -80, L[ [=[Scale font size
+			local checkBoxUseRelativeFontSize = GUICreateCheckBoxEx("NAuras.GUI.TimerText.CheckBoxUseRelativeFontSize", L[ [=[Scale font size
 according to
 icon size]=] ], function(this)
 				db.TimerTextSizeMode = this:GetChecked() and CONST_TIMER_TEXT_MODES[1] or CONST_TIMER_TEXT_MODES[2];
@@ -1815,8 +1886,10 @@ icon size]=] ], function(this)
 					sliderTimerFontScale:Hide();
 					sliderTimerFontSize:Show();
 				end
-			end, "NAuras.GUI.TimerText.CheckBoxUseRelativeFontSize");
+			end);
 			checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
+			checkBoxUseRelativeFontSize:SetParent(GUIFrame);
+			checkBoxUseRelativeFontSize:SetPoint("TOPLEFT", 160, -80);
 			table_insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
@@ -2383,6 +2456,8 @@ icon size]=] ], function(this)
 				UpdateAllNameplates();
 			end);
 			checkBoxBuffBorder:SetChecked(db.ShowBuffBorders);
+			checkBoxBuffBorder:SetParent(GUIFrame);
+			checkBoxBuffBorder:SetPoint("TOPLEFT", 160, -90);
 			checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(db.BuffBordersColor));
 			checkBoxBuffBorder.ColorButton:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2432,10 +2507,10 @@ icon size]=] ], function(this)
 		-- // checkBoxDebuffBorder
 		do
 		
-			local checkBoxDebuffBorder = GUICreateCheckBox(160, -60, L["Show border around debuff icons"], function(this)
+			local checkBoxDebuffBorder = GUICreateCheckBoxEx("NAuras.GUI.Borders.CheckBoxDebuffBorder", L["Show border around debuff icons"], function(this)
 				db.ShowDebuffBorders = this:GetChecked();
 				UpdateAllNameplates();
-			end, "NAuras.GUI.Borders.CheckBoxDebuffBorder");
+			end);
 			checkBoxDebuffBorder:SetParent(debuffArea);
 			checkBoxDebuffBorder:SetPoint("TOPLEFT", 15, -15);
 			checkBoxDebuffBorder:SetChecked(db.ShowDebuffBorders);
@@ -2594,7 +2669,8 @@ icon size]=] ], function(this)
 	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
-		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxShowOnEnemies, selectSpell;
+		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
+			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell;
 		
 		-- // spellArea
 		do
@@ -2741,6 +2817,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 						icon = SpellTextureByID[spellInfo.spellID],
 						text = SpellNameByID[spellInfo.spellID],
 						info = spellInfo,
+						tooltipSpellID = spellInfo.spellID,
 						func = function(self)
 							for _, control in pairs(controls) do
 								control:Show();
@@ -2756,16 +2833,18 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 							editboxSpellID:SetText(db.CustomSpells2[selectedSpell].checkSpellID or "");
 							checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
 							checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
+							checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
 						end,
 					});
 				end
 				table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
 				GUIFrame.SpellSelector:Show();
 				GUIFrame.SpellSelector.SetList(t);
-				GUIFrame.SpellSelector:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -90);
+				GUIFrame.SpellSelector:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -95);
 				for _, control in pairs(controls) do
 					control:Hide();
 				end
+				selectSpell.Text:SetText(L["Click to select spell"]);
 			end);
 			selectSpell:SetScript("OnHide", function(self)
 				for _, control in pairs(controls) do
@@ -2942,11 +3021,11 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 		-- // checkboxShowOnFriends
 		do
-			checkboxShowOnFriends = GUICreateCheckBox(165, -270, L["Show this aura on nameplates of allies"], function(this)
+			checkboxShowOnFriends = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxShowOnFriends", L["Show this aura on nameplates of allies"], function(this)
 				db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
-			end, "NAuras.GUI.Spells.CheckboxShowOnFriends");
+			end);
 			checkboxShowOnFriends:SetParent(spellArea);
 			checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -180);
 			table_insert(controls, checkboxShowOnFriends);
@@ -2954,14 +3033,27 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 		-- // checkboxShowOnEnemies
 		do
-			checkboxShowOnEnemies = GUICreateCheckBox(165, -290, L["Show this aura on nameplates of enemies"], function(this)
+			checkboxShowOnEnemies = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxShowOnEnemies", L["Show this aura on nameplates of enemies"], function(this)
 				db.CustomSpells2[selectedSpell].showOnEnemies = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
-			end, "NAuras.GUI.Spells.CheckboxShowOnEnemies");
+			end);
 			checkboxShowOnEnemies:SetParent(spellArea);
 			checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -200);
 			table_insert(controls, checkboxShowOnEnemies);
+		end
+		
+		-- // checkboxAllowMultipleInstances
+		do
+			checkboxAllowMultipleInstances = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxAllowMultipleInstances", L["options:aura-options:allow-multiple-instances"], function(this)
+				db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked();
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+			end);
+			checkboxAllowMultipleInstances:SetParent(spellArea);
+			checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -230);
+			SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
+			table_insert(controls, checkboxAllowMultipleInstances);
 		end
 		
 	end
@@ -3014,6 +3106,15 @@ do
 		StaticPopup_Show("NAURAS_MSG");
 	end
 	
+	function table_contains_value(t, v)
+		for _, value in pairs(t) do
+			if (value == v) then
+				return true;
+			end
+		end
+		return false;
+	end
+	
 end
 
 --------------------------------------------------------------------------------------------------
@@ -3030,8 +3131,8 @@ do
 		if (OnStartup) then
 			OnStartup();
 		end
-		for nameplate in pairs(nameplateAuras) do
-			wipe(nameplateAuras[nameplate]);
+		for nameplate in pairs(AurasPerNameplate) do
+			wipe(AurasPerNameplate[nameplate]);
 		end
 	end
 
@@ -3042,7 +3143,7 @@ do
 			nameplate.NAurasIcons = {};
 			nameplate.NAurasIconsCount = 0;
 			Nameplates[nameplate] = true;
-			nameplateAuras[nameplate] = {};
+			AurasPerNameplate[nameplate] = {};
 		end
 		ProcessAurasForNameplate(nameplate, unitID);
 		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
@@ -3053,8 +3154,8 @@ do
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		NameplatesVisible[nameplate] = nil;
-		if (nameplateAuras[nameplate] ~= nil) then
-			wipe(nameplateAuras[nameplate]);
+		if (AurasPerNameplate[nameplate] ~= nil) then
+			wipe(AurasPerNameplate[nameplate]);
 		end
 		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 			nameplate.NAurasFrame:Hide();
@@ -3063,7 +3164,7 @@ do
 	
 	function EventFrame.UNIT_AURA(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		if (nameplate ~= nil and nameplateAuras[nameplate] ~= nil) then
+		if (nameplate ~= nil and AurasPerNameplate[nameplate] ~= nil) then
 			ProcessAurasForNameplate(nameplate, unitID);
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 				nameplate.NAurasFrame:Show();

@@ -8,9 +8,9 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell;
 
 NameplateAurasDB = {};
 local SpellTextureByID = setmetatable({}, {
@@ -49,15 +49,21 @@ local SpellCheckIDCache 			= { }; -- // key is a spell name
 local SpellShowOnFriends			= { }; -- // key is a spell name
 local SpellShowOnEnemies			= { }; -- // key is a spell name
 local SpellAllowMultipleInstances	= { }; -- // key is a spell name
+local SpellShowOnlyDuringPvPCombat	= { }; -- // key is a spell name
 local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
 local LocalPlayerFullName 			= UnitName("player").." - "..GetRealmName();
+local InPvPCombat					= false;
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
 
 -- // consts: you should not change existing values
-local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS, CONST_TIMER_TEXT_MODES;
+local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS, CONST_TIMER_TEXT_MODES,
+CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 do
+	-- CONST_SPELL_MODE_DISABLED = 1;
+	-- CONST_SPELL_MODE_ALL = 2;
+	-- CONST_SPELL_MODE_MYAURAS = 3;
 	
 	SPELL_SHOW_MODES = { "disabled", "all", "my" };
 	SPELL_SHOW_MODES_LOCALIZATION = {
@@ -94,6 +100,9 @@ do
 	};
 	
 	CONST_TIMER_TEXT_MODES = { "relative", "absolute" };
+	CONST_SPELL_PVP_MODES_UNDEFINED = 1;
+	CONST_SPELL_PVP_MODES_INPVPCOMBAT = 2;
+	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 3;
 end
 
 local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
@@ -101,9 +110,8 @@ local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNamepla
 	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged,
 	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate;
 local OnUpdate;
---local PLAYER_ENTERING_WORLD, NAME_PLATE_UNIT_ADDED, NAME_PLATE_UNIT_REMOVED, UNIT_AURA, CHAT_MSG_ADDON;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
-local Print, deepcopy, msg, table_contains_value;
+local Print, deepcopy, msg, table_contains_value, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -121,6 +129,7 @@ do
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
+		EventFrame:RegisterEvent("SPELL_UPDATE_USABLE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
@@ -153,6 +162,8 @@ do
 		SpellCheckIDCache = { };
 		SpellShowOnFriends	= { };
 		SpellShowOnEnemies	= { };
+		SpellAllowMultipleInstances	= { };
+		SpellShowOnlyDuringPvPCombat = { };
 		-- // import default spells
 		if (not db.DefaultSpellsAreImported) then
 			local spellNamesAlreadyInUsersDB = { };
@@ -189,6 +200,9 @@ do
 				end
 				if (spellInfo.allowMultipleInstances == nil) then
 					spellInfo.allowMultipleInstances = false;
+				end
+				if (spellInfo.pvpCombat == nil) then
+					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
 				end
 				if (spellInfo.spellID == nil) then
 					db.CustomSpells2[spellID].spellID = spellID;
@@ -334,6 +348,8 @@ do
 			["checkSpellID"] = checkSpellID,
 			["showOnFriends"] = true,
 			["showOnEnemies"] = true,
+			["allowMultipleInstances"] = false,
+			["pvpCombat"] = CONST_SPELL_PVP_MODES_UNDEFINED,
 		};
 	end
 	
@@ -347,6 +363,7 @@ do
 			SpellShowOnFriends[spellName] = 			db.CustomSpells2[spellID].showOnFriends;
 			SpellShowOnEnemies[spellName] = 			db.CustomSpells2[spellID].showOnEnemies;
 			SpellAllowMultipleInstances[spellName] =	db.CustomSpells2[spellID].allowMultipleInstances;
+			SpellShowOnlyDuringPvPCombat[spellName] =	db.CustomSpells2[spellID].pvpCombat;
 		else
 			SpellShowModesCache[spellName] = 			nil;
 			SpellAuraTypeCache[spellName] = 			nil;
@@ -355,6 +372,7 @@ do
 			SpellShowOnFriends[spellName] = 			nil;
 			SpellShowOnEnemies[spellName] = 			nil;
 			SpellAllowMultipleInstances[spellName] =	nil;
+			SpellShowOnlyDuringPvPCombat[spellName] =	nil;
 		end
 	end
 		
@@ -460,11 +478,14 @@ do
 		if (db.AlwaysShowMyAuras and auraCaster == "player") then
 			return true;
 		else
-			if (SpellShowModesCache[auraName] == "all" or (SpellShowModesCache[auraName] == "my" and auraCaster == "player"))then
+			if (SpellShowModesCache[auraName] == "all" or (SpellShowModesCache[auraName] == "my" and auraCaster == "player")) then
 				if ((not unitIsFriend and SpellShowOnEnemies[auraName]) or (unitIsFriend and SpellShowOnFriends[auraName])) then
 					if (SpellAuraTypeCache[auraName] == "buff/debuff" or (isBuff and SpellAuraTypeCache[auraName] == "buff" or SpellAuraTypeCache[auraName] == "debuff")) then
-						if (SpellCheckIDCache[auraName] == nil or SpellCheckIDCache[auraName] == auraSpellID) then
-							return true;
+						local showInPvPCombat = SpellShowOnlyDuringPvPCombat[auraName];
+						if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
+							if (SpellCheckIDCache[auraName] == nil or SpellCheckIDCache[auraName] == auraSpellID) then
+								return true;
+							end
 						end
 					end
 				end
@@ -494,11 +515,11 @@ do
 	
 	-- // todo: delete-start
 	-- local function aaaaa()
-		-- local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
+		-- local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_Filter, true);
 		-- if (calls > 0) then
-			-- print(format("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: %.5f, total calls: %s", (usage/calls), calls));
+			-- print(format("ProcessAurasForNameplate_Filter: usage/calls: %.5f, total calls: %s", (usage/calls), calls));
 		-- else
-			-- print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
+			-- print("ProcessAurasForNameplate_Filter: no calls");
 		-- end
 		-- C_Timer.After(300, aaaaa);
 	-- end
@@ -914,6 +935,28 @@ do
 		checkBox:SetScript("OnClick", func);
 		checkBox:Hide();
 		return checkBox;
+	end
+	
+	local function GUICreateCheckBoxTristate(textEntries)
+		local checkButton = GUICreateCheckBoxEx(nil, textEntries[1], nil);
+		checkButton.state = 0;
+		checkButton.SetTriState = function(self, tristate)
+			self:SetText(textEntries[tristate+1]);
+			self:SetChecked(tristate == 1 or tristate == 2);
+			self.state = tristate;
+		end;
+		checkButton.GetTriState = function(self)
+			return self.state;
+		end;
+		checkButton.SetClickHandler = function(self, _func)
+			self:SetScript("OnClick", function(_self)
+				local newState = _self:GetTriState() + 1;
+				if (newState > 2) then newState = 0; end
+				_self:SetTriState(newState);
+				_func(_self);
+			end);
+		end;
+		return checkButton;
 	end
 	
 	local function GUICreateCheckBoxWithColorPicker(publicName, x, y, text, checkedChangedCallback)
@@ -1598,6 +1641,7 @@ do
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
 			checkBoxShowMyAuras:SetParent(GUIFrame);
 			checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -240);
+			SetTooltip(checkBoxShowMyAuras, "This is top priority filter. If you enable this feature,\nyour auras will be shown regardless of another filters"); -- // todo:localize
 			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
@@ -2669,8 +2713,8 @@ icon size]=] ], function(this)
 	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
-		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, dropdownSpellShowMode, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell;
+		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
+			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled;
 		
 		-- // spellArea
 		do
@@ -2826,7 +2870,6 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 							--print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize, db.CustomSpells2[selectedSpell].auraType, db.CustomSpells2[selectedSpell].checkSpellID,
 							--	db.CustomSpells2[selectedSpell].showOnFriends, db.CustomSpells2[selectedSpell].showOnEnemies);
 							selectSpell.Text:SetText(self.text);
-							_G[dropdownSpellShowMode:GetName().."Text"]:SetText(SPELL_SHOW_MODES_LOCALIZATION[db.CustomSpells2[selectedSpell].enabledState]);
 							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
 							sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
 							_G[dropdownSpellShowType:GetName().."Text"]:SetText(SPELL_SHOW_TYPES_LOCALIZATION[db.CustomSpells2[selectedSpell].auraType]);
@@ -2834,6 +2877,20 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 							checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
 							checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
 							checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
+							if (db.CustomSpells2[selectedSpell].enabledState == SPELL_SHOW_MODES[1]) then
+								checkboxEnabled:SetTriState(0);
+							elseif (db.CustomSpells2[selectedSpell].enabledState == SPELL_SHOW_MODES[2]) then
+								checkboxEnabled:SetTriState(2);
+							else
+								checkboxEnabled:SetTriState(1);
+							end
+							if (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
+								checkboxPvPMode:SetTriState(0);
+							elseif (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
+								checkboxPvPMode:SetTriState(1);
+							else
+								checkboxPvPMode:SetTriState(2);
+							end
 						end,
 					});
 				end
@@ -2856,45 +2913,16 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			table_insert(GUIFrame.Categories[index], selectSpell);
 			
 		end
-		
-		-- // dropdownSpellShowMode
-		do
-		
-			dropdownSpellShowMode = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowMode", spellArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownSpellShowMode, 180);
-			dropdownSpellShowMode.text = dropdownSpellShowMode:CreateFontString("NAuras.GUI.Cat4.DropdownSpellShowMode.Label", "ARTWORK", "GameFontNormal");
-			dropdownSpellShowMode.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -28);
-			dropdownSpellShowMode.text:SetText(L["Mode"]);
-			dropdownSpellShowMode:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -18);
-			local info = {};
-			dropdownSpellShowMode.initialize = function()
-				wipe(info);
-				for _, showMode in pairs(SPELL_SHOW_MODES) do
-					info.text = SPELL_SHOW_MODES_LOCALIZATION[showMode];
-					info.value = showMode;
-					info.func = function(self)
-						db.CustomSpells2[selectedSpell].enabledState = self.value;
-						UpdateSpellCachesFromDB(selectedSpell);
-						_G[dropdownSpellShowMode:GetName().."Text"]:SetText(self:GetText());
-					end
-					info.checked = (showMode == db.CustomSpells2[selectedSpell].enabledState);
-					UIDropDownMenu_AddButton(info);
-				end
-			end
-			_G[dropdownSpellShowMode:GetName().."Text"]:SetText("");
-			table_insert(controls, dropdownSpellShowMode);
-			
-		end
-		
+				
 		-- // dropdownSpellShowType
 		do
 		
 			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", spellArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSpellShowType, 180);
 			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString("NAuras.GUI.Cat4.DropdownSpellShowType.Label", "ARTWORK", "GameFontNormal");
-			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -68);
+			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -130);
 			dropdownSpellShowType.text:SetText(L["Aura type"]);
-			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -58);
+			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -120);
 			local info = {};
 			dropdownSpellShowType.initialize = function()
 				wipe(info);
@@ -2920,7 +2948,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 			sliderSpellIconSize = GUICreateSlider(spellArea, 18, -23, 200, "NAuras.GUI.Cat4.SliderSpellIconSize");
 			sliderSpellIconSize.label:ClearAllPoints();
-			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -108);
+			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -170);
 			sliderSpellIconSize.label:SetText(L["Icon size"]);
 			sliderSpellIconSize:ClearAllPoints();
 			sliderSpellIconSize:SetPoint("LEFT", sliderSpellIconSize.label, "RIGHT", 20, 0);
@@ -2968,10 +2996,10 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			editboxSpellID:SetAutoFocus(false);
 			editboxSpellID:SetFontObject(GameFontHighlightSmall);
 			editboxSpellID.text = editboxSpellID:CreateFontString("NAuras.GUI.Cat4.EditboxSpellID.Label", "ARTWORK", "GameFontNormal");
-			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -148);
+			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -210);
 			editboxSpellID.text:SetText(L["Check spell ID"] .. ": ");
 			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
-			editboxSpellID:SetPoint("RIGHT", spellArea, "RIGHT", -45, 0);
+			editboxSpellID:SetPoint("RIGHT", spellArea, "RIGHT", -30, 0);
 			editboxSpellID:SetHeight(20);
 			editboxSpellID:SetWidth(215);
 			editboxSpellID:SetJustifyH("LEFT");
@@ -3018,6 +3046,34 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			table_insert(controls, buttonDeleteSpell);
 		
 		end
+			
+		-- // checkboxEnabled
+		do
+			checkboxEnabled = GUICreateCheckBoxTristate({
+				ColorizeText("Disabled", 1, 1, 1), -- // todo:localize
+				ColorizeText("Enabled, show only my auras", 0, 1, 1), -- // todo:localize
+				ColorizeText("Enabled, show all auras", 0, 1, 0), -- // todo:localize
+			});
+			checkboxEnabled:SetClickHandler(function(self)
+				if (self:GetTriState() == 0) then
+					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[1];
+				elseif (self:GetTriState() == 1) then
+					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[3];
+				else
+					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[2];
+				end
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+			end);
+			checkboxEnabled:SetParent(spellArea);
+			checkboxEnabled:SetPoint("TOPLEFT", 15, -15);
+			SetTooltip(checkboxEnabled, format("Enables/disables aura\n\n%s: aura will not be shown\n%s: aura will be shown if you've cast it\n%s: show all auras", -- // todo:localize
+				ColorizeText("Disabled", 1, 1, 1), -- // todo:localize
+				ColorizeText("Enabled, show only my auras", 0, 1, 1), -- // todo:localize
+				ColorizeText("Enabled, show all auras", 0, 1, 0))); -- // todo:localize
+			table_insert(controls, checkboxEnabled);
+			
+		end
 		
 		-- // checkboxShowOnFriends
 		do
@@ -3027,7 +3083,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				UpdateAllNameplates(false);
 			end);
 			checkboxShowOnFriends:SetParent(spellArea);
-			checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -180);
+			checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -35);
 			table_insert(controls, checkboxShowOnFriends);
 		end
 		
@@ -3039,7 +3095,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				UpdateAllNameplates(false);
 			end);
 			checkboxShowOnEnemies:SetParent(spellArea);
-			checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -200);
+			checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -55);
 			table_insert(controls, checkboxShowOnEnemies);
 		end
 		
@@ -3051,9 +3107,37 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				UpdateAllNameplates(false);
 			end);
 			checkboxAllowMultipleInstances:SetParent(spellArea);
-			checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -230);
+			checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -75);
 			SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
 			table_insert(controls, checkboxAllowMultipleInstances);
+		end
+		
+		-- // checkboxPvPMode
+		do
+			checkboxPvPMode = GUICreateCheckBoxTristate({
+				"Show this aura during PvP combat", -- // todo:localize
+				ColorizeText("Show this aura during PvP combat only", 0, 1, 0), -- // todo:localize
+				ColorizeText("Don't show this aura during PvP combat", 1, 0, 0), -- // todo:localize
+			});
+			checkboxPvPMode:SetClickHandler(function(self)
+				if (self:GetTriState() == 0) then
+					db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
+				elseif (self:GetTriState() == 1) then
+					db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_INPVPCOMBAT;
+				else
+					db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
+				end
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+			end);
+			checkboxPvPMode:SetParent(spellArea);
+			checkboxPvPMode:SetPoint("TOPLEFT", 15, -95);
+			-- SetTooltip(checkboxPvPMode, format("%s: this aura will be shown regardless of the PvP state\n%s: this aura will be shown in PvP combat only\n%s: this aura will not be shown in PvP combat",
+				-- "Show this aura during PvP combat",
+				-- ColorizeText("Show this aura during PvP combat only", 0, 1, 0),
+				-- ColorizeText("Don't show this aura during PvP combat", 1, 0, 0)));
+			table_insert(controls, checkboxPvPMode);
+			
 		end
 		
 	end
@@ -3113,6 +3197,10 @@ do
 			end
 		end
 		return false;
+	end
+	
+	function ColorizeText(text, r, g, b)
+		return format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 	end
 	
 end
@@ -3183,6 +3271,14 @@ do
 			elseif (string_find(message, "requesting")) then
 				SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
 			end
+		end
+	end
+	
+	function EventFrame.SPELL_UPDATE_USABLE()
+		local inPvPCombat = IsUsableSpell(SpellNameByID[195710]); -- // Honorable Medallion
+		if (inPvPCombat ~= InPvPCombat) then
+			InPvPCombat = inPvPCombat;
+			UpdateAllNameplates(false);
 		end
 	end
 	

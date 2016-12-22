@@ -35,7 +35,7 @@ L["Delete all spells"] = "Alle Zauber entfernen"
 L["Delete spell"] = "Zauber löschen"
 L["Disabled"] = "Deaktiviert"
 L["Disease"] = "Krankheit"
-L["Display auras on nameplates of friendly units"] = "Auren auf der Namensplakette verbündeter Einheiten anzeigen"
+L["Display auras on nameplates of friendly units"] = "Auren auf Namensplaketten verbündeter Einheiten anzeigen"
 L["Display auras on player's nameplate"] = "Auren auf der Namensplakette des Spieler anzeigen"
 L["Display tenths of seconds"] = "Zehntelsekunden anzeigen"
 L["Do you really want to delete ALL spells?"] = "Willst du wirklich ALLE Zauber entfernen?"
@@ -58,6 +58,9 @@ L["None"] = "Keine"
 L["Only my auras"] = "Nur meine Auren"
 L["Open profiles dialog"] = "Profildialog öffnen"
 L["Options are not available in combat!"] = "Optionen sind im Kampf nicht verfügbar!"
+L["options:aura-options:allow-multiple-instances"] = "Mehrere Exemplare dieser Aura erlauben"
+L["options:aura-options:allow-multiple-instances:tooltip"] = [=[Falls diese Option angehakt ist, wirst du alle Exemplare dieser Aura sehen, auch wenn diese sich auf derselben Namensplakette befinden.
+Anderenfalls wirst du nur ein Exemplar dieser Aura sehen (die mit der größten Restdauer)]=]
 L["Other"] = "Andere"
 L["Please reload UI to apply changes"] = "Bitte UI neuladen, um Änderungen zu übernehmen"
 L["Poison"] = "Gift"
@@ -71,10 +74,8 @@ Symbolgröße
 anpassen]=]
 L["Show border around buff icons"] = "Rahmen um Stärkungszaubersymbole zeigen"
 L["Show border around debuff icons"] = "Rahmen um Schwächungszaubersymbole zeigen"
---Translation missing 
-L["Show this aura on nameplates of allies"] = "Show this aura on nameplates of allies"
---Translation missing 
-L["Show this aura on nameplates of enemies"] = "Show this aura on nameplates of enemies"
+L["Show this aura on nameplates of allies"] = "Diese Aura auf Namensplaketten Verbündeter anzeigen"
+L["Show this aura on nameplates of enemies"] = "Diese Aura auf Namensplaketten von Feinden anzeigen"
 L["Sort mode:"] = "Anordnung:"
 L["Space between icons"] = "Platz zwischen Symbolen"
 L["Spell already exists (%s)"] = "Zauber existiert bereits (%s)"
@@ -95,5 +96,5 @@ L["X offset"] = "X-Verschiebung"
 L["Y offset"] = "Y-Verschiebung"
 L["Yes"] = "Ja"
 L[ [=[You should enter spell name instead of spell id.
-Use \"%s\" option if you want to track spell with specific id]=] ] = [=[Du solltest den Zaubernamen anstatt die Zauber-ID eingeben.
-Verwende die Option %s, wenn du Zauber mit einer bestimmten ID verfolgen möchtest.]=]
+Use "%s" option if you want to track spell with specific id]=] ] = [=[Du solltest den Zaubernamen anstatt die Zauber-ID eingeben.
+Verwende die Option "%s", wenn du Zauber mit einer bestimmten ID verfolgen möchtest.]=]

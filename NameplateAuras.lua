@@ -1,4 +1,4 @@
-﻿local _, addonTable = ...;
+local _, addonTable = ...;
 
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
@@ -41,75 +41,25 @@ local SpellIDByName = setmetatable({}, {
 });
 local AurasPerNameplate 			= { };
 local SortedAurasPerNameplate 		= { };
-local Spells 						= { };
-local SpellShowModesCache 			= { }; -- // key is a spell name
-local SpellAuraTypeCache 			= { }; -- // key is a spell name
-local SpellIconSizesCache 			= { }; -- // key is a spell name
-local SpellCheckIDCache 			= { }; -- // key is a spell name
-local SpellShowOnFriends			= { }; -- // key is a spell name
-local SpellShowOnEnemies			= { }; -- // key is a spell name
-local SpellAllowMultipleInstances	= { }; -- // key is a spell name
-local SpellShowOnlyDuringPvPCombat	= { }; -- // key is a spell name
+local EnabledAurasInfo				= { };
 local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
-local LocalPlayerFullName 			= UnitName("player").." - "..GetRealmName();
+local LocalPlayerFullName 			= UnitName("player") .. " - " .. GetRealmName();
 local InPvPCombat					= false;
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
 
--- // consts: you should not change existing values
-local SPELL_SHOW_MODES, SPELL_SHOW_TYPES, CONST_SORT_MODES, CONST_SORT_MODES_LOCALIZATION, CONST_MAX_ICON_SIZE, CONST_TIMER_STYLES, CONST_TIMER_STYLES_LOCALIZATION, CONST_BORDERS, CONST_TIMER_TEXT_MODES,
-CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
-do
-	-- CONST_SPELL_MODE_DISABLED = 1;
-	-- CONST_SPELL_MODE_ALL = 2;
-	-- CONST_SPELL_MODE_MYAURAS = 3;
-	
-	SPELL_SHOW_MODES = { "disabled", "all", "my" };
-	SPELL_SHOW_MODES_LOCALIZATION = {
-		[SPELL_SHOW_MODES[1]] = L["Disabled"],
-		[SPELL_SHOW_MODES[2]] = L["All auras"],
-		[SPELL_SHOW_MODES[3]] = L["Only my auras"],
-	};
-	SPELL_SHOW_TYPES = { "buff", "debuff", "buff/debuff" };
-	SPELL_SHOW_TYPES_LOCALIZATION = {
-		[SPELL_SHOW_TYPES[1]] = L["Buff"],
-		[SPELL_SHOW_TYPES[2]] = L["Debuff"],
-		[SPELL_SHOW_TYPES[3]] = L["Any"],
-	};
-	CONST_SORT_MODES = { "none", "by-expire-time-asc", "by-expire-time-des", "by-icon-size-asc", "by-icon-size-des", "by-aura-type-expire-time" };
-	CONST_SORT_MODES_LOCALIZATION = { 
-		[CONST_SORT_MODES[1]] = L["None"],
-		[CONST_SORT_MODES[2]] = L["By expire time, ascending"],
-		[CONST_SORT_MODES[3]] = L["By expire time, descending"],
-		[CONST_SORT_MODES[4]] = L["By icon size, ascending"],
-		[CONST_SORT_MODES[5]] = L["By icon size, descending"],
-		[CONST_SORT_MODES[6]] = L["By aura type (de/buff) + expire time"]
-	};
-	CONST_MAX_ICON_SIZE = 75;
-	CONST_TIMER_STYLES = { "texture-with-text", "cooldown-frame-no-text", "cooldown-frame", "circular-noomnicc-text" };
-	CONST_TIMER_STYLES_LOCALIZATION = {
-		[CONST_TIMER_STYLES[1]] = L["Texture with timer"],
-		[CONST_TIMER_STYLES[2]] = L["Circular"],
-		[CONST_TIMER_STYLES[3]] = L["Circular with OmniCC support"],
-		[CONST_TIMER_STYLES[4]] = L["Circular with timer"],
-	};
-	CONST_BORDERS = {
-		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
-		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",
-	};
-	
-	CONST_TIMER_TEXT_MODES = { "relative", "absolute" };
-	CONST_SPELL_PVP_MODES_UNDEFINED = 1;
-	CONST_SPELL_PVP_MODES_INPVPCOMBAT = 2;
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 3;
-end
+-- // enums as variables: it's done for better performance
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = 1, 2, 3;
+local AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = 1, 2, 3;
+local AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE = 1, 2, 3, 4, 5, 6;
+local TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = 1, 2, 3, 4;
+local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 1, 2, 3;
 
 local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, UpdateNameplate_SetCooldown, UpdateNameplate_SetStacks, UpdateNameplate_SetBorder, HideCDIcon, ShowCDIcon,
 	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged,
-	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate;
-local OnUpdate;
+	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
 local Print, deepcopy, msg, table_contains_value, ColorizeText;
 
@@ -155,15 +105,7 @@ do
 	function ReloadDB()
 		db = aceDB.profile;
 		-- // resetting all caches
-		Spells = {};
-		SpellShowModesCache = { };
-		SpellAuraTypeCache = { };
-		SpellIconSizesCache = { };
-		SpellCheckIDCache = { };
-		SpellShowOnFriends	= { };
-		SpellShowOnEnemies	= { };
-		SpellAllowMultipleInstances	= { };
-		SpellShowOnlyDuringPvPCombat = { };
+		wipe(EnabledAurasInfo);
 		-- // import default spells
 		if (not db.DefaultSpellsAreImported) then
 			local spellNamesAlreadyInUsersDB = { };
@@ -188,10 +130,9 @@ do
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			local spellName = SpellNameByID[spellID];
 			if (spellName == nil) then
-				Print("<"..spellName.."> isn't exist. Removing from database...");
+				Print("<spellid:"..spellID.."> isn't exist. Removing from database...");
 				db.CustomSpells2[spellID] = nil;
 			else
-				Spells[spellName] = spellInfo;
 				if (spellInfo.showOnFriends == nil) then
 					spellInfo.showOnFriends = true;
 				end
@@ -207,13 +148,25 @@ do
 				if (spellInfo.spellID == nil) then
 					db.CustomSpells2[spellID].spellID = spellID;
 				end
-				if (spellInfo.enabledState ~= SPELL_SHOW_MODES[1]) then
-					UpdateSpellCachesFromDB(spellID);
+				if (spellInfo.enabledState == "disabled") then
+					spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
+				elseif (spellInfo.enabledState == "all") then
+					spellInfo.enabledState = CONST_SPELL_MODE_ALL;
+				elseif (spellInfo.enabledState == "my") then
+					spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
 				end
+				if (spellInfo.auraType == "buff") then
+					spellInfo.auraType = AURA_TYPE_BUFF;
+				elseif (spellInfo.auraType == "debuff") then
+					spellInfo.auraType = AURA_TYPE_DEBUFF;
+				elseif (spellInfo.auraType == "buff/debuff") then
+					spellInfo.auraType = AURA_TYPE_ANY;
+				end
+				UpdateSpellCachesFromDB(spellID);
 			end
 		end
 		-- // starting OnUpdate()
-		if (db.TimerStyle == CONST_TIMER_STYLES[1] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
+		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
 				ElapsedTimer = ElapsedTimer + elapsed;
 				if (ElapsedTimer >= 0.1) then
@@ -248,10 +201,10 @@ do
 				Font = "NAuras_TeenBold",
 				HideBlizzardFrames = true,
 				DefaultIconSize = 45,
-				SortMode = CONST_SORT_MODES[2],
+				SortMode = AURA_SORT_MODE_EXPIREASC,
 				DisplayTenthsOfSeconds = true,
 				FontScale = 1,
-				TimerTextSizeMode = CONST_TIMER_TEXT_MODES[1],
+				TimerTextUseRelativeScale = true,
 				TimerTextSize = 20,
 				TimerTextAnchor = "CENTER",
 				TimerTextAnchorIcon = "UNKNOWN",
@@ -267,7 +220,7 @@ do
 				StacksTextXOffset = -3,
 				StacksTextYOffset = 5,
 				StacksTextColor = { 1, 0.1, 0.1 },
-				TimerStyle = CONST_TIMER_STYLES[1],
+				TimerStyle = TIMER_STYLE_TEXTURETEXT,
 				ShowBuffBorders = true,
 				BuffBordersColor = {0, 1, 0},
 				ShowDebuffBorders = true,
@@ -333,6 +286,30 @@ do
 		if (aceDB.profile.StacksTextAnchorIcon == aceDBDefaults.profile.StacksTextAnchorIcon) then
 			aceDB.profile.StacksTextAnchorIcon = aceDB.profile.StacksTextAnchor;
 		end
+		if (aceDB.profile.TimerTextSizeMode ~= nil) then
+			aceDB.profile.TimerTextUseRelativeScale = (aceDB.profile.TimerTextSizeMode == "relative");
+			aceDB.profile.TimerTextSizeMode = nil;
+		end
+		if (aceDB.profile.SortMode ~= nil and type(aceDB.profile.SortMode) == "string") then
+			local replacements = { [AURA_SORT_MODE_NONE] = "none", [AURA_SORT_MODE_EXPIREASC] = "by-expire-time-asc", [AURA_SORT_MODE_EXPIREDES] = "by-expire-time-des",
+				[AURA_SORT_MODE_ICONSIZEASC] = "by-icon-size-asc", [AURA_SORT_MODE_ICONSIZEDES] = "by-icon-size-des", [AURA_SORT_MODE_AURATYPE_EXPIRE] = "by-aura-type-expire-time" };
+			for newValue, oldValue in pairs(replacements) do
+				if (aceDB.profile.SortMode == oldValue) then
+					aceDB.profile.SortMode = newValue;
+					break;
+				end
+			end
+		end
+		if (aceDB.profile.TimerStyle ~= nil and type(aceDB.profile.TimerStyle) == "string") then
+			local replacements = { [TIMER_STYLE_TEXTURETEXT] = "texture-with-text", [TIMER_STYLE_CIRCULAR] = "cooldown-frame-no-text",
+				[TIMER_STYLE_CIRCULAROMNICC] = "cooldown-frame", [TIMER_STYLE_CIRCULARTEXT] = "circular-noomnicc-text" };
+			for newValue, oldValue in pairs(replacements) do
+				if (aceDB.profile.TimerStyle == oldValue) then
+					aceDB.profile.TimerStyle = newValue;
+					break;
+				end
+			end
+		end
 		-- // creating a fast reference
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
@@ -342,7 +319,7 @@ do
 	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
 		return {
 			["enabledState"] = enabledState,
-			["auraType"] = SPELL_SHOW_TYPES[3],
+			["auraType"] = AURA_TYPE_ANY,
 			["iconSize"] = (iconSize ~= nil) and iconSize or db.DefaultIconSize,
 			["spellID"] = spellID,
 			["checkSpellID"] = checkSpellID,
@@ -355,24 +332,19 @@ do
 	
 	function UpdateSpellCachesFromDB(spellID)
 		local spellName = SpellNameByID[spellID];
-		if (db.CustomSpells2[spellID] ~= nil) then
-			SpellShowModesCache[spellName] = 			db.CustomSpells2[spellID].enabledState;
-			SpellAuraTypeCache[spellName] = 			db.CustomSpells2[spellID].auraType;
-			SpellIconSizesCache[spellName] = 			db.CustomSpells2[spellID].iconSize;
-			SpellCheckIDCache[spellName] = 				db.CustomSpells2[spellID].checkSpellID;
-			SpellShowOnFriends[spellName] = 			db.CustomSpells2[spellID].showOnFriends;
-			SpellShowOnEnemies[spellName] = 			db.CustomSpells2[spellID].showOnEnemies;
-			SpellAllowMultipleInstances[spellName] =	db.CustomSpells2[spellID].allowMultipleInstances;
-			SpellShowOnlyDuringPvPCombat[spellName] =	db.CustomSpells2[spellID].pvpCombat;
+		if (db.CustomSpells2[spellID] ~= nil and db.CustomSpells2[spellID].enabledState ~= CONST_SPELL_MODE_DISABLED) then
+			EnabledAurasInfo[spellName] = {
+				["enabledState"] =				db.CustomSpells2[spellID].enabledState,
+				["auraType"] =					db.CustomSpells2[spellID].auraType,
+				["iconSize"] =					db.CustomSpells2[spellID].iconSize,
+				["checkSpellID"] =				db.CustomSpells2[spellID].checkSpellID,
+				["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
+				["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
+				["allowMultipleInstances"] =	db.CustomSpells2[spellID].allowMultipleInstances,
+				["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
+			};
 		else
-			SpellShowModesCache[spellName] = 			nil;
-			SpellAuraTypeCache[spellName] = 			nil;
-			SpellIconSizesCache[spellName] = 			nil;
-			SpellCheckIDCache[spellName] = 				nil;
-			SpellShowOnFriends[spellName] = 			nil;
-			SpellShowOnEnemies[spellName] = 			nil;
-			SpellAllowMultipleInstances[spellName] =	nil;
-			SpellShowOnlyDuringPvPCombat[spellName] =	nil;
+			EnabledAurasInfo[spellName] = nil;
 		end
 	end
 		
@@ -382,6 +354,11 @@ end
 ----- Nameplates
 --------------------------------------------------------------------------------------------------
 do
+	
+	local BORDER_TEXTURES = {
+		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
+		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",
+	};
 	
 	function AllocateIcon(frame, widthUsed)
 		if (not frame.NAurasFrame) then
@@ -400,11 +377,11 @@ do
 		icon.border = icon:CreateTexture(nil, "OVERLAY");
 		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
 		icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
-		if (db.TimerStyle == CONST_TIMER_STYLES[2] or db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
+		if (db.TimerStyle == TIMER_STYLE_CIRCULAR or db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
 			icon.cooldownFrame:SetAllPoints(icon);
 			icon.cooldownFrame:SetReverse(true);
-			if (db.TimerStyle == CONST_TIMER_STYLES[3]) then
+			if (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC) then
 				icon.cooldownFrame:SetDrawEdge(false);
 				icon.cooldownFrame:SetDrawSwipe(true);
 				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
@@ -439,12 +416,12 @@ do
 		icon:Hide();
 		icon.cooldown:SetTextColor(0.7, 1, 0);
 		icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
-		if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+		if (db.TimerTextUseRelativeScale) then
 			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
-		elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+		else
 			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 		end
-		icon.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
+		icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
 		icon.border:SetVertexColor(1, 0.35, 0);
 		icon.border:SetAllPoints(icon);
 		icon.border:Hide();
@@ -478,13 +455,16 @@ do
 		if (db.AlwaysShowMyAuras and auraCaster == "player") then
 			return true;
 		else
-			if (SpellShowModesCache[auraName] == "all" or (SpellShowModesCache[auraName] == "my" and auraCaster == "player")) then
-				if ((not unitIsFriend and SpellShowOnEnemies[auraName]) or (unitIsFriend and SpellShowOnFriends[auraName])) then
-					if (SpellAuraTypeCache[auraName] == "buff/debuff" or (isBuff and SpellAuraTypeCache[auraName] == "buff" or SpellAuraTypeCache[auraName] == "debuff")) then
-						local showInPvPCombat = SpellShowOnlyDuringPvPCombat[auraName];
-						if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
-							if (SpellCheckIDCache[auraName] == nil or SpellCheckIDCache[auraName] == auraSpellID) then
-								return true;
+			local spellInfo = EnabledAurasInfo[auraName];
+			if (spellInfo ~= nil) then
+				if (spellInfo.enabledState == CONST_SPELL_MODE_ALL or (spellInfo.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
+					if ((not unitIsFriend and spellInfo.showOnEnemies) or (unitIsFriend and spellInfo.showOnFriends)) then
+						if (spellInfo.auraType == AURA_TYPE_ANY or (isBuff and spellInfo.auraType == AURA_TYPE_BUFF or spellInfo.auraType == AURA_TYPE_DEBUFF)) then
+							local showInPvPCombat = spellInfo.pvpCombat;
+							if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
+								if (spellInfo.checkSpellID == nil or spellInfo.checkSpellID == auraSpellID) then
+									return true;
+								end
 							end
 						end
 					end
@@ -495,7 +475,7 @@ do
 	end
 	
 	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack)
-		if (SpellAllowMultipleInstances[auraName]) then
+		if (EnabledAurasInfo[auraName].allowMultipleInstances) then
 			return true;
 		else
 			for index, value in pairs(AurasPerNameplate[frame]) do
@@ -515,11 +495,23 @@ do
 	
 	-- // todo: delete-start
 	-- local function aaaaa()
-		-- local usage, calls = GetFunctionCPUUsage(ProcessAurasForNameplate_Filter, true);
-		-- if (calls > 0) then
-			-- print(format("ProcessAurasForNameplate_Filter: usage/calls: %.5f, total calls: %s", (usage/calls), calls));
+		-- local usage1, calls1 = GetFunctionCPUUsage(ProcessAurasForNameplate_Filter, true);
+		-- if (calls1 > 0) then
+			-- print(format("ProcessAurasForNameplate_Filter: usage/calls: %.5f, total calls: %s", (usage1/calls1), calls1));
 		-- else
 			-- print("ProcessAurasForNameplate_Filter: no calls");
+		-- end
+		-- local usage2, calls2 = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
+		-- if (calls2 > 0) then
+			-- print(format("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: %.5f, total calls: %s", (usage2/calls2), calls2));
+		-- else
+			-- print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
+		-- end
+		-- local usage3, calls3 = GetFunctionCPUUsage(SortAurasForNameplate, true);
+		-- if (calls3 > 0) then
+			-- print(format("SortAurasForNameplate: usage/calls: %.5f, total calls: %s", (usage3/calls3), calls3));
+		-- else
+			-- print("SortAurasForNameplate: no calls");
 		-- end
 		-- C_Timer.After(300, aaaaa);
 	-- end
@@ -541,7 +533,7 @@ do
 								["expires"] = buffExpires ~= 0 and buffExpires or 4000000000,
 								["stacks"] = buffStack,
 								["spellID"] = buffSpellID,
-								["type"] = "buff",
+								["type"] = AURA_TYPE_BUFF,
 								["spellName"] = buffName
 							});
 						end
@@ -549,7 +541,6 @@ do
 				end
 				local debuffName, _, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					--print("ProcessAurasForNameplate: ", SpellShowModesCache[debuffName], debuffName, debuffStack, debuffDuration, debuffExpires, debuffCaster, debuffSpellID);
 					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
 							table_insert(AurasPerNameplate[frame], {
@@ -557,7 +548,7 @@ do
 								["expires"] = debuffExpires ~= 0 and debuffExpires or 4000000000,
 								["stacks"] = debuffStack,
 								["spellID"] = debuffSpellID,
-								["type"] = "debuff",
+								["type"] = AURA_TYPE_DEBUFF,
 								["dispelType"] = debuffDispelType,
 								["spellName"] = debuffName
 							});
@@ -601,7 +592,8 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					local normalSize = SpellIconSizesCache[spellName] or db.DefaultIconSize;
+					local enabledAuraInfo = EnabledAurasInfo[spellName];
+					local normalSize = enabledAuraInfo and enabledAuraInfo.iconSize or db.DefaultIconSize;
 					if (normalSize ~= icon.size or iconResized) then
 						icon.size = normalSize;
 						ResizeIcon(icon, icon.size, totalWidth);
@@ -632,7 +624,7 @@ do
 	end
 	
 	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
-		if (db.TimerStyle == CONST_TIMER_STYLES[1] or db.TimerStyle == CONST_TIMER_STYLES[4]) then
+		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			if (last > 3600) then
 				icon.cooldown:SetText("");
 			elseif (last >= 60) then
@@ -649,10 +641,10 @@ do
 			else
 				icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
 			end
-			if (db.TimerStyle == CONST_TIMER_STYLES[4]) then
+			if (db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 				icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 			end
-		elseif (db.TimerStyle == CONST_TIMER_STYLES[3] or db.TimerStyle == CONST_TIMER_STYLES[2]) then
+		elseif (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULAR) then
 			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 		end
 	end
@@ -669,13 +661,13 @@ do
 	end
 	
 	function UpdateNameplate_SetBorder(icon, spellInfo)
-		if (db.ShowBuffBorders and spellInfo.type == "buff") then
+		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
 			if (icon.borderState ~= spellInfo.type) then
 				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
 				icon.border:Show();
 				icon.borderState = spellInfo.type;
 			end
-		elseif (db.ShowDebuffBorders and spellInfo.type == "debuff") then
+		elseif (db.ShowDebuffBorders and spellInfo.type == AURA_TYPE_DEBUFF) then
 			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
 			if (icon.borderState ~= preciseType) then
 				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
@@ -713,9 +705,9 @@ do
 	function ResizeIcon(icon, size, widthAlreadyUsed)
 		icon:SetSize(size, size);
 		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
-		if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+		if (db.TimerTextUseRelativeScale) then
 			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
-		elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+		else
 			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 		end
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
@@ -726,9 +718,9 @@ do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
 					if (icon.shown) then
-						if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+						if (db.TimerTextUseRelativeScale) then
 							icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
-						elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+						else
 							icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 						end
 						icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
@@ -805,7 +797,7 @@ do
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon.border:SetTexture(CONST_BORDERS[db.BorderThickness]);
+					icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
 				end
 			end
 		end
@@ -818,22 +810,30 @@ do
 				table_insert(t, spellInfo);
 			end
 		end
-		if (db.SortMode == CONST_SORT_MODES[1]) then
+		if (db.SortMode == AURA_SORT_MODE_NONE) then
 			-- // do nothing
-		elseif (db.SortMode == CONST_SORT_MODES[2]) then
+		elseif (db.SortMode == AURA_SORT_MODE_EXPIREASC) then
 			table_sort(t, function(item1, item2) return item1.expires < item2.expires end);
-		elseif (db.SortMode == CONST_SORT_MODES[3]) then
+		elseif (db.SortMode == AURA_SORT_MODE_EXPIREDES) then
 			table_sort(t, function(item1, item2) return item1.expires > item2.expires end);
-		elseif (db.SortMode == CONST_SORT_MODES[4]) then
-			table_sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNameByID[item1.spellID]] or db.DefaultIconSize) < (SpellIconSizesCache[SpellNameByID[item2.spellID]] or db.DefaultIconSize) end);
-		elseif (db.SortMode == CONST_SORT_MODES[5]) then
-			table_sort(t, function(item1, item2) return (SpellIconSizesCache[SpellNameByID[item1.spellID]] or db.DefaultIconSize) > (SpellIconSizesCache[SpellNameByID[item2.spellID]] or db.DefaultIconSize) end);
-		elseif (db.SortMode == CONST_SORT_MODES[6]) then
+		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEASC) then
+			table_sort(t, function(item1, item2)
+				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
+			end);
+		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEDES) then
+			table_sort(t, function(item1, item2)
+				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
+			end);
+		elseif (db.SortMode == AURA_SORT_MODE_AURATYPE_EXPIRE) then
 			table_sort(t, function(item1, item2)
 				if (item1.type ~= item2.type) then
-					return (item1.type == "debuff") and true or false;
+					return (item1.type == AURA_TYPE_DEBUFF) and true or false;
 				end
-				if (item1.type == "debuff") then
+				if (item1.type == AURA_TYPE_DEBUFF) then
 					return item1.expires < item2.expires;
 				else
 					return item1.expires > item2.expires;
@@ -843,13 +843,6 @@ do
 		return t;
 	end
 	
-end
-
---------------------------------------------------------------------------------------------------
------ OnUpdates
---------------------------------------------------------------------------------------------------
-do
-
 	function OnUpdate()
 		local currentTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
@@ -876,6 +869,8 @@ end
 ----- GUI
 --------------------------------------------------------------------------------------------------
 do
+
+	local MAX_AURA_ICON_SIZE = 75;
 
 	local function SetTooltip(frame, text)
 		frame:HookScript("OnEnter", function(self, ...)
@@ -1405,7 +1400,7 @@ do
 			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -25, 155, "NAuras.GUI.Cat1.SliderIconSize");
 			sliderIconSize.label:SetText(L["Default icon size"]);
 			sliderIconSize.slider:SetValueStep(1);
-			sliderIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
+			sliderIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
 			sliderIconSize.slider:SetValue(db.DefaultIconSize);
 			sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
 				sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
@@ -1427,8 +1422,8 @@ do
 						sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize));
 						msg(L["Value must be a number"]);
 					else
-						if (v > CONST_MAX_ICON_SIZE) then
-							v = CONST_MAX_ICON_SIZE;
+						if (v > MAX_AURA_ICON_SIZE) then
+							v = MAX_AURA_ICON_SIZE;
 						end
 						if (v < 1) then
 							v = 1;
@@ -1439,7 +1434,7 @@ do
 				end
 			end);
 			sliderIconSize.lowtext:SetText("1");
-			sliderIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
+			sliderIconSize.hightext:SetText(tostring(MAX_AURA_ICON_SIZE));
 			table_insert(GUIFrame.Categories[index], sliderIconSize);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(db.DefaultIconSize)); end);
 		
@@ -1649,6 +1644,13 @@ do
 			
 		-- // dropdownTimerStyle
 		do
+			
+			local TimerStylesLocalization = {
+				[TIMER_STYLE_TEXTURETEXT] =		L["Texture with timer"],
+				[TIMER_STYLE_CIRCULAR] =		L["Circular"],
+				[TIMER_STYLE_CIRCULAROMNICC] =	L["Circular with OmniCC support"],
+				[TIMER_STYLE_CIRCULARTEXT] =	L["Circular with timer"],
+			};
 		
 			local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
@@ -1656,8 +1658,8 @@ do
 			local info = {};
 			dropdownTimerStyle.initialize = function()
 				wipe(info);
-				for _, timerStyle in pairs(CONST_TIMER_STYLES) do
-					info.text = CONST_TIMER_STYLES_LOCALIZATION[timerStyle];
+				for _, timerStyle in pairs({ TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT }) do
+					info.text = TimerStylesLocalization[timerStyle];
 					info.value = timerStyle;
 					info.func = function(self)
 						db.TimerStyle = self.value;
@@ -1668,16 +1670,16 @@ do
 					UIDropDownMenu_AddButton(info);
 				end
 			end
-			_G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]);
+			_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[db.TimerStyle]);
 			dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString("NAuras.GUI.Cat1.DropdownTimerStyle.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText(L["Timer style:"]);
 			table_insert(GUIFrame.Categories[index], dropdownTimerStyle);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
-				if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]) then
+				if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= TimerStylesLocalization[db.TimerStyle]) then
 					PopupReloadUI();
 				end
-				_G[dropdownTimerStyle:GetName().."Text"]:SetText(CONST_TIMER_STYLES_LOCALIZATION[db.TimerStyle]);
+				_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[db.TimerStyle]);
 			end);
 			
 		end
@@ -1748,6 +1750,15 @@ do
 		
 		-- // dropdownSortMode
 		do
+			local SortModesLocalization = { 
+				[AURA_SORT_MODE_NONE] =				L["None"],
+				[AURA_SORT_MODE_EXPIREASC] =		L["By expire time, ascending"],
+				[AURA_SORT_MODE_EXPIREDES] =		L["By expire time, descending"],
+				[AURA_SORT_MODE_ICONSIZEASC] =		L["By icon size, ascending"],
+				[AURA_SORT_MODE_ICONSIZEDES] =		L["By icon size, descending"],
+				[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["By aura type (de/buff) + expire time"]
+			};
+		
 		
 			local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSortMode, 300);
@@ -1755,8 +1766,8 @@ do
 			local info = {};
 			dropdownSortMode.initialize = function()
 				wipe(info);
-				for _, sortMode in pairs(CONST_SORT_MODES) do
-					info.text = CONST_SORT_MODES_LOCALIZATION[sortMode];
+				for _, sortMode in pairs({ AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE }) do
+					info.text = SortModesLocalization[sortMode];
 					info.value = sortMode;
 					info.func = function(self)
 						db.SortMode = self.value;
@@ -1767,12 +1778,12 @@ do
 					UIDropDownMenu_AddButton(info);
 				end
 			end
-			_G[dropdownSortMode:GetName().."Text"]:SetText(CONST_SORT_MODES_LOCALIZATION[db.SortMode]);
+			_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[db.SortMode]);
 			dropdownSortMode.text = dropdownSortMode:CreateFontString("NAuras.GUI.Cat1.DropdownSortMode.Label", "ARTWORK", "GameFontNormalSmall");
 			dropdownSortMode.text:SetPoint("LEFT", 20, 15);
 			dropdownSortMode.text:SetText(L["Sort mode:"]);
 			table_insert(GUIFrame.Categories[index], dropdownSortMode);
-			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(CONST_SORT_MODES_LOCALIZATION[db.SortMode]); end);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[db.SortMode]); end);
 			
 		end
 		
@@ -1922,27 +1933,27 @@ do
 			local checkBoxUseRelativeFontSize = GUICreateCheckBoxEx("NAuras.GUI.TimerText.CheckBoxUseRelativeFontSize", L[ [=[Scale font size
 according to
 icon size]=] ], function(this)
-				db.TimerTextSizeMode = this:GetChecked() and CONST_TIMER_TEXT_MODES[1] or CONST_TIMER_TEXT_MODES[2];
-				if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+				db.TimerTextUseRelativeScale = this:GetChecked();
+				if (db.TimerTextUseRelativeScale) then
 					sliderTimerFontScale:Show();
 					sliderTimerFontSize:Hide();
-				elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+				else
 					sliderTimerFontScale:Hide();
 					sliderTimerFontSize:Show();
 				end
 			end);
-			checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
+			checkBoxUseRelativeFontSize:SetChecked(db.TimerTextUseRelativeScale);
 			checkBoxUseRelativeFontSize:SetParent(GUIFrame);
 			checkBoxUseRelativeFontSize:SetPoint("TOPLEFT", 160, -80);
 			table_insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
-				checkBoxUseRelativeFontSize:SetChecked(db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]);
+				checkBoxUseRelativeFontSize:SetChecked(db.TimerTextUseRelativeScale);
 			end);
 			checkBoxUseRelativeFontSize:SetScript("OnShow", function(self)
-				if (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[1]) then
+				if (db.TimerTextUseRelativeScale) then
 					sliderTimerFontScale:Show();
 					sliderTimerFontSize:Hide();
-				elseif (db.TimerTextSizeMode == CONST_TIMER_TEXT_MODES[2]) then
+				else
 					sliderTimerFontScale:Hide();
 					sliderTimerFontSize:Show();
 				end
@@ -2715,6 +2726,11 @@ icon size]=] ], function(this)
 		local selectedSpell = 0;
 		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
 			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled;
+		local AuraTypesLocalization = {
+			[AURA_TYPE_BUFF] =		L["Buff"],
+			[AURA_TYPE_DEBUFF] =	L["Debuff"],
+			[AURA_TYPE_ANY] =		L["Any"],
+		};
 		
 		-- // spellArea
 		do
@@ -2786,7 +2802,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 								end
 							end
 							if (not alreadyExist) then
-								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(SPELL_SHOW_MODES[2], spellID, db.DefaultIconSize, nil);
+								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, db.DefaultIconSize, nil);
 								UpdateSpellCachesFromDB(spellID);
 								selectSpell:Click();
 								local btn = GUIFrame.SpellSelector.GetButtonByText(spellName);
@@ -2872,14 +2888,14 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 							selectSpell.Text:SetText(self.text);
 							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
 							sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
-							_G[dropdownSpellShowType:GetName().."Text"]:SetText(SPELL_SHOW_TYPES_LOCALIZATION[db.CustomSpells2[selectedSpell].auraType]);
+							_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[db.CustomSpells2[selectedSpell].auraType]);
 							editboxSpellID:SetText(db.CustomSpells2[selectedSpell].checkSpellID or "");
 							checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
 							checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
 							checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
-							if (db.CustomSpells2[selectedSpell].enabledState == SPELL_SHOW_MODES[1]) then
+							if (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_DISABLED) then
 								checkboxEnabled:SetTriState(0);
-							elseif (db.CustomSpells2[selectedSpell].enabledState == SPELL_SHOW_MODES[2]) then
+							elseif (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_ALL) then
 								checkboxEnabled:SetTriState(2);
 							else
 								checkboxEnabled:SetTriState(1);
@@ -2926,8 +2942,8 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			local info = {};
 			dropdownSpellShowType.initialize = function()
 				wipe(info);
-				for _, auraType in pairs(SPELL_SHOW_TYPES) do
-					info.text = SPELL_SHOW_TYPES_LOCALIZATION[auraType];
+				for _, auraType in pairs({ AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY }) do
+					info.text = AuraTypesLocalization[auraType];
 					info.value = auraType;
 					info.func = function(self)
 						db.CustomSpells2[selectedSpell].auraType = self.value;
@@ -2956,7 +2972,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
 			sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
 			sliderSpellIconSize.slider:SetValueStep(1);
-			sliderSpellIconSize.slider:SetMinMaxValues(1, CONST_MAX_ICON_SIZE);
+			sliderSpellIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
 			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
 				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
 				db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
@@ -2972,8 +2988,8 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 						sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
 						Print(L["Value must be a number"]);
 					else
-						if (v > CONST_MAX_ICON_SIZE) then
-							v = CONST_MAX_ICON_SIZE;
+						if (v > MAX_AURA_ICON_SIZE) then
+							v = MAX_AURA_ICON_SIZE;
 						end
 						if (v < 1) then
 							v = 1;
@@ -2984,7 +3000,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 				end
 			end);
 			sliderSpellIconSize.lowtext:SetText("1");
-			sliderSpellIconSize.hightext:SetText(tostring(CONST_MAX_ICON_SIZE));
+			sliderSpellIconSize.hightext:SetText(tostring(MAX_AURA_ICON_SIZE));
 			table_insert(controls, sliderSpellIconSize);
 			
 		end
@@ -3036,7 +3052,6 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			buttonDeleteSpell:SetPoint("BOTTOMRIGHT", spellArea, "BOTTOMRIGHT", -20, 10);
 			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 				db.CustomSpells2[selectedSpell] = nil;
-				Spells[SpellNameByID[selectedSpell]] = nil;
 				UpdateSpellCachesFromDB(selectedSpell);
 				selectSpell.Text:SetText(L["Click to select spell"]);
 				for _, control in pairs(controls) do
@@ -3056,11 +3071,11 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			});
 			checkboxEnabled:SetClickHandler(function(self)
 				if (self:GetTriState() == 0) then
-					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[1];
+					db.CustomSpells2[selectedSpell].enabledState = CONST_SPELL_MODE_DISABLED;
 				elseif (self:GetTriState() == 1) then
-					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[3];
+					db.CustomSpells2[selectedSpell].enabledState = CONST_SPELL_MODE_MYAURAS;
 				else
-					db.CustomSpells2[selectedSpell].enabledState = SPELL_SHOW_MODES[2];
+					db.CustomSpells2[selectedSpell].enabledState = CONST_SPELL_MODE_ALL;
 				end
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);

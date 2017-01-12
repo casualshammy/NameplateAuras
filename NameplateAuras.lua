@@ -202,7 +202,6 @@ do
 				HideBlizzardFrames = true,
 				DefaultIconSize = 45,
 				SortMode = AURA_SORT_MODE_EXPIREASC,
-				DisplayTenthsOfSeconds = true,
 				FontScale = 1,
 				TimerTextUseRelativeScale = true,
 				TimerTextSize = 20,
@@ -236,6 +235,7 @@ do
 				BorderThickness = 2,
 				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
+				MinTimeToShowTenthsOfSeconds = 10,
 			},
 		};
 		
@@ -309,6 +309,10 @@ do
 					break;
 				end
 			end
+		end
+		if (aceDB.profile.DisplayTenthsOfSeconds ~= nil) then
+			aceDB.profile.MinTimeToShowTenthsOfSeconds = aceDB.profile.DisplayTenthsOfSeconds and 10 or 0;
+			aceDB.profile.DisplayTenthsOfSeconds = nil;
 		end
 		-- // creating a fast reference
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
@@ -629,7 +633,7 @@ do
 				icon.cooldown:SetText("");
 			elseif (last >= 60) then
 				icon.cooldown:SetText(math_floor(last/60).."m");
-			elseif (last >= 10 or not db.DisplayTenthsOfSeconds) then
+			elseif (last >= db.MinTimeToShowTenthsOfSeconds) then
 				icon.cooldown:SetText(string_format("%.0f", last));
 			else
 				icon.cooldown:SetText(string_format("%.1f", last));
@@ -1588,15 +1592,6 @@ do
 			checkBoxHideBlizzardFrames:SetChecked(db.HideBlizzardFrames);
 		end);
 		
-		local checkBoxDisplayTenthsOfSeconds = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxDisplayTenthsOfSeconds", L["Display tenths of seconds"], function(this)
-			db.DisplayTenthsOfSeconds = this:GetChecked();
-		end);
-		checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds);
-		checkBoxDisplayTenthsOfSeconds:SetParent(GUIFrame);
-		checkBoxDisplayTenthsOfSeconds:SetPoint("TOPLEFT", 160, -180);
-		table_insert(GUIFrame.Categories[index], checkBoxDisplayTenthsOfSeconds);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDisplayTenthsOfSeconds:SetChecked(db.DisplayTenthsOfSeconds); end);
-			
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
 		
@@ -1605,7 +1600,7 @@ do
 			end);
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
 			checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
-			checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -200);
+			checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -180);
 			table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate); end);
 		
@@ -1620,7 +1615,7 @@ do
 			end);
 			checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits);
 			checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
-			checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -220);
+			checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -200);
 			table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(db.ShowAboveFriendlyUnits); end);
 		
@@ -1635,8 +1630,8 @@ do
 			end);
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
 			checkBoxShowMyAuras:SetParent(GUIFrame);
-			checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -240);
-			SetTooltip(checkBoxShowMyAuras, "This is top priority filter. If you enable this feature,\nyour auras will be shown regardless of another filters"); -- // todo:localize
+			checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -220);
+			SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
@@ -1815,7 +1810,7 @@ do
 			[textAnchors[8]] = L["LEFT"],
 			[textAnchors[9]] = L["BOTTOMLEFT"]
 		};
-		local sliderTimerFontScale, sliderTimerFontSize;
+		local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea;
 		
 		-- // dropdownFont
 		do
@@ -2107,10 +2102,40 @@ icon size]=] ], function(this)
 		
 		end
 		
+		-- // timerTextColorArea
+		do
+		
+			timerTextColorArea = CreateFrame("Frame", "NAuras.GUI.Fonts.TimerTextColorArea", GUIFrame);
+			timerTextColorArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			timerTextColorArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			timerTextColorArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			timerTextColorArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -210);
+			timerTextColorArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 95);
+			timerTextColorArea:SetWidth(360);
+			table_insert(GUIFrame.Categories[index], timerTextColorArea);
+		
+		end
+		
+		-- // timerTextColorInfo
+		do
+			
+			local timerTextColorInfo = timerTextColorArea:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+			timerTextColorInfo:SetText(L["options:timer-text:text-color-note"]);
+			timerTextColorInfo:SetPoint("TOP", 0, -10);
+			
+		end
+		
 		-- // colorPickerTimerTextFiveSeconds
 		do
 		
-			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", GUIFrame, 165, -240, L["< 5sec"]);
+			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", timerTextColorArea, 10, -40, L["< 5sec"]);
 			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
 			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2138,7 +2163,7 @@ icon size]=] ], function(this)
 		-- // colorPickerTimerTextMinute
 		do
 		
-			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", GUIFrame, 290, -240, L["< 1min"]);
+			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", timerTextColorArea, 135, -40, L["< 1min"]);
 			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
 			colorPickerTimerTextMinute:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2166,7 +2191,7 @@ icon size]=] ], function(this)
 		-- // colorPickerTimerTextMore
 		do
 		
-			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", GUIFrame, 420, -240, L["> 1min"]);
+			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", timerTextColorArea, 260, -40, L["> 1min"]);
 			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
 			colorPickerTimerTextMore:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2191,6 +2216,70 @@ icon size]=] ], function(this)
 		
 		end
 
+		-- // tenthsOfSecondsArea
+		do
+		
+			tenthsOfSecondsArea = CreateFrame("Frame", "NAuras.GUI.Fonts.TenthsOfSecondsArea", GUIFrame);
+			tenthsOfSecondsArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			tenthsOfSecondsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			tenthsOfSecondsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			tenthsOfSecondsArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -285);
+			tenthsOfSecondsArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 30);
+			tenthsOfSecondsArea:SetWidth(360);
+			table_insert(GUIFrame.Categories[index], tenthsOfSecondsArea);
+			
+		end
+		
+		-- // sliderDisplayTenthsOfSeconds
+		do
+			
+			local minValue, maxValue = 0, 10;
+			local sliderDisplayTenthsOfSeconds = GUICreateSlider(tenthsOfSecondsArea, 10, -10, 340, "NAuras.GUI.Fonts.SliderDisplayTenthsOfSeconds");
+			sliderDisplayTenthsOfSeconds.label:SetText(L["options:timer-text:min-duration-to-display-tenths-of-seconds"]);
+			sliderDisplayTenthsOfSeconds.slider:SetValueStep(0.1);
+			sliderDisplayTenthsOfSeconds.slider:SetMinMaxValues(minValue, maxValue);
+			sliderDisplayTenthsOfSeconds.slider:SetValue(db.MinTimeToShowTenthsOfSeconds);
+			sliderDisplayTenthsOfSeconds.slider:SetScript("OnValueChanged", function(self, value)
+				local actualValue = tonumber(string_format("%.1f", value));
+				sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(actualValue));
+				db.MinTimeToShowTenthsOfSeconds = actualValue;
+			end);
+			sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(db.MinTimeToShowTenthsOfSeconds));
+			sliderDisplayTenthsOfSeconds.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (self:GetText() ~= "") then
+					local v = tonumber(self:GetText());
+					if (v == nil) then
+						self:SetText(tostring(db.MinTimeToShowTenthsOfSeconds));
+						msg(L["Value must be a number"]);
+					else
+						if (v > maxValue) then
+							v = maxValue;
+						end
+						if (v < minValue) then
+							v = minValue;
+						end
+						sliderDisplayTenthsOfSeconds.slider:SetValue(v);
+					end
+					self:ClearFocus();
+				else
+					self:SetText(tostring(db.MinTimeToShowTenthsOfSeconds));
+					msg(L["Value must be a number"]);
+				end
+			end);
+			sliderDisplayTenthsOfSeconds.lowtext:SetText(tostring(minValue));
+			sliderDisplayTenthsOfSeconds.hightext:SetText(tostring(maxValue));
+			table_insert(GUIFrame.Categories[index], sliderDisplayTenthsOfSeconds);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(db.MinTimeToShowTenthsOfSeconds)); sliderDisplayTenthsOfSeconds.slider:SetValue(db.MinTimeToShowTenthsOfSeconds); end);
+		
+		end
+		
 	end
 	
 	function GUICategory_AuraStackFont(index, value)
@@ -2807,6 +2896,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 								selectSpell:Click();
 								local btn = GUIFrame.SpellSelector.GetButtonByText(spellName);
 								if (btn ~= nil) then btn:Click(); end
+								UpdateAllNameplates(false);
 							else
 								msg(format(L["Spell already exists (%s)"], spellName));
 							end
@@ -3065,9 +3155,9 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // checkboxEnabled
 		do
 			checkboxEnabled = GUICreateCheckBoxTristate({
-				ColorizeText("Disabled", 1, 1, 1), -- // todo:localize
-				ColorizeText("Enabled, show only my auras", 0, 1, 1), -- // todo:localize
-				ColorizeText("Enabled, show all auras", 0, 1, 0), -- // todo:localize
+				ColorizeText(L["Disabled"], 1, 1, 1),
+				ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+				ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0),
 			});
 			checkboxEnabled:SetClickHandler(function(self)
 				if (self:GetTriState() == 0) then
@@ -3082,10 +3172,10 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			end);
 			checkboxEnabled:SetParent(spellArea);
 			checkboxEnabled:SetPoint("TOPLEFT", 15, -15);
-			SetTooltip(checkboxEnabled, format("Enables/disables aura\n\n%s: aura will not be shown\n%s: aura will be shown if you've cast it\n%s: show all auras", -- // todo:localize
-				ColorizeText("Disabled", 1, 1, 1), -- // todo:localize
-				ColorizeText("Enabled, show only my auras", 0, 1, 1), -- // todo:localize
-				ColorizeText("Enabled, show all auras", 0, 1, 0))); -- // todo:localize
+			SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
+				ColorizeText(L["Disabled"], 1, 1, 1),
+				ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+				ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 			table_insert(controls, checkboxEnabled);
 			
 		end
@@ -3130,9 +3220,9 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // checkboxPvPMode
 		do
 			checkboxPvPMode = GUICreateCheckBoxTristate({
-				"Show this aura during PvP combat", -- // todo:localize
-				ColorizeText("Show this aura during PvP combat only", 0, 1, 0), -- // todo:localize
-				ColorizeText("Don't show this aura during PvP combat", 1, 0, 0), -- // todo:localize
+				L["options:auras:pvp-state-indefinite"],
+				ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
+				ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
 			});
 			checkboxPvPMode:SetClickHandler(function(self)
 				if (self:GetTriState() == 0) then
@@ -3147,10 +3237,6 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			end);
 			checkboxPvPMode:SetParent(spellArea);
 			checkboxPvPMode:SetPoint("TOPLEFT", 15, -95);
-			-- SetTooltip(checkboxPvPMode, format("%s: this aura will be shown regardless of the PvP state\n%s: this aura will be shown in PvP combat only\n%s: this aura will not be shown in PvP combat",
-				-- "Show this aura during PvP combat",
-				-- ColorizeText("Show this aura during PvP combat only", 0, 1, 0),
-				-- ColorizeText("Don't show this aura during PvP combat", 1, 0, 0)));
 			table_insert(controls, checkboxPvPMode);
 			
 		end

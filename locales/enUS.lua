@@ -94,3 +94,20 @@ L["Any"] = true;
 L["options:aura-options:allow-multiple-instances"] = "Allow multiple instances of this aura";
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.
 Otherwise you will see only one instance of this aura (the longest one)]=];
+
+
+L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
+your auras will be shown regardless of another filters]=];
+L["options:timer-text:text-color-note"] = [=[Text colour will be changed
+depending on the time remaining:]=];
+L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras";
+L["options:auras:enabled-state-all"] = "Enabled, show all auras";
+L["options:auras:enabled-state:tooltip"] = [=[Enables/disables aura
+
+%s: aura will not be shown
+%s: aura will be shown if you've cast it
+%s: show all auras]=];
+L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat";
+L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only";
+L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat";
+L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds";

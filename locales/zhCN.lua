@@ -1,5 +1,5 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "zhCN");
-if not L then return end
+L = L or {}
 L["< 1min"] = "小于1分钟"
 L["< 5sec"] = "小于5秒钟"
 L["> 1min"] = "大于1分钟"
@@ -69,6 +69,40 @@ L["None"] = "无"
 L["Only my auras"] = "Only my auras"
 L["Open profiles dialog"] = "打开配置文件"
 L["Options are not available in combat!"] = "选项在战斗中不可用!"
+--Translation missing 
+L["options:aura-options:allow-multiple-instances"] = "Allow multiple instances of this aura"
+--Translation missing 
+L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.
+Otherwise you will see only one instance of this aura (the longest one)]=]
+L["options:auras:add-new-spell:error1"] = [=[你应该输入法术名称而不是法术ID.
+如果你想用指定ID监视法术,使用"%s"选项]=]
+--Translation missing 
+L["options:auras:enabled-state:tooltip"] = [=[Enables/disables aura
+
+%s: aura will not be shown
+%s: aura will be shown if you've cast it
+%s: show all auras]=]
+--Translation missing 
+L["options:auras:enabled-state-all"] = "Enabled, show all auras"
+--Translation missing 
+L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
+--Translation missing 
+L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat"
+--Translation missing 
+L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
+--Translation missing 
+L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
+--Translation missing 
+L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
+your auras will be shown regardless of other filters]=]
+--Translation missing 
+L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
+L["options:timer-text:scale-font-size"] = [=[缩放字体大小
+根据
+图标大小]=]
+--Translation missing 
+L["options:timer-text:text-color-note"] = [=[Text colour will change
+depending on the time remaining:]=]
 L["Other"] = "其他"
 L["Please reload UI to apply changes"] = "请重新加载用户界面来应用更改"
 L["Poison"] = "毒药"
@@ -76,11 +110,6 @@ L["Profiles"] = "配置文件"
 L["Reload UI"] = "重新加载用户界面"
 --Translation missing 
 L["RIGHT"] = "Right"
-L[ [=[Scale font size
-according to
-icon size]=] ] = [=[缩放字体大小
-根据
-图标大小]=]
 L["Show border around buff icons"] = "在增益图标周围显示边框"
 L["Show border around debuff icons"] = "在减益图标周围显示边框"
 --Translation missing 
@@ -109,6 +138,3 @@ L["Value must be a number"] = "值必须是数字"
 L["X offset"] = "横向位移"
 L["Y offset"] = "纵向位移"
 L["Yes"] = "是"
-L[ [=[You should enter spell name instead of spell id.
-Use \"%s\" option if you want to track spell with specific id]=] ] = [=[你应该输入法术名称而不是法术ID.
-如果你想用指定ID监视法术,使用"%s"选项]=]

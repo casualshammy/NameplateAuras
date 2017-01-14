@@ -479,7 +479,7 @@ do
 	end
 	
 	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack)
-		if (EnabledAurasInfo[auraName].allowMultipleInstances) then
+		if (EnabledAurasInfo[auraName] ~= nil and EnabledAurasInfo[auraName].allowMultipleInstances) then
 			return true;
 		else
 			for index, value in pairs(AurasPerNameplate[frame]) do
@@ -516,6 +516,18 @@ do
 			-- print(format("SortAurasForNameplate: usage/calls: %.5f, total calls: %s", (usage3/calls3), calls3));
 		-- else
 			-- print("SortAurasForNameplate: no calls");
+		-- end
+		-- local usage4, calls4 = GetFunctionCPUUsage(OnUpdate, true);
+		-- if (calls4 > 0) then
+			-- print(format("OnUpdate: usage/calls: %.5f, total calls: %s", (usage4/calls4), calls4));
+		-- else
+			-- print("OnUpdate: no calls");
+		-- end
+		-- usage4, calls4 = GetFunctionCPUUsage(UpdateNameplate_SetCooldown, true);
+		-- if (calls4 > 0) then
+			-- print(format("UpdateNameplate_SetCooldown: usage/calls: %.5f, total calls: %s", (usage4/calls4), calls4));
+		-- else
+			-- print("UpdateNameplate_SetCooldown: no calls");
 		-- end
 		-- C_Timer.After(300, aaaaa);
 	-- end
@@ -902,8 +914,8 @@ do
 		StaticPopup_Show("NAURAS_MSG_RELOAD");
 	end
 
-	local function GUICreateCheckBoxEx(publicName, text, func)
-		local checkBox = CreateFrame("CheckButton", publicName);
+	local function GUICreateCheckBoxEx(text, func)
+		local checkBox = CreateFrame("CheckButton");
 		checkBox:SetHeight(20);
 		checkBox:SetWidth(20);
 		checkBox:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up");
@@ -937,7 +949,7 @@ do
 	end
 	
 	local function GUICreateCheckBoxTristate(textEntries)
-		local checkButton = GUICreateCheckBoxEx(nil, textEntries[1], nil);
+		local checkButton = GUICreateCheckBoxEx(textEntries[1], nil);
 		checkButton.state = 0;
 		checkButton.SetTriState = function(self, tristate)
 			self:SetText(textEntries[tristate+1]);
@@ -958,8 +970,8 @@ do
 		return checkButton;
 	end
 	
-	local function GUICreateCheckBoxWithColorPicker(publicName, x, y, text, checkedChangedCallback)
-		local checkBox = GUICreateCheckBoxEx(publicName, text, checkedChangedCallback);
+	local function GUICreateCheckBoxWithColorPicker(x, y, text, checkedChangedCallback)
+		local checkBox = GUICreateCheckBoxEx(text, checkedChangedCallback);
 		
 		checkBox.textFrame:SetPoint("LEFT", checkBox, "RIGHT", 20, 0);
 		
@@ -994,34 +1006,12 @@ do
 		checkBox.ColorButton.checkers:SetVertexColor(1, 1, 1, 0.75);
 		checkBox.ColorButton.checkers:SetPoint("CENTER", checkBox.ColorButton.colorSwatch);
 		checkBox.ColorButton.checkers:Show();
-		
-		--checkBox:HookScript("OnShow", function(self) self.ColorButton:Show(); end);
-		--checkBox:HookScript("OnHide", function(self) self.ColorButton:Hide(); end);
 				
 		return checkBox;
 	end
-	
-	local function GUICreateCmbboxTextureText(publicName, parent, x, y)
-		local dropdown = CreateFrame("Frame", publicName.."_Cmbbox", parent, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdown, 100);
-		dropdown:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y);
 		
-		local text = dropdown:CreateFontString(publicName.."_Text", "ARTWORK", "GameFontNormalSmall");
-		text:SetPoint("LEFT", 165, 0);
-		
-		local button = CreateFrame("button", publicName.."_Button", dropdown, "SecureActionButtonTemplate");
-		button:SetHeight(20);
-		button:SetWidth(20);
-		button:SetPoint("RIGHT", 10, 0);
-		button.texture = button:CreateTexture();
-		button.texture:SetAllPoints(button);
-		button:EnableMouse(true);
-		
-		return dropdown, text, button;
-	end
-	
-	local function GUICreateColorPicker(publicName, parent, x, y, text)
-		local colorButton = CreateFrame("Button", publicName, parent);
+	local function GUICreateColorPicker(parent, x, y, text)
+		local colorButton = CreateFrame("Button", nil, parent);
 		colorButton:SetPoint("TOPLEFT", x, y);
 		colorButton:SetWidth(20);
 		colorButton:SetHeight(20);
@@ -1057,8 +1047,8 @@ do
 		return colorButton;
 	end
 	
-	local function GUICreateSlider(parent, x, y, size, publicName)
-		local frame = CreateFrame("Frame", publicName, parent);
+	local function GUICreateSlider(parent, x, y, size)
+		local frame = CreateFrame("Frame", nil, parent);
 		frame:SetHeight(100);
 		frame:SetWidth(size);
 		frame:SetPoint("TOPLEFT", x, y);
@@ -1110,9 +1100,9 @@ do
 		return frame;
 	end
 	
-	local function GUICreateButton(publicName, parentFrame, text)
+	local function GUICreateButton(parentFrame, text)
 		-- After creation we need to set up :SetWidth, :SetHeight, :SetPoint, :SetScript
-		local button = CreateFrame("Button", publicName, parentFrame);
+		local button = CreateFrame("Button", nil, parentFrame);
 		button.Background = button:CreateTexture(nil, "BORDER");
 		button.Background:SetPoint("TOPLEFT", 1, -1);
 		button.Background:SetPoint("BOTTOMRIGHT", -1, 1);
@@ -1141,7 +1131,7 @@ do
 		button.Highlight:SetColorTexture(0.6, 0.6, 0.6, 0.2);
 		button:SetHighlightTexture(button.Highlight);
 
-		button.Text = button:CreateFontString((publicName ~= nil) and (publicName .. "Text") or nil, "OVERLAY", "GameFontNormal");
+		button.Text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal");
 		button.Text:SetPoint("CENTER", 0, 0);
 		button.Text:SetJustifyH("CENTER");
 		button.Text:SetTextColor(1, 0.82, 0, 1);
@@ -1172,7 +1162,7 @@ do
 		scrollAreaBackground.scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
 		scrollAreaBackground.scrollArea:Show();
 		
-		local scrollAreaChildFrame = CreateFrame("Frame", "NAuras.SpellSelector.ScrollArea.Child", scrollAreaBackground.scrollArea);
+		local scrollAreaChildFrame = CreateFrame("Frame", nil, scrollAreaBackground.scrollArea);
 		scrollAreaBackground.scrollArea:SetScrollChild(scrollAreaChildFrame);
 		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
 		scrollAreaChildFrame:SetWidth(288);
@@ -1182,7 +1172,7 @@ do
 		
 		local function GetButton(counter)
 			if (scrollAreaBackground.buttons[counter] == nil) then
-				local button = GUICreateButton("NAuras.SpellSelector.Button" .. tostring(counter), scrollAreaChildFrame, "");
+				local button = GUICreateButton(scrollAreaChildFrame, "");
 				button:SetWidth(280);
 				button:SetHeight(20);
 				button:SetPoint("TOPLEFT", 38, -counter * 22 + 15);
@@ -1276,7 +1266,7 @@ do
 	end
 	
 	local function InitializeGUI()
-		GUIFrame = CreateFrame("Frame", "NAuras_GUIFrame", UIParent);
+		GUIFrame = CreateFrame("Frame", "NAuras.GUIFrame", UIParent);
 		GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
 		GUIFrame:SetScript("OnEvent", function(self, event, ...)
 			if (event == "PLAYER_REGEN_DISABLED") then
@@ -1316,12 +1306,12 @@ do
 		GUIFrame.CategoryButtons = {};
 		GUIFrame.ActiveCategory = 1;
 		
-		local header = GUIFrame:CreateFontString("NAuras_GUIHeader", "ARTWORK", "GameFontHighlight");
+		local header = GUIFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 		header:SetFont(GameFontNormal:GetFont(), 22, "THICKOUTLINE");
 		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 210);
 		header:SetText("NameplateAuras");
 		
-		GUIFrame.outline = CreateFrame("Frame", "NAuras_GUI_GUIFrame_outline", GUIFrame);
+		GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame);
 		GUIFrame.outline:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1336,7 +1326,7 @@ do
 		GUIFrame.outline:SetPoint("BOTTOMLEFT", 12, 12);
 		GUIFrame.outline:SetWidth(130);
 		
-		local closeButton = CreateFrame("Button", "NAuras_GUICloseButton", GUIFrame, "UIPanelButtonTemplate");
+		local closeButton = CreateFrame("Button", "NAuras.GUI.CloseButton", GUIFrame, "UIPanelButtonTemplate");
 		closeButton:SetWidth(24);
 		closeButton:SetHeight(24);
 		closeButton:SetPoint("TOPRIGHT", 0, 22);
@@ -1401,7 +1391,7 @@ do
 		-- // sliderIconSize
 		do
 		
-			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -25, 155, "NAuras.GUI.Cat1.SliderIconSize");
+			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -25, 155);
 			sliderIconSize.label:SetText(L["Default icon size"]);
 			sliderIconSize.slider:SetValueStep(1);
 			sliderIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
@@ -1447,7 +1437,7 @@ do
 		-- // sliderIconSpacing
 		do
 			local minValue, maxValue = 0, 50;
-			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -25, 155, "NAuras.GUI.Cat1.SliderIconSpacing");
+			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -25, 155);
 			sliderIconSpacing.label:SetText(L["Space between icons"]);
 			sliderIconSpacing.slider:SetValueStep(1);
 			sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
@@ -1486,7 +1476,7 @@ do
 		-- // sliderIconXOffset
 		do
 		
-			local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -85, 155, "NAuras_GUIGeneralSliderIconXOffset");
+			local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -85, 155);
 			sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 			sliderIconXOffset.slider:SetValueStep(1);
 			sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -1525,7 +1515,7 @@ do
 		-- // sliderIconYOffset
 		do
 		
-			local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -85, 155, "NAuras_GUIGeneralSliderIconYOffset");
+			local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -85, 155);
 			sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 			sliderIconYOffset.slider:SetValueStep(1);
 			sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -1562,7 +1552,7 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBoxEx("NAuras_GUI_General_CheckBoxFullOpacityAlways", L["Always display icons at full opacity (ReloadUI is required)"], function(this)
+		local checkBoxFullOpacityAlways = GUICreateCheckBoxEx(L["Always display icons at full opacity (ReloadUI is required)"], function(this)
 			db.FullOpacityAlways = this:GetChecked();
 			PopupReloadUI();
 		end);
@@ -1577,7 +1567,7 @@ do
 			checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		end);
 		
-		local checkBoxHideBlizzardFrames = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxHideBlizzardFrames", L["Hide Blizzard's aura frames (Reload UI is required)"], function(this)
+		local checkBoxHideBlizzardFrames = GUICreateCheckBoxEx(L["Hide Blizzard's aura frames (Reload UI is required)"], function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 			PopupReloadUI();
 		end);
@@ -1595,7 +1585,7 @@ do
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
 		
-			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowAurasOnPlayerNameplate", L["Display auras on player's nameplate"], function(this)
+			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBoxEx(L["Display auras on player's nameplate"], function(this)
 				db.ShowAurasOnPlayerNameplate = this:GetChecked();
 			end);
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
@@ -1609,7 +1599,7 @@ do
 		-- // checkBoxShowAboveFriendlyUnits
 		do
 		
-			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowAboveFriendlyUnits", L["Display auras on nameplates of friendly units"], function(this)
+			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBoxEx(L["Display auras on nameplates of friendly units"], function(this)
 				db.ShowAboveFriendlyUnits = this:GetChecked();
 				UpdateAllNameplates(true);
 			end);
@@ -1624,7 +1614,7 @@ do
 		-- // checkBoxShowMyAuras
 		do
 		
-			local checkBoxShowMyAuras = GUICreateCheckBoxEx("NAuras.GUI.Cat1.CheckBoxShowMyAuras", L["Always show auras cast by myself"], function(this)
+			local checkBoxShowMyAuras = GUICreateCheckBoxEx(L["Always show auras cast by myself"], function(this)
 				db.AlwaysShowMyAuras = this:GetChecked();
 				UpdateAllNameplates(false);
 			end);
@@ -1657,16 +1647,20 @@ do
 					info.text = TimerStylesLocalization[timerStyle];
 					info.value = timerStyle;
 					info.func = function(self)
-						db.TimerStyle = self.value;
-						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
-						PopupReloadUI();
+						if (self.value == TIMER_STYLE_CIRCULAROMNICC and not IsAddOnLoaded("omnicc")) then
+							msg("You cannot select this option, OmniCC is not loaded!"); -- // todo:localize
+						else
+							db.TimerStyle = self.value;
+							_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
+							PopupReloadUI();
+						end
 					end
 					info.checked = (db.TimerStyle == info.value);
 					UIDropDownMenu_AddButton(info);
 				end
 			end
 			_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[db.TimerStyle]);
-			dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString("NAuras.GUI.Cat1.DropdownTimerStyle.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerStyle.text:SetText(L["Timer style:"]);
 			table_insert(GUIFrame.Categories[index], dropdownTimerStyle);
@@ -1703,7 +1697,7 @@ do
 				end
 			end
 			_G[dropdownIconAnchor:GetName().."Text"]:SetText(L[db.IconAnchor]);
-			dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString("NAuras.GUI.Cat1.DropdownIconAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
 			table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
@@ -1735,7 +1729,7 @@ do
 				end
 			end
 			_G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[db.FrameAnchor]);
-			dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString("NAuras.GUI.Cat1.DropdownFrameAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
 			table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
@@ -1774,7 +1768,7 @@ do
 				end
 			end
 			_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[db.SortMode]);
-			dropdownSortMode.text = dropdownSortMode:CreateFontString("NAuras.GUI.Cat1.DropdownSortMode.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownSortMode.text = dropdownSortMode:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownSortMode.text:SetPoint("LEFT", 20, 15);
 			dropdownSortMode.text:SetText(L["Sort mode:"]);
 			table_insert(GUIFrame.Categories[index], dropdownSortMode);
@@ -1785,7 +1779,7 @@ do
 	end
 	
 	function GUICategory_2(index, value)
-		local button = GUICreateButton("NAuras.GUI.Profiles.MainButton", GUIFrame, L["Open profiles dialog"]);
+		local button = GUICreateButton(GUIFrame, L["Open profiles dialog"]);
 		button:SetWidth(170);
 		button:SetHeight(40);
 		button:SetPoint("CENTER", GUIFrame, "CENTER", 70, 0);
@@ -1834,7 +1828,7 @@ do
 				end
 			end
 			_G[dropdownFont:GetName() .. "Text"]:SetText(db.Font);
-			dropdownFont.text = dropdownFont:CreateFontString("NAuras.GUI.Fonts.DropdownFont.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownFont.text = dropdownFont:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownFont.text:SetPoint("LEFT", 20, 15);
 			dropdownFont.text:SetText(L["Font"]);
 			table_insert(GUIFrame.Categories[index], dropdownFont);
@@ -1846,7 +1840,7 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			sliderTimerFontScale = GUICreateSlider(GUIFrame, 300, -68, 200, "NAuras.GUI.Fonts.SliderTimerFontScale");
+			sliderTimerFontScale = GUICreateSlider(GUIFrame, 300, -68, 200);
 			sliderTimerFontScale.label:SetText(L["Font scale"]);
 			sliderTimerFontScale.slider:SetValueStep(0.1);
 			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -1886,7 +1880,7 @@ do
 		do
 			
 			local minValue, maxValue = 6, 96;
-			sliderTimerFontSize = GUICreateSlider(GUIFrame, 300, -68, 200, "NAuras.GUI.Fonts.SliderTimerFontSize");
+			sliderTimerFontSize = GUICreateSlider(GUIFrame, 300, -68, 200);
 			sliderTimerFontSize.label:SetText(L["Font size"]);
 			sliderTimerFontSize.slider:SetValueStep(1);
 			sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
@@ -1925,9 +1919,7 @@ do
 		-- // checkBoxUseRelativeFontSize
 		do
 		
-			local checkBoxUseRelativeFontSize = GUICreateCheckBoxEx("NAuras.GUI.TimerText.CheckBoxUseRelativeFontSize", L[ [=[Scale font size
-according to
-icon size]=] ], function(this)
+			local checkBoxUseRelativeFontSize = GUICreateCheckBoxEx(L["options:timer-text:scale-font-size"], function(this)
 				db.TimerTextUseRelativeScale = this:GetChecked();
 				if (db.TimerTextUseRelativeScale) then
 					sliderTimerFontScale:Show();
@@ -1982,7 +1974,7 @@ icon size]=] ], function(this)
 				end
 			end
 			_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[db.TimerTextAnchor]);
-			dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
 			table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
@@ -2012,7 +2004,7 @@ icon size]=] ], function(this)
 				end
 			end
 			_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[db.TimerTextAnchorIcon]);
-			dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 15);
 			dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
 			table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
@@ -2024,7 +2016,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderTimerTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165, "NAuras.GUI.Fonts.SliderTimerTextXOffset");
+			local sliderTimerTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165);
 			sliderTimerTextXOffset.label:SetText(L["X offset"]);
 			sliderTimerTextXOffset.slider:SetValueStep(1);
 			sliderTimerTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2065,7 +2057,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderTimerTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165, "NAuras.GUI.Fonts.SliderTimerTextYOffset");
+			local sliderTimerTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165);
 			sliderTimerTextYOffset.label:SetText(L["Y offset"]);
 			sliderTimerTextYOffset.slider:SetValueStep(1);
 			sliderTimerTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2105,7 +2097,7 @@ icon size]=] ], function(this)
 		-- // timerTextColorArea
 		do
 		
-			timerTextColorArea = CreateFrame("Frame", "NAuras.GUI.Fonts.TimerTextColorArea", GUIFrame);
+			timerTextColorArea = CreateFrame("Frame", nil, GUIFrame);
 			timerTextColorArea:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2135,7 +2127,7 @@ icon size]=] ], function(this)
 		-- // colorPickerTimerTextFiveSeconds
 		do
 		
-			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextFiveSeconds", timerTextColorArea, 10, -40, L["< 5sec"]);
+			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker(timerTextColorArea, 10, -40, L["< 5sec"]);
 			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
 			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2163,7 +2155,7 @@ icon size]=] ], function(this)
 		-- // colorPickerTimerTextMinute
 		do
 		
-			local colorPickerTimerTextMinute = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMinute", timerTextColorArea, 135, -40, L["< 1min"]);
+			local colorPickerTimerTextMinute = GUICreateColorPicker(timerTextColorArea, 135, -40, L["< 1min"]);
 			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
 			colorPickerTimerTextMinute:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2191,7 +2183,7 @@ icon size]=] ], function(this)
 		-- // colorPickerTimerTextMore
 		do
 		
-			local colorPickerTimerTextMore = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerTimerTextMore", timerTextColorArea, 260, -40, L["> 1min"]);
+			local colorPickerTimerTextMore = GUICreateColorPicker(timerTextColorArea, 260, -40, L["> 1min"]);
 			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
 			colorPickerTimerTextMore:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2219,7 +2211,7 @@ icon size]=] ], function(this)
 		-- // tenthsOfSecondsArea
 		do
 		
-			tenthsOfSecondsArea = CreateFrame("Frame", "NAuras.GUI.Fonts.TenthsOfSecondsArea", GUIFrame);
+			tenthsOfSecondsArea = CreateFrame("Frame", nil, GUIFrame);
 			tenthsOfSecondsArea:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2231,7 +2223,7 @@ icon size]=] ], function(this)
 			tenthsOfSecondsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			tenthsOfSecondsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 			tenthsOfSecondsArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -285);
-			tenthsOfSecondsArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 30);
+			tenthsOfSecondsArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 20);
 			tenthsOfSecondsArea:SetWidth(360);
 			table_insert(GUIFrame.Categories[index], tenthsOfSecondsArea);
 			
@@ -2241,7 +2233,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = 0, 10;
-			local sliderDisplayTenthsOfSeconds = GUICreateSlider(tenthsOfSecondsArea, 10, -10, 340, "NAuras.GUI.Fonts.SliderDisplayTenthsOfSeconds");
+			local sliderDisplayTenthsOfSeconds = GUICreateSlider(tenthsOfSecondsArea, 10, -10, 340);
 			sliderDisplayTenthsOfSeconds.label:SetText(L["options:timer-text:min-duration-to-display-tenths-of-seconds"]);
 			sliderDisplayTenthsOfSeconds.slider:SetValueStep(0.1);
 			sliderDisplayTenthsOfSeconds.slider:SetMinMaxValues(minValue, maxValue);
@@ -2319,7 +2311,7 @@ icon size]=] ], function(this)
 				end
 			end
 			_G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont);
-			dropdownStacksFont.text = dropdownStacksFont:CreateFontString("NAuras.GUI.Fonts.DropdownStacksFont.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksFont.text = dropdownStacksFont:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksFont.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksFont.text:SetText(L["Font"]);
 			table_insert(GUIFrame.Categories[index], dropdownStacksFont);
@@ -2331,7 +2323,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -68, 340, "NAuras.GUI.Fonts.SliderStacksFontScale");
+			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -68, 340);
 			sliderStacksFontScale.label:SetText(L["Font scale"]);
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -2390,7 +2382,7 @@ icon size]=] ], function(this)
 				end
 			end
 			_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[db.StacksTextAnchor]);
-			dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchor.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksAnchor.text:SetText(L["Anchor point"]);
 			table_insert(GUIFrame.Categories[index], dropdownStacksAnchor);
@@ -2420,7 +2412,7 @@ icon size]=] ], function(this)
 				end
 			end
 			_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[db.StacksTextAnchorIcon]);
-			dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString("NAuras.GUI.Fonts.DropdownStacksAnchorIcon.Label", "ARTWORK", "GameFontNormalSmall");
+			dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 15);
 			dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
 			table_insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
@@ -2432,7 +2424,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderStacksTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165, "NAuras.GUI.Fonts.SliderStacksTextXOffset");
+			local sliderStacksTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165);
 			sliderStacksTextXOffset.label:SetText(L["X offset"]);
 			sliderStacksTextXOffset.slider:SetValueStep(1);
 			sliderStacksTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2473,7 +2465,7 @@ icon size]=] ], function(this)
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderStacksTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165, "NAuras.GUI.Fonts.SliderStacksTextYOffset");
+			local sliderStacksTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165);
 			sliderStacksTextYOffset.label:SetText(L["Y offset"]);
 			sliderStacksTextYOffset.slider:SetValueStep(1);
 			sliderStacksTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2513,7 +2505,7 @@ icon size]=] ], function(this)
 		-- // colorPickerStacksTextColor
 		do
 		
-			local colorPickerStacksTextColor = GUICreateColorPicker("NAuras.GUI.Fonts.ColorPickerStacksTextColor", GUIFrame, 165, -240, L["Text color"]);
+			local colorPickerStacksTextColor = GUICreateColorPicker(GUIFrame, 165, -240, L["Text color"]);
 			colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor));
 			colorPickerStacksTextColor:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2555,7 +2547,7 @@ icon size]=] ], function(this)
 		do
 		
 			local minValue, maxValue = 1, 5;
-			local sliderBorderThickness = GUICreateSlider(GUIFrame, 160, -30, 325, "NAuras.GUI.Borders.SliderBorderThickness");
+			local sliderBorderThickness = GUICreateSlider(GUIFrame, 160, -30, 325);
 			sliderBorderThickness.label:SetText(L["Border thickness"]);
 			sliderBorderThickness.slider:SetValueStep(1);
 			sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
@@ -2595,7 +2587,7 @@ icon size]=] ], function(this)
 		-- // checkBoxBuffBorder
 		do
 		
-			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker("NAuras.GUI.Borders.CheckBoxBuffBorder", 160, -90, L["Show border around buff icons"], function(this)
+			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker(160, -90, L["Show border around buff icons"], function(this)
 				db.ShowBuffBorders = this:GetChecked();
 				UpdateAllNameplates();
 			end);
@@ -2630,7 +2622,7 @@ icon size]=] ], function(this)
 		-- // debuffArea
 		do
 		
-			debuffArea = CreateFrame("Frame", "NAuras.GUI.Borders.DebuffArea", GUIFrame);
+			debuffArea = CreateFrame("Frame", nil, GUIFrame);
 			debuffArea:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2651,7 +2643,7 @@ icon size]=] ], function(this)
 		-- // checkBoxDebuffBorder
 		do
 		
-			local checkBoxDebuffBorder = GUICreateCheckBoxEx("NAuras.GUI.Borders.CheckBoxDebuffBorder", L["Show border around debuff icons"], function(this)
+			local checkBoxDebuffBorder = GUICreateCheckBoxEx(L["Show border around debuff icons"], function(this)
 				db.ShowDebuffBorders = this:GetChecked();
 				UpdateAllNameplates();
 			end);
@@ -2666,7 +2658,7 @@ icon size]=] ], function(this)
 		-- // colorPickerDebuffMagic
 		do
 		
-			local colorPickerDebuffMagic = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffMagic", debuffArea, 15, -45, L["Magic"]);
+			local colorPickerDebuffMagic = GUICreateColorPicker(debuffArea, 15, -45, L["Magic"]);
 			colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor));
 			colorPickerDebuffMagic:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2695,7 +2687,7 @@ icon size]=] ], function(this)
 		-- // colorPickerDebuffCurse
 		do
 		
-			local colorPickerDebuffCurse = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffCurse", debuffArea, 135, -45, L["Curse"]);
+			local colorPickerDebuffCurse = GUICreateColorPicker(debuffArea, 135, -45, L["Curse"]);
 			colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor));
 			colorPickerDebuffCurse:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2724,7 +2716,7 @@ icon size]=] ], function(this)
 		-- // colorPickerDebuffDisease
 		do
 		
-			local colorPickerDebuffDisease = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffDisease", debuffArea, 255, -45, L["Disease"]);
+			local colorPickerDebuffDisease = GUICreateColorPicker(debuffArea, 255, -45, L["Disease"]);
 			colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor));
 			colorPickerDebuffDisease:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2753,7 +2745,7 @@ icon size]=] ], function(this)
 		-- // colorPickerDebuffPoison
 		do
 		
-			local colorPickerDebuffPoison = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffPoison", debuffArea, 15, -70, L["Poison"]);
+			local colorPickerDebuffPoison = GUICreateColorPicker(debuffArea, 15, -70, L["Poison"]);
 			colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor));
 			colorPickerDebuffPoison:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2782,7 +2774,7 @@ icon size]=] ], function(this)
 		-- // colorPickerDebuffOther
 		do
 		
-			local colorPickerDebuffOther = GUICreateColorPicker("NAuras.GUI.Borders.ColorPickerDebuffOther", debuffArea, 135, -70, L["Other"]);
+			local colorPickerDebuffOther = GUICreateColorPicker(debuffArea, 135, -70, L["Other"]);
 			colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor));
 			colorPickerDebuffOther:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2824,7 +2816,7 @@ icon size]=] ], function(this)
 		-- // spellArea
 		do
 		
-			spellArea = CreateFrame("Frame", "NAuras.GUI.Spells.SpellArea", GUIFrame);
+			spellArea = CreateFrame("Frame", nil, GUIFrame);
 			spellArea:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2845,7 +2837,7 @@ icon size]=] ], function(this)
 		-- // editboxAddSpell, buttonAddSpell
 		do
 		
-			editboxAddSpell = CreateFrame("EditBox", "NAuras.GUI.Cat4.EditboxAddSpell", GUIFrame);
+			editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame);
 			editboxAddSpell:SetAutoFocus(false);
 			editboxAddSpell:SetFontObject(GameFontHighlightSmall);
 			editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 167, -30);
@@ -2862,20 +2854,19 @@ icon size]=] ], function(this)
 			editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 			editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 			editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
-			local text = editboxAddSpell:CreateFontString("NAuras.GUI.Cat4.EditboxAddSpell.Label", "ARTWORK", "GameFontNormalSmall");
+			local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 			text:SetPoint("LEFT", 5, 15);
 			text:SetText(L["Add new spell: "]);
 			table_insert(GUIFrame.Categories[index], editboxAddSpell);
 			
-			buttonAddSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonAddSpell", GUIFrame, L["Add spell"]);
+			buttonAddSpell = GUICreateButton(GUIFrame, L["Add spell"]);
 			buttonAddSpell:SetWidth(110);
 			buttonAddSpell:SetHeight(20);
 			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 			buttonAddSpell:SetScript("OnClick", function(self, ...)
 				local text = editboxAddSpell:GetText();
 				if (tonumber(text) ~= nil) then
-					msg(format(L[ [=[You should enter spell name instead of spell id.
-Use "%s" option if you want to track spell with specific id]=] ], L["Check spell ID"]));
+					msg(format(L["options:auras:add-new-spell:error1"], L["Check spell ID"]));
 				else
 					local spellID = SpellIDByName[text];
 					if (spellID ~= nil) then
@@ -2915,7 +2906,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // buttonDeleteAllSpells
 		do
 		
-			local buttonDeleteAllSpells = GUICreateButton(nil, GUIFrame, "X");
+			local buttonDeleteAllSpells = GUICreateButton(GUIFrame, "X");
 			buttonDeleteAllSpells:SetWidth(24);
 			buttonDeleteAllSpells:SetHeight(24);
 			buttonDeleteAllSpells:SetPoint("LEFT", buttonAddSpell, "RIGHT", 5, 0);
@@ -2954,7 +2945,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // selectSpell
 		do
 		
-			selectSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonSelectSpell", GUIFrame, L["Click to select spell"]);
+			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
 			--selectSpell:SetPoint("TOPLEFT", 168, -60);
@@ -3025,7 +3016,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", spellArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSpellShowType, 180);
-			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString("NAuras.GUI.Cat4.DropdownSpellShowType.Label", "ARTWORK", "GameFontNormal");
+			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -130);
 			dropdownSpellShowType.text:SetText(L["Aura type"]);
 			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -120);
@@ -3052,7 +3043,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // sliderSpellIconSize
 		do
 		
-			sliderSpellIconSize = GUICreateSlider(spellArea, 18, -23, 200, "NAuras.GUI.Cat4.SliderSpellIconSize");
+			sliderSpellIconSize = GUICreateSlider(spellArea, 18, -23, 200);
 			sliderSpellIconSize.label:ClearAllPoints();
 			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -170);
 			sliderSpellIconSize.label:SetText(L["Icon size"]);
@@ -3098,10 +3089,10 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // editboxSpellID
 		do
 		
-			editboxSpellID = CreateFrame("EditBox", "NAuras.GUI.Cat4.EditboxSpellID", spellArea);
+			editboxSpellID = CreateFrame("EditBox", nil, spellArea);
 			editboxSpellID:SetAutoFocus(false);
 			editboxSpellID:SetFontObject(GameFontHighlightSmall);
-			editboxSpellID.text = editboxSpellID:CreateFontString("NAuras.GUI.Cat4.EditboxSpellID.Label", "ARTWORK", "GameFontNormal");
+			editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -210);
 			editboxSpellID.text:SetText(L["Check spell ID"] .. ": ");
 			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
@@ -3135,7 +3126,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		-- // buttonDeleteSpell
 		do
 		
-			buttonDeleteSpell = GUICreateButton("NAuras.GUI.Cat4.ButtonDeleteSpell", spellArea, L["Delete spell"]);
+			buttonDeleteSpell = GUICreateButton(spellArea, L["Delete spell"]);
 			buttonDeleteSpell:SetWidth(90);
 			buttonDeleteSpell:SetHeight(20);
 			buttonDeleteSpell:SetPoint("BOTTOMLEFT", spellArea, "BOTTOMLEFT", 20, 10);
@@ -3143,6 +3134,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 				db.CustomSpells2[selectedSpell] = nil;
 				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
 				selectSpell.Text:SetText(L["Click to select spell"]);
 				for _, control in pairs(controls) do
 					control:Hide();
@@ -3182,7 +3174,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 		-- // checkboxShowOnFriends
 		do
-			checkboxShowOnFriends = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxShowOnFriends", L["Show this aura on nameplates of allies"], function(this)
+			checkboxShowOnFriends = GUICreateCheckBoxEx(L["Show this aura on nameplates of allies"], function(this)
 				db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
@@ -3194,7 +3186,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 		-- // checkboxShowOnEnemies
 		do
-			checkboxShowOnEnemies = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxShowOnEnemies", L["Show this aura on nameplates of enemies"], function(this)
+			checkboxShowOnEnemies = GUICreateCheckBoxEx(L["Show this aura on nameplates of enemies"], function(this)
 				db.CustomSpells2[selectedSpell].showOnEnemies = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
@@ -3206,7 +3198,7 @@ Use "%s" option if you want to track spell with specific id]=] ], L["Check spell
 		
 		-- // checkboxAllowMultipleInstances
 		do
-			checkboxAllowMultipleInstances = GUICreateCheckBoxEx("NAuras.GUI.Spells.CheckboxAllowMultipleInstances", L["options:aura-options:allow-multiple-instances"], function(this)
+			checkboxAllowMultipleInstances = GUICreateCheckBoxEx(L["options:aura-options:allow-multiple-instances"], function(this)
 				db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
@@ -3301,7 +3293,7 @@ do
 	end
 	
 	function ColorizeText(text, r, g, b)
-		return format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
+		return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 	end
 	
 end

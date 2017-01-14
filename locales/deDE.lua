@@ -1,5 +1,5 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "deDE");
-if not L then return end
+L = L or {}
 L["< 1min"] = "< 1 Min."
 L["< 5sec"] = "< 5 Sek."
 L["> 1min"] = "> 1 Min."
@@ -61,17 +61,41 @@ L["Options are not available in combat!"] = "Optionen sind im Kampf nicht verfü
 L["options:aura-options:allow-multiple-instances"] = "Mehrere Exemplare dieser Aura erlauben"
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[Falls diese Option angehakt ist, wirst du alle Exemplare dieser Aura sehen, auch wenn diese sich auf derselben Namensplakette befinden.
 Anderenfalls wirst du nur ein Exemplar dieser Aura sehen (die mit der größten Restdauer)]=]
+L["options:auras:add-new-spell:error1"] = [=[Du solltest den Zaubernamen anstatt die Zauber-ID eingeben.
+Verwende die Option "%s", wenn du Zauber mit einer bestimmten ID verfolgen möchtest.]=]
+--Translation missing 
+L["options:auras:enabled-state:tooltip"] = [=[Enables/disables aura
+
+%s: aura will not be shown
+%s: aura will be shown if you've cast it
+%s: show all auras]=]
+--Translation missing 
+L["options:auras:enabled-state-all"] = "Enabled, show all auras"
+--Translation missing 
+L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
+--Translation missing 
+L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat"
+--Translation missing 
+L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
+--Translation missing 
+L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
+--Translation missing 
+L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
+your auras will be shown regardless of other filters]=]
+--Translation missing 
+L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
+L["options:timer-text:scale-font-size"] = [=[Schriftgröße an
+Symbolgröße
+anpassen]=]
+--Translation missing 
+L["options:timer-text:text-color-note"] = [=[Text colour will change
+depending on the time remaining:]=]
 L["Other"] = "Andere"
 L["Please reload UI to apply changes"] = "Bitte UI neuladen, um Änderungen zu übernehmen"
 L["Poison"] = "Gift"
 L["Profiles"] = "Profile"
 L["Reload UI"] = "UI neuladen"
 L["RIGHT"] = "Rechts"
-L[ [=[Scale font size
-according to
-icon size]=] ] = [=[Schriftgröße an
-Symbolgröße
-anpassen]=]
 L["Show border around buff icons"] = "Rahmen um Stärkungszaubersymbole zeigen"
 L["Show border around debuff icons"] = "Rahmen um Schwächungszaubersymbole zeigen"
 L["Show this aura on nameplates of allies"] = "Diese Aura auf Namensplaketten Verbündeter anzeigen"
@@ -95,6 +119,3 @@ L["Value must be a number"] = "Wert muss eine Zahl sein"
 L["X offset"] = "X-Verschiebung"
 L["Y offset"] = "Y-Verschiebung"
 L["Yes"] = "Ja"
-L[ [=[You should enter spell name instead of spell id.
-Use "%s" option if you want to track spell with specific id]=] ] = [=[Du solltest den Zaubernamen anstatt die Zauber-ID eingeben.
-Verwende die Option "%s", wenn du Zauber mit einer bestimmten ID verfolgen möchtest.]=]

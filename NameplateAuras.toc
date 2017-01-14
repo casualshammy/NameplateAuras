@@ -3,6 +3,7 @@
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasDB, NameplateAurasAceDB
 ## Version: @project-version@
+## OptionalDeps: OmniCC
 
 embeds.xml
 locales\localizations.xml

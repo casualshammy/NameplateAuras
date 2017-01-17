@@ -12,7 +12,7 @@ L["Anchor point"] = "Ankerpunkt"
 L["Anchor to icon"] = "Am Symbol anheften"
 L["Any"] = "Irgendeiner"
 L["Aura type"] = "Auratyp"
-L["Border thickness"] = "Randdicke"
+L["Border thickness"] = "Rahmenbreite"
 L["BOTTOM"] = "Unten"
 L["BOTTOMLEFT"] = "Unten links"
 L["BOTTOMRIGHT"] = "Unten rechts"
@@ -63,33 +63,25 @@ L["options:aura-options:allow-multiple-instances:tooltip"] = [=[Falls diese Opti
 Anderenfalls wirst du nur ein Exemplar dieser Aura sehen (die mit der größten Restdauer)]=]
 L["options:auras:add-new-spell:error1"] = [=[Du solltest den Zaubernamen anstatt die Zauber-ID eingeben.
 Verwende die Option "%s", wenn du Zauber mit einer bestimmten ID verfolgen möchtest.]=]
---Translation missing 
-L["options:auras:enabled-state:tooltip"] = [=[Enables/disables aura
+L["options:auras:enabled-state:tooltip"] = [=[Aktiviert/Deaktiviert die Aura
 
-%s: aura will not be shown
-%s: aura will be shown if you've cast it
-%s: show all auras]=]
---Translation missing 
-L["options:auras:enabled-state-all"] = "Enabled, show all auras"
---Translation missing 
-L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
---Translation missing 
-L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat"
---Translation missing 
-L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
---Translation missing 
-L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
---Translation missing 
-L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
-your auras will be shown regardless of other filters]=]
---Translation missing 
-L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
+%s: Aura wird nicht gezeigt
+%s: Aura wird angezeigt, wenn du sie gewirkt hast
+%s: Alle Auren zeigen]=]
+L["options:auras:enabled-state-all"] = "Aktiviert, Alle Auren zeigen"
+L["options:auras:enabled-state-mineonly"] = "Aktiviert, nur meine Auren zeigen"
+L["options:auras:pvp-state-dontshowinpvp"] = "Diese Aura während eines PvP-Kampfes nicht zeigen"
+L["options:auras:pvp-state-indefinite"] = "Diese Aura während eines PvP-Kampfes zeigen"
+L["options:auras:pvp-state-onlyduringpvpbattles"] = "Diese Aura nur während eines PvP-Kampfes zeigen"
+L["options:general:always-show-my-auras:tooltip"] = [=[Dies ist ein Filter höchster Priorität. Falls du diese
+ Funktion aktivierst, werden Auren, die du gewirkt hast,
+ unabhängig von anderen Filtern gezeigt]=]
+L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimale Dauer zur Anzeige von Zehntelsekunden"
 L["options:timer-text:scale-font-size"] = [=[Schriftgröße an
 Symbolgröße
 anpassen]=]
---Translation missing 
-L["options:timer-text:text-color-note"] = [=[Text colour will change
-depending on the time remaining:]=]
+L["options:timer-text:text-color-note"] = [=[Die Textfarbe wird je nach
+ verbleibender Zeit geändert:]=]
 L["Other"] = "Andere"
 L["Please reload UI to apply changes"] = "Bitte UI neuladen, um Änderungen zu übernehmen"
 L["Poison"] = "Gift"

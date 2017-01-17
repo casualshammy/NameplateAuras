@@ -61,7 +61,7 @@ local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNamepla
 	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged,
 	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
-local Print, deepcopy, msg, table_contains_value, ColorizeText;
+local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -102,31 +102,7 @@ do
 		OnStartup = nil;
 	end
 
-	function ReloadDB()
-		db = aceDB.profile;
-		-- // resetting all caches
-		wipe(EnabledAurasInfo);
-		-- // import default spells
-		if (not db.DefaultSpellsAreImported) then
-			local spellNamesAlreadyInUsersDB = { };
-			for spellID in pairs(db.CustomSpells2) do
-				local spellName = SpellNameByID[spellID];
-				if (spellName ~= nil) then
-					spellNamesAlreadyInUsersDB[SpellNameByID[spellID]] = true;
-				end
-			end
-			for spellID, spellInfo in pairs(addonTable.DefaultSpells) do
-				local spellName = SpellNameByID[spellID];
-				if (spellName ~= nil) then
-					if (not spellNamesAlreadyInUsersDB[spellName]) then
-						db.CustomSpells2[spellID] = spellInfo;
-						Print("New spell is added: " .. spellName .. " (id:" .. spellID .. ")");
-					end
-				end
-			end
-			db.DefaultSpellsAreImported = true;
-		end
-		-- // setting caches...
+	local function ReloadDB_SetSpellCache()
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			local spellName = SpellNameByID[spellID];
 			if (spellName == nil) then
@@ -165,6 +141,60 @@ do
 				UpdateSpellCachesFromDB(spellID);
 			end
 		end
+	end
+	
+	function ReloadDB()
+		db = aceDB.profile;
+		-- // resetting all caches
+		wipe(EnabledAurasInfo);
+		-- // convert values
+		if (db.DefaultSpellsAreImported ~= nil) then
+			db.DefaultSpellsLastSetImported = 1;
+			db.DefaultSpellsAreImported = nil;
+		end
+		-- // import default spells
+		if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
+			local spellNamesAlreadyInUsersDB = { };
+			for _, spellInfo in pairs(db.CustomSpells2) do
+				local spellName = SpellNameByID[spellInfo.spellID];
+				if (spellName ~= nil) then
+					spellNamesAlreadyInUsersDB[spellName] = true;
+				end
+			end
+			local allNewSpells = { };
+			for i = db.DefaultSpellsLastSetImported + 1, #addonTable.DefaultSpells2 do
+				local set = addonTable.DefaultSpells2[i];
+				for spellID, spellInfo in pairs(set) do
+					if (SpellNameByID[spellID] ~= nil and not spellNamesAlreadyInUsersDB[SpellNameByID[spellID]]) then
+						allNewSpells[spellID] = spellInfo;
+					end
+				end
+			end
+			if (table_count(allNewSpells) > 0) then
+				msgWithQuestion("NameplateAuras\n\nNew and changed spells (total " .. table_count(allNewSpells) .. ") are available for import. Do you want to print their names in chat window?\n(If you click \"Yes\", you will be able to import new spells. If you click \"No\", this prompt will not appear again)",
+					function()
+						for spellID in pairs(allNewSpells) do
+							local link = GetSpellLink(spellID);
+							if (link ~= nil) then Print(link); end
+						end
+						C_Timer.After(0.5, function()
+							msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
+								function()
+									for spellID, spellInfo in pairs(allNewSpells) do
+										db.CustomSpells2[spellID] = spellInfo;
+									end
+									ReloadDB_SetSpellCache();
+									Print("Imported successfully");
+								end,
+								function() end);
+						end);
+					end,
+					function() end);
+			end
+			db.DefaultSpellsLastSetImported = #addonTable.DefaultSpells2;
+		end
+		-- // setting caches...
+		ReloadDB_SetSpellCache();
 		-- // starting OnUpdate()
 		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -193,7 +223,7 @@ do
 		-- // set defaults
 		local aceDBDefaults = {
 			profile = {
-				DefaultSpellsAreImported = false,
+				DefaultSpellsLastSetImported = 0,
 				CustomSpells2 = { },
 				IconXOffset = 0,
 				IconYOffset = 50,
@@ -496,45 +526,7 @@ do
 		end
 		error("Fatal error in <ProcessAurasForNameplate_MultipleAuraInstances>");
 	end
-	
-	-- // todo: delete-start
-	-- local function aaaaa()
-		-- local usage1, calls1 = GetFunctionCPUUsage(ProcessAurasForNameplate_Filter, true);
-		-- if (calls1 > 0) then
-			-- print(format("ProcessAurasForNameplate_Filter: usage/calls: %.5f, total calls: %s", (usage1/calls1), calls1));
-		-- else
-			-- print("ProcessAurasForNameplate_Filter: no calls");
-		-- end
-		-- local usage2, calls2 = GetFunctionCPUUsage(ProcessAurasForNameplate_MultipleAuraInstances, true);
-		-- if (calls2 > 0) then
-			-- print(format("ProcessAurasForNameplate_MultipleAuraInstances: usage/calls: %.5f, total calls: %s", (usage2/calls2), calls2));
-		-- else
-			-- print("ProcessAurasForNameplate_MultipleAuraInstances: no calls");
-		-- end
-		-- local usage3, calls3 = GetFunctionCPUUsage(SortAurasForNameplate, true);
-		-- if (calls3 > 0) then
-			-- print(format("SortAurasForNameplate: usage/calls: %.5f, total calls: %s", (usage3/calls3), calls3));
-		-- else
-			-- print("SortAurasForNameplate: no calls");
-		-- end
-		-- local usage4, calls4 = GetFunctionCPUUsage(OnUpdate, true);
-		-- if (calls4 > 0) then
-			-- print(format("OnUpdate: usage/calls: %.5f, total calls: %s", (usage4/calls4), calls4));
-		-- else
-			-- print("OnUpdate: no calls");
-		-- end
-		-- usage4, calls4 = GetFunctionCPUUsage(UpdateNameplate_SetCooldown, true);
-		-- if (calls4 > 0) then
-			-- print(format("UpdateNameplate_SetCooldown: usage/calls: %.5f, total calls: %s", (usage4/calls4), calls4));
-		-- else
-			-- print("UpdateNameplate_SetCooldown: no calls");
-		-- end
-		-- C_Timer.After(300, aaaaa);
-	-- end
-	
-	-- C_Timer.After(60, aaaaa);
-	-- // todo: delete-end
-	
+		
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
@@ -640,28 +632,67 @@ do
 	end
 	
 	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
+		
+		if (icon.info == nil) then
+			icon.info = {
+				["text"] = nil,
+				["colorState"] = nil,
+				["cooldownExpires"] = 0,
+				["cooldownDuration"] = 0,
+			};
+		end
+		local info = icon.info;
 		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			if (last > 3600) then
-				icon.cooldown:SetText("");
+				if (info.text ~= "") then
+					icon.cooldown:SetText("");
+					info.text = "";
+				end
 			elseif (last >= 60) then
-				icon.cooldown:SetText(math_floor(last/60).."m");
+				local newValue = math_floor(last/60).."m";
+				if (info.text ~= newValue) then
+					icon.cooldown:SetText(newValue);
+					info.text = newValue;
+				end
 			elseif (last >= db.MinTimeToShowTenthsOfSeconds) then
-				icon.cooldown:SetText(string_format("%.0f", last));
+				local newValue = string_format("%d", last);
+				if (info.text ~= newValue) then
+					icon.cooldown:SetText(newValue);
+					info.text = newValue;
+				end
 			else
 				icon.cooldown:SetText(string_format("%.1f", last));
+				info.text = nil;
 			end
 			if (last >= 60) then
-				icon.cooldown:SetTextColor(unpack(db.TimerTextLongerColor));
+				if (info.colorState ~= db.TimerTextLongerColor) then
+					icon.cooldown:SetTextColor(unpack(db.TimerTextLongerColor));
+					info.colorState = db.TimerTextLongerColor;
+				end
 			elseif (last >= 5) then
-				icon.cooldown:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+				if (info.colorState ~= db.TimerTextUnderMinuteColor) then
+					icon.cooldown:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+					info.colorState = db.TimerTextUnderMinuteColor;
+				end
 			else
-				icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+				if (info.colorState ~= db.TimerTextSoonToExpireColor) then
+					icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+					info.colorState = db.TimerTextSoonToExpireColor;
+				end
 			end
 			if (db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-				icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+				if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
+					icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+					info.cooldownExpires = spellInfo.expires;
+					info.cooldownDuration = spellInfo.duration;
+				end
 			end
 		elseif (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULAR) then
-			icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+			if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
+				icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+				info.cooldownExpires = spellInfo.expires;
+				info.cooldownDuration = spellInfo.duration;
+			end
 		end
 	end
 	
@@ -3283,6 +3314,24 @@ do
 		StaticPopup_Show("NAURAS_MSG");
 	end
 	
+	function msgWithQuestion(text, funcOnAccept, funcOnCancel)
+		local frameName = "NAURAS_MSG_QUESTION";
+		if (StaticPopupDialogs[frameName] == nil) then
+			StaticPopupDialogs[frameName] = {
+				button1 = "Yes",
+				button2 = "No",
+				timeout = 0,
+				whileDead = true,
+				hideOnEscape = true,
+				preferredIndex = 3,
+			};
+		end
+		StaticPopupDialogs[frameName].text = text;
+		StaticPopupDialogs[frameName].OnAccept = funcOnAccept;
+		StaticPopupDialogs[frameName].OnCancel = funcOnCancel;
+		StaticPopup_Show(frameName);
+	end
+	
 	function table_contains_value(t, v)
 		for _, value in pairs(t) do
 			if (value == v) then
@@ -3290,6 +3339,14 @@ do
 			end
 		end
 		return false;
+	end
+	
+	function table_count(t)
+		local count = 0;
+		for i in pairs(t) do
+			count = count + 1;
+		end
+		return count;
 	end
 	
 	function ColorizeText(text, r, g, b)

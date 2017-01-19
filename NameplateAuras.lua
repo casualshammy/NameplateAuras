@@ -31,6 +31,13 @@ local SpellIDByName = setmetatable({}, {
 	__index = function(t, key)
 		for spellID = 1, 500000 do
 			local spellName = GetSpellInfo(spellID);
+			if (spellName == key) then
+				t[key] = spellID;
+				return spellID;
+			end
+		end
+		for spellID = 1, 500000 do
+			local spellName = GetSpellInfo(spellID);
 			if (spellName ~= nil and string_lower(spellName) == string_lower(key)) then
 				t[key] = spellID;
 				return spellID;
@@ -56,10 +63,9 @@ local AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, A
 local TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = 1, 2, 3, 4;
 local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 1, 2, 3;
 
-local OnStartup, ReloadDB, InitializeDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
-local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, UpdateNameplate_SetCooldown, UpdateNameplate_SetStacks, UpdateNameplate_SetBorder, HideCDIcon, ShowCDIcon,
-	ResizeIcon, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged, Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged,
-	Nameplates_OnBorderThicknessChanged, SortAurasForNameplate, OnUpdate;
+local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
+local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
+	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
@@ -68,158 +74,7 @@ local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, 
 --------------------------------------------------------------------------------------------------
 do
 
-	function OnStartup()
-		-- // getting player's GUID
-		LocalPlayerGUID = UnitGUID("player");
-		-- // ...
-		InitializeDB();
-		-- // ...
-		ReloadDB();
-		-- // starting listening for events
-		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
-		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
-		EventFrame:RegisterEvent("UNIT_AURA");
-		EventFrame:RegisterEvent("SPELL_UPDATE_USABLE");
-		-- // adding slash command
-		SLASH_NAMEPLATEAURAS1 = '/nauras';
-		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
-			if (msg == "t" or msg == "ver") then
-				local c = UNKNOWN;
-				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
-					c = "INSTANCE_CHAT";
-				elseif (IsInRaid()) then
-					c = "RAID";
-				else
-					c = "GUILD";
-				end
-				Print("Waiting for replies from " .. c);
-				SendAddonMessage("NAuras_prefix", "requesting", c);
-			else
-				ShowGUI();
-			end
-		end
-		RegisterAddonMessagePrefix("NAuras_prefix");
-		OnStartup = nil;
-	end
-
-	local function ReloadDB_SetSpellCache()
-		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			local spellName = SpellNameByID[spellID];
-			if (spellName == nil) then
-				Print("<spellid:"..spellID.."> isn't exist. Removing from database...");
-				db.CustomSpells2[spellID] = nil;
-			else
-				if (spellInfo.showOnFriends == nil) then
-					spellInfo.showOnFriends = true;
-				end
-				if (spellInfo.showOnEnemies == nil) then
-					spellInfo.showOnEnemies = true;
-				end
-				if (spellInfo.allowMultipleInstances == nil) then
-					spellInfo.allowMultipleInstances = false;
-				end
-				if (spellInfo.pvpCombat == nil) then
-					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
-				end
-				if (spellInfo.spellID == nil) then
-					db.CustomSpells2[spellID].spellID = spellID;
-				end
-				if (spellInfo.enabledState == "disabled") then
-					spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
-				elseif (spellInfo.enabledState == "all") then
-					spellInfo.enabledState = CONST_SPELL_MODE_ALL;
-				elseif (spellInfo.enabledState == "my") then
-					spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
-				end
-				if (spellInfo.auraType == "buff") then
-					spellInfo.auraType = AURA_TYPE_BUFF;
-				elseif (spellInfo.auraType == "debuff") then
-					spellInfo.auraType = AURA_TYPE_DEBUFF;
-				elseif (spellInfo.auraType == "buff/debuff") then
-					spellInfo.auraType = AURA_TYPE_ANY;
-				end
-				UpdateSpellCachesFromDB(spellID);
-			end
-		end
-	end
-	
-	function ReloadDB()
-		db = aceDB.profile;
-		-- // resetting all caches
-		wipe(EnabledAurasInfo);
-		-- // convert values
-		if (db.DefaultSpellsAreImported ~= nil) then
-			db.DefaultSpellsLastSetImported = 1;
-			db.DefaultSpellsAreImported = nil;
-		end
-		-- // import default spells
-		if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
-			local spellNamesAlreadyInUsersDB = { };
-			for _, spellInfo in pairs(db.CustomSpells2) do
-				local spellName = SpellNameByID[spellInfo.spellID];
-				if (spellName ~= nil) then
-					spellNamesAlreadyInUsersDB[spellName] = true;
-				end
-			end
-			local allNewSpells = { };
-			for i = db.DefaultSpellsLastSetImported + 1, #addonTable.DefaultSpells2 do
-				local set = addonTable.DefaultSpells2[i];
-				for spellID, spellInfo in pairs(set) do
-					if (SpellNameByID[spellID] ~= nil and not spellNamesAlreadyInUsersDB[SpellNameByID[spellID]]) then
-						allNewSpells[spellID] = spellInfo;
-					end
-				end
-			end
-			if (table_count(allNewSpells) > 0) then
-				msgWithQuestion("NameplateAuras\n\nNew and changed spells (total " .. table_count(allNewSpells) .. ") are available for import. Do you want to print their names in chat window?\n(If you click \"Yes\", you will be able to import new spells. If you click \"No\", this prompt will not appear again)",
-					function()
-						for spellID in pairs(allNewSpells) do
-							local link = GetSpellLink(spellID);
-							if (link ~= nil) then Print(link); end
-						end
-						C_Timer.After(0.5, function()
-							msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
-								function()
-									for spellID, spellInfo in pairs(allNewSpells) do
-										db.CustomSpells2[spellID] = spellInfo;
-									end
-									ReloadDB_SetSpellCache();
-									Print("Imported successfully");
-								end,
-								function() end);
-						end);
-					end,
-					function() end);
-			end
-			db.DefaultSpellsLastSetImported = #addonTable.DefaultSpells2;
-		end
-		-- // setting caches...
-		ReloadDB_SetSpellCache();
-		-- // starting OnUpdate()
-		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-			EventFrame:SetScript("OnUpdate", function(self, elapsed)
-				ElapsedTimer = ElapsedTimer + elapsed;
-				if (ElapsedTimer >= 0.1) then
-					OnUpdate();				
-					ElapsedTimer = 0;
-				end
-			end);
-		else
-			EventFrame:SetScript("OnUpdate", nil);
-		end
-		if (GUIFrame) then
-			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
-				func();
-			end
-		end
-		Nameplates_OnFontChanged();
-		Nameplates_OnFrameAnchorChanged();
-		Nameplates_OnTextPositionChanged();
-		Nameplates_OnIconAnchorChanged();
-		UpdateAllNameplates(true);
-	end
-	
-	function InitializeDB()
+	local function InitializeDB()
 		-- // set defaults
 		local aceDBDefaults = {
 			profile = {
@@ -304,50 +159,209 @@ do
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		ProfileOptionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
 		-- // processing old and invalid entries
-		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells" }) do
-			if (aceDB.profile[entry] ~= nil) then
-				aceDB.profile[entry] = nil;
-				Print("Old db record is deleted: " .. entry);
-			end
-		end
 		if (aceDB.profile.TimerTextAnchorIcon == aceDBDefaults.profile.TimerTextAnchorIcon) then
 			aceDB.profile.TimerTextAnchorIcon = aceDB.profile.TimerTextAnchor;
 		end
 		if (aceDB.profile.StacksTextAnchorIcon == aceDBDefaults.profile.StacksTextAnchorIcon) then
 			aceDB.profile.StacksTextAnchorIcon = aceDB.profile.StacksTextAnchor;
 		end
-		if (aceDB.profile.TimerTextSizeMode ~= nil) then
-			aceDB.profile.TimerTextUseRelativeScale = (aceDB.profile.TimerTextSizeMode == "relative");
-			aceDB.profile.TimerTextSizeMode = nil;
-		end
-		if (aceDB.profile.SortMode ~= nil and type(aceDB.profile.SortMode) == "string") then
-			local replacements = { [AURA_SORT_MODE_NONE] = "none", [AURA_SORT_MODE_EXPIREASC] = "by-expire-time-asc", [AURA_SORT_MODE_EXPIREDES] = "by-expire-time-des",
-				[AURA_SORT_MODE_ICONSIZEASC] = "by-icon-size-asc", [AURA_SORT_MODE_ICONSIZEDES] = "by-icon-size-des", [AURA_SORT_MODE_AURATYPE_EXPIRE] = "by-aura-type-expire-time" };
-			for newValue, oldValue in pairs(replacements) do
-				if (aceDB.profile.SortMode == oldValue) then
-					aceDB.profile.SortMode = newValue;
-					break;
-				end
-			end
-		end
-		if (aceDB.profile.TimerStyle ~= nil and type(aceDB.profile.TimerStyle) == "string") then
-			local replacements = { [TIMER_STYLE_TEXTURETEXT] = "texture-with-text", [TIMER_STYLE_CIRCULAR] = "cooldown-frame-no-text",
-				[TIMER_STYLE_CIRCULAROMNICC] = "cooldown-frame", [TIMER_STYLE_CIRCULARTEXT] = "circular-noomnicc-text" };
-			for newValue, oldValue in pairs(replacements) do
-				if (aceDB.profile.TimerStyle == oldValue) then
-					aceDB.profile.TimerStyle = newValue;
-					break;
-				end
-			end
-		end
-		if (aceDB.profile.DisplayTenthsOfSeconds ~= nil) then
-			aceDB.profile.MinTimeToShowTenthsOfSeconds = aceDB.profile.DisplayTenthsOfSeconds and 10 or 0;
-			aceDB.profile.DisplayTenthsOfSeconds = nil;
-		end
 		-- // creating a fast reference
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
+	end
+
+	function OnStartup()
+		-- // getting player's GUID
+		LocalPlayerGUID = UnitGUID("player");
+		-- // ...
+		InitializeDB();
+		-- // ...
+		ReloadDB();
+		-- // starting listening for events
+		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
+		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
+		EventFrame:RegisterEvent("UNIT_AURA");
+		EventFrame:RegisterEvent("SPELL_UPDATE_USABLE");
+		-- // adding slash command
+		SLASH_NAMEPLATEAURAS1 = '/nauras';
+		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
+			if (msg == "t" or msg == "ver") then
+				local c = UNKNOWN;
+				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
+					c = "INSTANCE_CHAT";
+				elseif (IsInRaid()) then
+					c = "RAID";
+				else
+					c = "GUILD";
+				end
+				Print("Waiting for replies from " .. c);
+				SendAddonMessage("NAuras_prefix", "requesting", c);
+			else
+				ShowGUI();
+			end
+		end
+		RegisterAddonMessagePrefix("NAuras_prefix");
+		OnStartup = nil;
+	end
+
+	local function ReloadDB_SetSpellCache()
+		for spellID, spellInfo in pairs(db.CustomSpells2) do
+			local spellName = SpellNameByID[spellID];
+			if (spellName == nil) then
+				Print("<spellid:"..spellID.."> isn't exist. Removing from database...");
+				db.CustomSpells2[spellID] = nil;
+			else
+				if (spellInfo.showOnFriends == nil) then
+					spellInfo.showOnFriends = true;
+				end
+				if (spellInfo.showOnEnemies == nil) then
+					spellInfo.showOnEnemies = true;
+				end
+				if (spellInfo.allowMultipleInstances == nil) then
+					spellInfo.allowMultipleInstances = false;
+				end
+				if (spellInfo.pvpCombat == nil) then
+					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
+				end
+				if (spellInfo.spellID == nil) then
+					db.CustomSpells2[spellID].spellID = spellID;
+				end
+				if (spellInfo.enabledState == "disabled") then
+					spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
+				elseif (spellInfo.enabledState == "all") then
+					spellInfo.enabledState = CONST_SPELL_MODE_ALL;
+				elseif (spellInfo.enabledState == "my") then
+					spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
+				end
+				if (spellInfo.auraType == "buff") then
+					spellInfo.auraType = AURA_TYPE_BUFF;
+				elseif (spellInfo.auraType == "debuff") then
+					spellInfo.auraType = AURA_TYPE_DEBUFF;
+				elseif (spellInfo.auraType == "buff/debuff") then
+					spellInfo.auraType = AURA_TYPE_ANY;
+				end
+				UpdateSpellCachesFromDB(spellID);
+			end
+		end
+	end
+	
+	local function ReloadDB_ImportNewSpells()
+		if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
+			local spellNamesAlreadyInUsersDB = { };
+			for _, spellInfo in pairs(db.CustomSpells2) do
+				local spellName = SpellNameByID[spellInfo.spellID];
+				if (spellName ~= nil) then
+					spellNamesAlreadyInUsersDB[spellName] = true;
+				end
+			end
+			local allNewSpells = { };
+			for i = db.DefaultSpellsLastSetImported + 1, #addonTable.DefaultSpells2 do
+				local set = addonTable.DefaultSpells2[i];
+				for spellID, spellInfo in pairs(set) do
+					if (SpellNameByID[spellID] ~= nil and not spellNamesAlreadyInUsersDB[SpellNameByID[spellID]]) then
+						allNewSpells[spellID] = spellInfo;
+					end
+				end
+			end
+			if (db.DefaultSpellsLastSetImported == 0) then
+				for spellID, spellInfo in pairs(allNewSpells) do
+					db.CustomSpells2[spellID] = spellInfo;
+				end
+			else
+				if (table_count(allNewSpells) > 0) then
+					msgWithQuestion("NameplateAuras\n\nNew and changed spells (total " .. table_count(allNewSpells) .. ") are available for import. Do you want to print their names in chat window?\n(If you click \"Yes\", you will be able to import new spells. If you click \"No\", this prompt will not appear again)",
+						function()
+							for spellID in pairs(allNewSpells) do
+								local link = GetSpellLink(spellID);
+								if (link ~= nil) then Print(link); end
+							end
+							C_Timer.After(0.5, function()
+								msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
+									function()
+										for spellID, spellInfo in pairs(allNewSpells) do
+											db.CustomSpells2[spellID] = spellInfo;
+										end
+										ReloadDB_SetSpellCache();
+										Print("Imported successfully");
+									end,
+									function() end);
+							end);
+						end,
+						function() end);
+				end
+			end
+			db.DefaultSpellsLastSetImported = #addonTable.DefaultSpells2;
+		end
+	end
+	
+	local function ReloadDB_ConvertInvalidValues()
+		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells" }) do
+			if (db[entry] ~= nil) then
+				db[entry] = nil;
+				Print("Old db record is deleted: " .. entry);
+			end
+		end
+		if (db.TimerTextSizeMode ~= nil) then
+			db.TimerTextUseRelativeScale = (db.TimerTextSizeMode == "relative");
+			db.TimerTextSizeMode = nil;
+		end
+		if (db.SortMode ~= nil and type(db.SortMode) == "string") then
+			local replacements = { ["none"] = AURA_SORT_MODE_NONE, ["by-expire-time-asc"] = AURA_SORT_MODE_EXPIREASC, ["by-expire-time-des"] = AURA_SORT_MODE_EXPIREDES,
+				["by-icon-size-asc"] = AURA_SORT_MODE_ICONSIZEASC, ["by-icon-size-des"] = AURA_SORT_MODE_ICONSIZEDES, ["by-aura-type-expire-time"] = AURA_SORT_MODE_AURATYPE_EXPIRE };
+			db.SortMode = replacements[db.SortMode];
+		end
+		if (db.TimerStyle ~= nil and type(db.TimerStyle) == "string") then
+			local replacements = { [TIMER_STYLE_TEXTURETEXT] = "texture-with-text", [TIMER_STYLE_CIRCULAR] = "cooldown-frame-no-text", [TIMER_STYLE_CIRCULAROMNICC] = "cooldown-frame", [TIMER_STYLE_CIRCULARTEXT] = "circular-noomnicc-text" };
+			for newValue, oldValue in pairs(replacements) do
+				if (db.TimerStyle == oldValue) then
+					db.TimerStyle = newValue;
+					break;
+				end
+			end
+		end
+		if (db.DisplayTenthsOfSeconds ~= nil) then
+			db.MinTimeToShowTenthsOfSeconds = db.DisplayTenthsOfSeconds and 10 or 0;
+			db.DisplayTenthsOfSeconds = nil;
+		end
+		if (db.DefaultSpellsAreImported ~= nil) then
+			db.DefaultSpellsLastSetImported = 1;
+			db.DefaultSpellsAreImported = nil;
+		end
+	end
+	
+	function ReloadDB()
+		db = aceDB.profile;
+		-- // resetting all caches
+		wipe(EnabledAurasInfo);
+		-- // convert values
+		ReloadDB_ConvertInvalidValues();
+		-- // import default spells
+		ReloadDB_ImportNewSpells();
+		-- // setting caches...
+		ReloadDB_SetSpellCache();
+		-- // starting OnUpdate()
+		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
+			EventFrame:SetScript("OnUpdate", function(self, elapsed)
+				ElapsedTimer = ElapsedTimer + elapsed;
+				if (ElapsedTimer >= 0.1) then
+					OnUpdate();				
+					ElapsedTimer = 0;
+				end
+			end);
+		else
+			EventFrame:SetScript("OnUpdate", nil);
+		end
+		if (GUIFrame) then
+			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
+				func();
+			end
+		end
+		Nameplates_OnFontChanged();
+		Nameplates_OnFrameAnchorChanged();
+		Nameplates_OnTextPositionChanged();
+		Nameplates_OnIconAnchorChanged();
+		UpdateAllNameplates(true);
 	end
 	
 	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
@@ -468,6 +482,36 @@ do
 		tinsert(frame.NAurasIcons, icon);
 	end
 		
+	local function HideCDIcon(icon)
+		icon.border:Hide();
+		icon.borderState = nil;
+		icon.cooldown:Hide();
+		icon.stacks:Hide();
+		icon:Hide();
+		icon.shown = false;
+		icon.spellID = -1;
+		icon.stackcount = -1;
+		icon.size = -1;
+	end
+	
+	local function ShowCDIcon(icon)
+		icon.cooldown:Show();
+		icon.stacks:Show();
+		icon:Show();
+		icon.shown = true;
+	end
+	
+	local function ResizeIcon(icon, size, widthAlreadyUsed)
+		icon:SetSize(size, size);
+		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
+		if (db.TimerTextUseRelativeScale) then
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
+		else
+			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+		end
+		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
+	end
+	
 	function UpdateAllNameplates(force)
 		if (force) then
 			for nameplate in pairs(Nameplates) do
@@ -571,68 +615,47 @@ do
 		UpdateNameplate(frame);
 	end
 	
-	function UpdateNameplate(frame)
-		local counter = 1;
-		local totalWidth = 0;
-		local iconResized = false;
-		if (AurasPerNameplate[frame]) then
-			local currentTime = GetTime();
-			if (SortedAurasPerNameplate[frame] ~= nil) then
-				wipe(SortedAurasPerNameplate[frame]);
+	local function SortAurasForNameplate(auras)
+		local t = { };
+		for _, spellInfo in pairs(auras) do
+			if (spellInfo.spellID ~= nil) then
+				table_insert(t, spellInfo);
 			end
-			SortedAurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
-			for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
-				local spellName = SpellNameByID[spellInfo.spellID];
-				local duration = spellInfo.duration;
-				local last = spellInfo.expires - currentTime;
-				if (last > 0) then
-					if (counter > frame.NAurasIconsCount) then
-						AllocateIcon(frame, totalWidth);
-					end
-					local icon = frame.NAurasIcons[counter];
-					if (icon.spellID ~= spellName) then
-						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
-						icon.spellID = spellName;
-					end
-					UpdateNameplate_SetCooldown(icon, last, spellInfo);
-					-- // stacks
-					UpdateNameplate_SetStacks(icon, spellInfo);
-					-- // border
-					UpdateNameplate_SetBorder(icon, spellInfo);
-					-- // icon size
-					local enabledAuraInfo = EnabledAurasInfo[spellName];
-					local normalSize = enabledAuraInfo and enabledAuraInfo.iconSize or db.DefaultIconSize;
-					if (normalSize ~= icon.size or iconResized) then
-						icon.size = normalSize;
-						ResizeIcon(icon, icon.size, totalWidth);
-						iconResized = true;
-					end
-					if (not icon.shown) then
-						ShowCDIcon(icon);
-					end
-					totalWidth = totalWidth + icon.size + db.IconSpacing;
-					counter = counter + 1;
+		end
+		if (db.SortMode == AURA_SORT_MODE_NONE) then
+			-- // do nothing
+		elseif (db.SortMode == AURA_SORT_MODE_EXPIREASC) then
+			table_sort(t, function(item1, item2) return item1.expires < item2.expires end);
+		elseif (db.SortMode == AURA_SORT_MODE_EXPIREDES) then
+			table_sort(t, function(item1, item2) return item1.expires > item2.expires end);
+		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEASC) then
+			table_sort(t, function(item1, item2)
+				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
+			end);
+		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEDES) then
+			table_sort(t, function(item1, item2)
+				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
+			end);
+		elseif (db.SortMode == AURA_SORT_MODE_AURATYPE_EXPIRE) then
+			table_sort(t, function(item1, item2)
+				if (item1.type ~= item2.type) then
+					return (item1.type == AURA_TYPE_DEBUFF) and true or false;
 				end
-			end
+				if (item1.type == AURA_TYPE_DEBUFF) then
+					return item1.expires < item2.expires;
+				else
+					return item1.expires > item2.expires;
+				end
+			end);
 		end
-		if (frame.NAurasFrame ~= nil) then
-			totalWidth = totalWidth - db.IconSpacing; -- // because we don't need last spacing
-			frame.NAurasFrame:SetWidth(totalWidth);
-		end
-		for k = counter, frame.NAurasIconsCount do
-			local icon = frame.NAurasIcons[k];
-			if (icon.shown) then
-				HideCDIcon(icon);
-			end
-		end
-		-- // hide standart buff frame
-		if (db.HideBlizzardFrames and frame.UnitFrame.BuffFrame ~= nil) then
-			frame.UnitFrame.BuffFrame:SetAlpha(0);
-		end
+		return t;
 	end
 	
-	function UpdateNameplate_SetCooldown(icon, last, spellInfo)
-		
+	local function UpdateNameplate_SetCooldown(icon, last, spellInfo)
 		if (icon.info == nil) then
 			icon.info = {
 				["text"] = nil,
@@ -696,7 +719,7 @@ do
 		end
 	end
 	
-	function UpdateNameplate_SetStacks(icon, spellInfo)
+	local function UpdateNameplate_SetStacks(icon, spellInfo)
 		if (icon.stackcount ~= spellInfo.stacks) then
 			if (spellInfo.stacks > 1) then
 				icon.stacks:SetText(spellInfo.stacks);
@@ -707,7 +730,7 @@ do
 		end
 	end
 	
-	function UpdateNameplate_SetBorder(icon, spellInfo)
+	local function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
 			if (icon.borderState ~= spellInfo.type) then
 				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
@@ -730,34 +753,64 @@ do
 		end
 	end
 	
-	function HideCDIcon(icon)
-		icon.border:Hide();
-		icon.borderState = nil;
-		icon.cooldown:Hide();
-		icon.stacks:Hide();
-		icon:Hide();
-		icon.shown = false;
-		icon.spellID = -1;
-		icon.stackcount = -1;
-		icon.size = -1;
-	end
-	
-	function ShowCDIcon(icon)
-		icon.cooldown:Show();
-		icon.stacks:Show();
-		icon:Show();
-		icon.shown = true;
-	end
-	
-	function ResizeIcon(icon, size, widthAlreadyUsed)
-		icon:SetSize(size, size);
-		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
-		if (db.TimerTextUseRelativeScale) then
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
-		else
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+	function UpdateNameplate(frame)
+		local counter = 1;
+		local totalWidth = 0;
+		local iconResized = false;
+		if (AurasPerNameplate[frame]) then
+			local currentTime = GetTime();
+			if (SortedAurasPerNameplate[frame] ~= nil) then
+				wipe(SortedAurasPerNameplate[frame]);
+			end
+			SortedAurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
+			for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
+				local spellName = SpellNameByID[spellInfo.spellID];
+				local duration = spellInfo.duration;
+				local last = spellInfo.expires - currentTime;
+				if (last > 0) then
+					if (counter > frame.NAurasIconsCount) then
+						AllocateIcon(frame, totalWidth);
+					end
+					local icon = frame.NAurasIcons[counter];
+					if (icon.spellID ~= spellName) then
+						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
+						icon.spellID = spellName;
+					end
+					UpdateNameplate_SetCooldown(icon, last, spellInfo);
+					-- // stacks
+					UpdateNameplate_SetStacks(icon, spellInfo);
+					-- // border
+					UpdateNameplate_SetBorder(icon, spellInfo);
+					-- // icon size
+					local enabledAuraInfo = EnabledAurasInfo[spellName];
+					local normalSize = enabledAuraInfo and enabledAuraInfo.iconSize or db.DefaultIconSize;
+					if (normalSize ~= icon.size or iconResized) then
+						icon.size = normalSize;
+						ResizeIcon(icon, icon.size, totalWidth);
+						iconResized = true;
+					end
+					if (not icon.shown) then
+						ShowCDIcon(icon);
+					end
+					totalWidth = totalWidth + icon.size + db.IconSpacing;
+					counter = counter + 1;
+				end
+			end
 		end
-		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
+		if (frame.NAurasFrame ~= nil) then
+			totalWidth = totalWidth - db.IconSpacing; -- // because we don't need last spacing
+			frame.NAurasFrame:SetWidth(totalWidth);
+		end
+		for k = counter, frame.NAurasIconsCount do
+			local icon = frame.NAurasIcons[k];
+			if (icon.shown) then
+				HideCDIcon(icon);
+			end
+		end
+		-- // hide standart buff frame
+		if (db.HideBlizzardFrames and frame.UnitFrame.BuffFrame ~= nil) then
+			frame.UnitFrame.BuffFrame:SetAlpha(0);
+		end
 	end
 	
 	function Nameplates_OnFontChanged()
@@ -850,46 +903,6 @@ do
 		end
 	end
 	
-	function SortAurasForNameplate(auras)
-		local t = { };
-		for _, spellInfo in pairs(auras) do
-			if (spellInfo.spellID ~= nil) then
-				table_insert(t, spellInfo);
-			end
-		end
-		if (db.SortMode == AURA_SORT_MODE_NONE) then
-			-- // do nothing
-		elseif (db.SortMode == AURA_SORT_MODE_EXPIREASC) then
-			table_sort(t, function(item1, item2) return item1.expires < item2.expires end);
-		elseif (db.SortMode == AURA_SORT_MODE_EXPIREDES) then
-			table_sort(t, function(item1, item2) return item1.expires > item2.expires end);
-		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEASC) then
-			table_sort(t, function(item1, item2)
-				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
-				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
-			end);
-		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEDES) then
-			table_sort(t, function(item1, item2)
-				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
-				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
-			end);
-		elseif (db.SortMode == AURA_SORT_MODE_AURATYPE_EXPIRE) then
-			table_sort(t, function(item1, item2)
-				if (item1.type ~= item2.type) then
-					return (item1.type == AURA_TYPE_DEBUFF) and true or false;
-				end
-				if (item1.type == AURA_TYPE_DEBUFF) then
-					return item1.expires < item2.expires;
-				else
-					return item1.expires > item2.expires;
-				end
-			end);
-		end
-		return t;
-	end
-	
 	function OnUpdate()
 		local currentTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
@@ -909,6 +922,49 @@ do
 			end
 		end
 	end
+	
+	--@debug@
+	
+	local function aaaaa()
+		local functions = {
+			["UpdateNameplate_SetCooldown"] = UpdateNameplate_SetCooldown,
+			["OnUpdate"] = OnUpdate,
+		};
+		local t = { };
+		for funcName, func in pairs(functions) do
+			local usage, calls = GetFunctionCPUUsage(func, true);
+			if (calls > 0) then
+				t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
+			end
+		end
+		table_sort(t, function(item1, item2)
+			return item1.usage > item2.usage;
+		end);
+		print(GetTime(), "-------------------------- START");
+		for _, funcInfo in pairs(t) do
+			print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
+		end
+		local tables = {
+			["SpellTextureByID"] = 			SpellTextureByID,
+			["SpellNameByID"] =				SpellNameByID,
+			["SpellIDByName"] =				SpellIDByName,
+			["AurasPerNameplate"] = 		AurasPerNameplate,
+			["SortedAurasPerNameplate"] = 	SortedAurasPerNameplate,
+			["EnabledAurasInfo"] = 			EnabledAurasInfo,
+			["Nameplates"] = 				Nameplates,
+			["NameplatesVisible"] = 		NameplatesVisible,
+		};
+		for tName, tRef in pairs(tables) do
+			print(tName, table_count(tRef));
+		end
+		print(GetTime(), "-------------------------- END");
+		C_Timer.After(300, aaaaa);
+	end
+	
+	C_Timer.After(60, aaaaa);
+	-- // todo: delete-end
+	
+	--@end-debug@
 	
 end
 

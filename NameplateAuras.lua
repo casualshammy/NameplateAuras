@@ -1,10 +1,11 @@
 local _, addonTable = ...;
 
+local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
+local LBG = LibStub("LibButtonGlow-1.0");
+local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = LBG.ShowOverlayGlow, LBG.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
-
-local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
@@ -27,34 +28,15 @@ local SpellNameByID = setmetatable({}, {
 		return spellName;
 	end
 });
-local SpellIDByName = setmetatable({}, {
-	__index = function(t, key)
-		for spellID = 1, 500000 do
-			local spellName = GetSpellInfo(spellID);
-			if (spellName == key) then
-				t[key] = spellID;
-				return spellID;
-			end
-		end
-		for spellID = 1, 500000 do
-			local spellName = GetSpellInfo(spellID);
-			if (spellName ~= nil and string_lower(spellName) == string_lower(key)) then
-				t[key] = spellID;
-				return spellID;
-			end
-		end
-		return nil;
-	end
-});
+local AllSpellIDsAndIconsByName 	= { };
 local AurasPerNameplate 			= { };
-local SortedAurasPerNameplate 		= { };
 local EnabledAurasInfo				= { };
 local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
 local LocalPlayerFullName 			= UnitName("player") .. " - " .. GetRealmName();
 local InPvPCombat					= false;
-local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame;
+local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
 
 -- // enums as variables: it's done for better performance
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = 1, 2, 3;
@@ -186,7 +168,7 @@ do
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
-			if (msg == "t" or msg == "ver") then
+			if (msg == "ver") then
 				local c = UNKNOWN;
 				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
 					c = "INSTANCE_CHAT";
@@ -366,15 +348,16 @@ do
 	
 	function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
 		return {
-			["enabledState"] = enabledState,
-			["auraType"] = AURA_TYPE_ANY,
-			["iconSize"] = (iconSize ~= nil) and iconSize or db.DefaultIconSize,
-			["spellID"] = spellID,
-			["checkSpellID"] = checkSpellID,
-			["showOnFriends"] = true,
-			["showOnEnemies"] = true,
-			["allowMultipleInstances"] = false,
-			["pvpCombat"] = CONST_SPELL_PVP_MODES_UNDEFINED,
+			["enabledState"] =				enabledState,
+			["auraType"] =					AURA_TYPE_ANY,
+			["iconSize"] =					(iconSize ~= nil) and iconSize or db.DefaultIconSize,
+			["spellID"] =					spellID,
+			["checkSpellID"] =				checkSpellID,
+			["showOnFriends"] =				true,
+			["showOnEnemies"] =				true,
+			["allowMultipleInstances"] =	false,
+			["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
+			["showGlow"] =					nil,
 		};
 	end
 	
@@ -390,6 +373,7 @@ do
 				["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
 				["allowMultipleInstances"] =	db.CustomSpells2[spellID].allowMultipleInstances,
 				["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
+				["showGlow"] =					db.CustomSpells2[spellID].showGlow,
 			};
 		else
 			EnabledAurasInfo[spellName] = nil;
@@ -424,7 +408,7 @@ do
 		icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 		icon.border = icon:CreateTexture(nil, "OVERLAY");
 		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
-		icon.cooldown = icon:CreateFontString(nil, "OVERLAY");
+		icon.cooldownText = icon:CreateFontString(nil, "OVERLAY");
 		if (db.TimerStyle == TIMER_STYLE_CIRCULAR or db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
 			icon.cooldownFrame:SetAllPoints(icon);
@@ -450,24 +434,24 @@ do
 					end
 				end
 			end);
-			hooksecurefunc(icon.cooldown, "SetText", function(self, text)
+			hooksecurefunc(icon.cooldownText, "SetText", function(self, text)
 				if (text ~= "") then
 					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
-						icon.cooldown:SetParent(icon);
+						icon.cooldownText:SetParent(icon);
 					else
-						icon.cooldown:SetParent(icon.cooldownFrame);
+						icon.cooldownText:SetParent(icon.cooldownFrame);
 					end
 				end
 			end);
 		end
 		icon.size = db.DefaultIconSize;
 		icon:Hide();
-		icon.cooldown:SetTextColor(0.7, 1, 0);
-		icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
+		icon.cooldownText:SetTextColor(0.7, 1, 0);
+		icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 		if (db.TimerTextUseRelativeScale) then
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
+			icon.cooldownText:SetFont(SML:Fetch("font", db.Font), math_ceil((db.DefaultIconSize - db.DefaultIconSize / 2) * db.FontScale), "OUTLINE");
 		else
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+			icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 		end
 		icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
 		icon.border:SetVertexColor(1, 0.35, 0);
@@ -485,17 +469,18 @@ do
 	local function HideCDIcon(icon)
 		icon.border:Hide();
 		icon.borderState = nil;
-		icon.cooldown:Hide();
+		icon.cooldownText:Hide();
 		icon.stacks:Hide();
 		icon:Hide();
 		icon.shown = false;
 		icon.spellID = -1;
 		icon.stackcount = -1;
 		icon.size = -1;
+		LBG_HideOverlayGlow(icon);
 	end
 	
 	local function ShowCDIcon(icon)
-		icon.cooldown:Show();
+		icon.cooldownText:Show();
 		icon.stacks:Show();
 		icon:Show();
 		icon.shown = true;
@@ -505,9 +490,9 @@ do
 		icon:SetSize(size, size);
 		icon:SetPoint(db.IconAnchor, icon:GetParent(), widthAlreadyUsed, 0);
 		if (db.TimerTextUseRelativeScale) then
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
+			icon.cooldownText:SetFont(SML:Fetch("font", db.Font), math_ceil((size - size / 2) * db.FontScale), "OUTLINE");
 		else
-			icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+			icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 		end
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
 	end
@@ -668,38 +653,38 @@ do
 		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			if (last > 3600) then
 				if (info.text ~= "") then
-					icon.cooldown:SetText("");
+					icon.cooldownText:SetText("");
 					info.text = "";
 				end
 			elseif (last >= 60) then
 				local newValue = math_floor(last/60).."m";
 				if (info.text ~= newValue) then
-					icon.cooldown:SetText(newValue);
+					icon.cooldownText:SetText(newValue);
 					info.text = newValue;
 				end
 			elseif (last >= db.MinTimeToShowTenthsOfSeconds) then
 				local newValue = string_format("%d", last);
 				if (info.text ~= newValue) then
-					icon.cooldown:SetText(newValue);
+					icon.cooldownText:SetText(newValue);
 					info.text = newValue;
 				end
 			else
-				icon.cooldown:SetText(string_format("%.1f", last));
+				icon.cooldownText:SetText(string_format("%.1f", last));
 				info.text = nil;
 			end
 			if (last >= 60) then
 				if (info.colorState ~= db.TimerTextLongerColor) then
-					icon.cooldown:SetTextColor(unpack(db.TimerTextLongerColor));
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextLongerColor));
 					info.colorState = db.TimerTextLongerColor;
 				end
 			elseif (last >= 5) then
 				if (info.colorState ~= db.TimerTextUnderMinuteColor) then
-					icon.cooldown:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
 					info.colorState = db.TimerTextUnderMinuteColor;
 				end
 			else
 				if (info.colorState ~= db.TimerTextSoonToExpireColor) then
-					icon.cooldown:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
 					info.colorState = db.TimerTextSoonToExpireColor;
 				end
 			end
@@ -753,17 +738,22 @@ do
 		end
 	end
 	
+	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized)
+		if (auraInfo and auraInfo.showGlow) then
+			LBG_ShowOverlayGlow(icon, iconResized);
+		else
+			LBG_HideOverlayGlow(icon);
+		end
+	end
+	
 	function UpdateNameplate(frame)
 		local counter = 1;
 		local totalWidth = 0;
 		local iconResized = false;
 		if (AurasPerNameplate[frame]) then
 			local currentTime = GetTime();
-			if (SortedAurasPerNameplate[frame] ~= nil) then
-				wipe(SortedAurasPerNameplate[frame]);
-			end
-			SortedAurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
-			for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
+			AurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
+			for _, spellInfo in pairs(AurasPerNameplate[frame]) do
 				local spellName = SpellNameByID[spellInfo.spellID];
 				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
@@ -789,6 +779,8 @@ do
 						ResizeIcon(icon, icon.size, totalWidth);
 						iconResized = true;
 					end
+					-- // glow
+					UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
@@ -819,9 +811,9 @@ do
 				for _, icon in pairs(nameplate.NAurasIcons) do
 					if (icon.shown) then
 						if (db.TimerTextUseRelativeScale) then
-							icon.cooldown:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+							icon.cooldownText:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
 						else
-							icon.cooldown:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+							icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 						end
 						icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
 					end
@@ -862,8 +854,8 @@ do
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
 				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon.cooldown:ClearAllPoints();
-					icon.cooldown:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
+					icon.cooldownText:ClearAllPoints();
+					icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 					icon.stacks:ClearAllPoints();
 					icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 				end
@@ -908,7 +900,7 @@ do
 		for frame in pairs(NameplatesVisible) do
 			local counter = 1;
 			if (AurasPerNameplate[frame]) then
-				for _, spellInfo in pairs(SortedAurasPerNameplate[frame]) do
+				for _, spellInfo in pairs(AurasPerNameplate[frame]) do
 					local duration = spellInfo.duration;
 					local last = spellInfo.expires - currentTime;
 					if (last > 0) then
@@ -947,9 +939,7 @@ do
 		local tables = {
 			["SpellTextureByID"] = 			SpellTextureByID,
 			["SpellNameByID"] =				SpellNameByID,
-			["SpellIDByName"] =				SpellIDByName,
 			["AurasPerNameplate"] = 		AurasPerNameplate,
-			["SortedAurasPerNameplate"] = 	SortedAurasPerNameplate,
 			["EnabledAurasInfo"] = 			EnabledAurasInfo,
 			["Nameplates"] = 				Nameplates,
 			["NameplatesVisible"] = 		NameplatesVisible,
@@ -957,6 +947,7 @@ do
 		for tName, tRef in pairs(tables) do
 			print(tName, table_count(tRef));
 		end
+		print(format("EventFrame.SPELL_UPDATE_USABLE: %.2f calls/sec, total calls: %d", EventFrame.SPELL_UPDATE_USABLE_counter / (GetTime() - EventFrame.SPELL_UPDATE_USABLE_startTime), EventFrame.SPELL_UPDATE_USABLE_counter));
 		print(GetTime(), "-------------------------- END");
 		C_Timer.After(300, aaaaa);
 	end
@@ -1270,9 +1261,7 @@ do
 				button.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
 				button:Hide();
 				scrollAreaBackground.buttons[counter] = button;
-				--print("New button is created: " .. tostring(counter));
 				return button;
-				--button:SetScript("OnClick", function() scrollAreaBackground.selectedItem =  end);
 			else
 				return scrollAreaBackground.buttons[counter];
 			end
@@ -1295,6 +1284,14 @@ do
 					button:SetScript("OnEnter", function(self, ...)
 						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 						GameTooltip:SetSpellByID(value.tooltipSpellID);
+						local allSpellIDs = AllSpellIDsAndIconsByName[SpellNameByID[value.tooltipSpellID]];
+						if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
+							local descText = "\nAppropriate spell IDs:"; -- // todo:localize
+							for id, icon in pairs(allSpellIDs) do
+								descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
+							end
+							GameTooltip:AddLine(descText);
+						end
 						GameTooltip:Show();
 					end)
 					button:SetScript("OnLeave", function(self, ...)
@@ -1350,6 +1347,34 @@ do
 		b.text:SetPoint("LEFT", 3, 0);
 		GUIFrame.CategoryButtons[#GUIFrame.CategoryButtons + 1] = b;
 		return b;
+	end
+	
+	local function InitializeGUI_CreateSpellInfoCaches()
+		GUIFrame:HookScript("OnShow", function()
+			local scanAllSpells = coroutine.create(function()
+				local misses = 0;
+				local id = 0;
+				while (misses < 400) do
+					id = id + 1;
+					local name, _, icon = GetSpellInfo(id);
+					if (icon == 136243) then -- 136243 is the a gear icon
+						misses = 0;
+					elseif (name and name ~= "") then
+						misses = 0;
+						if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
+						AllSpellIDsAndIconsByName[name][id] = icon;
+					else
+						misses = misses + 1;
+					end
+					coroutine.yield();
+				end
+			end);
+			CoroutineProcessor:Queue("scanAllSpells", scanAllSpells);
+		end);
+		GUIFrame:HookScript("OnHide", function()
+			CoroutineProcessor:DeleteFromQueue("scanAllSpells");
+			wipe(AllSpellIDsAndIconsByName);
+		end);
 	end
 	
 	local function InitializeGUI()
@@ -1459,6 +1484,7 @@ do
 				
 			end
 		end
+		InitializeGUI_CreateSpellInfoCaches();
 	end
 	
 	function ShowGUI()
@@ -2893,7 +2919,7 @@ do
 		local controls = { };
 		local selectedSpell = 0;
 		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled;
+			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow;
 		local AuraTypesLocalization = {
 			[AURA_TYPE_BUFF] =		L["Buff"],
 			[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -2924,26 +2950,37 @@ do
 		-- // editboxAddSpell, buttonAddSpell
 		do
 		
-			editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame);
+			editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame, "InputBoxTemplate");
+			abra = editboxAddSpell;
 			editboxAddSpell:SetAutoFocus(false);
 			editboxAddSpell:SetFontObject(GameFontHighlightSmall);
-			editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 167, -30);
+			editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 172, -30);
 			editboxAddSpell:SetHeight(20);
-			editboxAddSpell:SetWidth(180);
+			editboxAddSpell:SetWidth(175);
 			editboxAddSpell:SetJustifyH("LEFT");
 			editboxAddSpell:EnableMouse(true);
-			editboxAddSpell:SetBackdrop({
-				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				tile = true, edgeSize = 1, tileSize = 5,
-			});
-			editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
-			editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			-- editboxAddSpell:SetBackdrop({
+				-- bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				-- edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				-- tile = true, edgeSize = 1, tileSize = 5,
+			-- });
+			-- editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
+			-- editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 			editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 			editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
 			local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-			text:SetPoint("LEFT", 5, 15);
+			text:SetPoint("LEFT", 0, 15);
 			text:SetText(L["Add new spell: "]);
+			hooksecurefunc("ChatEdit_InsertLink", function(link)
+                if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
+					local spellName = string.match(link, "%[\"?(.-)\"?%]");
+					if (spellName ~= nil) then
+						editboxAddSpell:SetText(spellName);
+						editboxAddSpell:ClearFocus();
+						return true;
+					end
+                end
+			end);
 			table_insert(GUIFrame.Categories[index], editboxAddSpell);
 			
 			buttonAddSpell = GUICreateButton(GUIFrame, L["Add spell"]);
@@ -2955,7 +2992,16 @@ do
 				if (tonumber(text) ~= nil) then
 					msg(format(L["options:auras:add-new-spell:error1"], L["Check spell ID"]));
 				else
-					local spellID = SpellIDByName[text];
+					local spellID;
+					if (AllSpellIDsAndIconsByName[text]) then
+						spellID = next(AllSpellIDsAndIconsByName[text]);
+					else
+						for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+							if (string_lower(_spellName) == string_lower(text)) then
+								spellID = next(_spellInfo);
+							end
+						end
+					end
 					if (spellID ~= nil) then
 						local spellName = SpellNameByID[spellID];
 						if (spellName == nil) then
@@ -3035,7 +3081,6 @@ do
 			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
-			--selectSpell:SetPoint("TOPLEFT", 168, -60);
 			selectSpell:SetPoint("BOTTOMLEFT", spellArea, "TOPLEFT", 15, 5);
 			selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
 			selectSpell:SetScript("OnClick", function()
@@ -3051,8 +3096,6 @@ do
 								control:Show();
 							end
 							selectedSpell = self.info.spellID;
-							--print(self.info.spellID, db.CustomSpells2[selectedSpell].enabledState, db.CustomSpells2[selectedSpell].iconSize, db.CustomSpells2[selectedSpell].auraType, db.CustomSpells2[selectedSpell].checkSpellID,
-							--	db.CustomSpells2[selectedSpell].showOnFriends, db.CustomSpells2[selectedSpell].showOnEnemies);
 							selectSpell.Text:SetText(self.text);
 							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
 							sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
@@ -3075,6 +3118,7 @@ do
 							else
 								checkboxPvPMode:SetTriState(2);
 							end
+							checkboxGlow:SetChecked(db.CustomSpells2[selectedSpell].showGlow);
 						end,
 					});
 				end
@@ -3104,9 +3148,9 @@ do
 			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", spellArea, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSpellShowType, 180);
 			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -130);
+			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -150);
 			dropdownSpellShowType.text:SetText(L["Aura type"]);
-			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -120);
+			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -140);
 			local info = {};
 			dropdownSpellShowType.initialize = function()
 				wipe(info);
@@ -3132,7 +3176,7 @@ do
 		
 			sliderSpellIconSize = GUICreateSlider(spellArea, 18, -23, 200);
 			sliderSpellIconSize.label:ClearAllPoints();
-			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -170);
+			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -190);
 			sliderSpellIconSize.label:SetText(L["Icon size"]);
 			sliderSpellIconSize:ClearAllPoints();
 			sliderSpellIconSize:SetPoint("LEFT", sliderSpellIconSize.label, "RIGHT", 20, 0);
@@ -3180,7 +3224,7 @@ do
 			editboxSpellID:SetAutoFocus(false);
 			editboxSpellID:SetFontObject(GameFontHighlightSmall);
 			editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -210);
+			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -230);
 			editboxSpellID.text:SetText(L["Check spell ID"] .. ": ");
 			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
 			editboxSpellID:SetPoint("RIGHT", spellArea, "RIGHT", -30, 0);
@@ -3320,6 +3364,20 @@ do
 			
 		end
 		
+		-- // checkboxGlow
+		do
+			
+			checkboxGlow = GUICreateCheckBoxEx("Icon glow", function(this) -- // todo:localize
+				db.CustomSpells2[selectedSpell].showGlow = this:GetChecked() or nil; -- // making db smaller
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+			end);
+			checkboxGlow:SetParent(spellArea);
+			checkboxGlow:SetPoint("TOPLEFT", 15, -115);
+			table_insert(controls, checkboxGlow);
+		
+		end
+		
 	end
 	
 end
@@ -3409,6 +3467,52 @@ do
 		return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 	end
 	
+	-- // CoroutineProcessor
+	do
+		CoroutineProcessor = {};
+		CoroutineProcessor.frame = CreateFrame("frame");
+		CoroutineProcessor.update = {};
+		CoroutineProcessor.size = 0;
+
+		function CoroutineProcessor.Queue(self, name, func)
+			if (not name) then
+				name = string_format("NIL%d", CoroutineProcessor.size + 1);
+			end
+			if (not CoroutineProcessor.update[name]) then
+				CoroutineProcessor.update[name] = func;
+				CoroutineProcessor.size = CoroutineProcessor.size + 1;
+				CoroutineProcessor.frame:Show();
+			end
+		end
+
+		function CoroutineProcessor.DeleteFromQueue(self, name)
+			if (CoroutineProcessor.update[name]) then
+				CoroutineProcessor.update[name] = nil;
+				CoroutineProcessor.size = CoroutineProcessor.size - 1;
+				if (CoroutineProcessor.size == 0) then
+					CoroutineProcessor.frame:Hide();
+				end
+			end
+		end
+
+		CoroutineProcessor.frame:Hide();
+		CoroutineProcessor.frame:SetScript("OnUpdate", function(self, elapsed)
+			local start = debugprofilestop();
+			local hasData = true;
+			while (debugprofilestop() - start < 16 and hasData) do
+				hasData = false;
+				for name, func in pairs(CoroutineProcessor.update) do
+					hasData = true;
+					if (coroutine.status(func) ~= "dead") then
+						local err, ret1, ret2 = assert(coroutine.resume(func));
+					else
+						CoroutineProcessor:DeleteFromQueue(name);
+					end
+				end
+			end
+		end);
+	end
+	
 end
 
 --------------------------------------------------------------------------------------------------
@@ -3480,12 +3584,20 @@ do
 		end
 	end
 	
+	--@debug@
+	EventFrame.SPELL_UPDATE_USABLE_startTime = GetTime();
+	EventFrame.SPELL_UPDATE_USABLE_counter = 0;
+	--@end-debug@
+	
 	function EventFrame.SPELL_UPDATE_USABLE()
 		local inPvPCombat = IsUsableSpell(SpellNameByID[195710]); -- // Honorable Medallion
 		if (inPvPCombat ~= InPvPCombat) then
 			InPvPCombat = inPvPCombat;
 			UpdateAllNameplates(false);
 		end
+		--@debug@
+		EventFrame.SPELL_UPDATE_USABLE_counter = EventFrame.SPELL_UPDATE_USABLE_counter + 1;
+		--@end-debug@
 	end
 	
 end

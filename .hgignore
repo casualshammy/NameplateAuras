@@ -1,0 +1,10 @@
+syntax: regexp
+^_curseforge/.+
+libs/AceConfig-3.0/.+
+libs/AceDB-3.0/.+
+libs/AceDBOptions-3.0/.+
+libs/AceGUI-3.0/.+
+libs/AceLocale-3.0/.+
+libs/CallbackHandler-1.0/.+
+libs/LibSharedMedia-3.0/.+
+libs/LibStub/.+

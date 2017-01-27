@@ -1,17 +1,16 @@
 local _, addonTable = ...;
 
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
-local LBG = LibStub("LibButtonGlow-1.0");
-local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = LBG.ShowOverlayGlow, LBG.HideOverlayGlow;
+local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After;
 
 NameplateAurasDB = {};
 local SpellTextureByID = setmetatable({}, {
@@ -164,7 +163,6 @@ do
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
-		EventFrame:RegisterEvent("SPELL_UPDATE_USABLE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
@@ -917,42 +915,41 @@ do
 	
 	--@debug@
 	
-	local function aaaaa()
-		local functions = {
-			["UpdateNameplate_SetCooldown"] = UpdateNameplate_SetCooldown,
-			["OnUpdate"] = OnUpdate,
-		};
-		local t = { };
-		for funcName, func in pairs(functions) do
-			local usage, calls = GetFunctionCPUUsage(func, true);
-			if (calls > 0) then
-				t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
-			end
-		end
-		table_sort(t, function(item1, item2)
-			return item1.usage > item2.usage;
-		end);
-		print(GetTime(), "-------------------------- START");
-		for _, funcInfo in pairs(t) do
-			print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
-		end
-		local tables = {
-			["SpellTextureByID"] = 			SpellTextureByID,
-			["SpellNameByID"] =				SpellNameByID,
-			["AurasPerNameplate"] = 		AurasPerNameplate,
-			["EnabledAurasInfo"] = 			EnabledAurasInfo,
-			["Nameplates"] = 				Nameplates,
-			["NameplatesVisible"] = 		NameplatesVisible,
-		};
-		for tName, tRef in pairs(tables) do
-			print(tName, table_count(tRef));
-		end
-		print(format("EventFrame.SPELL_UPDATE_USABLE: %.2f calls/sec, total calls: %d", EventFrame.SPELL_UPDATE_USABLE_counter / (GetTime() - EventFrame.SPELL_UPDATE_USABLE_startTime), EventFrame.SPELL_UPDATE_USABLE_counter));
-		print(GetTime(), "-------------------------- END");
-		C_Timer.After(300, aaaaa);
-	end
+	-- local function aaaaa()
+		-- local functions = {
+			-- ["UpdateNameplate_SetCooldown"] = 	UpdateNameplate_SetCooldown,
+			-- ["OnUpdate"] = 						OnUpdate,
+		-- };
+		-- local t = { };
+		-- for funcName, func in pairs(functions) do
+			-- local usage, calls = GetFunctionCPUUsage(func, true);
+			-- if (calls > 0) then
+				-- t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
+			-- end
+		-- end
+		-- table_sort(t, function(item1, item2)
+			-- return item1.usage > item2.usage;
+		-- end);
+		-- print(GetTime(), "-------------------------- START");
+		-- for _, funcInfo in pairs(t) do
+			-- print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
+		-- end
+		-- local tables = {
+			-- ["SpellTextureByID"] = 			SpellTextureByID,
+			-- ["SpellNameByID"] =				SpellNameByID,
+			-- ["AurasPerNameplate"] = 		AurasPerNameplate,
+			-- ["EnabledAurasInfo"] = 			EnabledAurasInfo,
+			-- ["Nameplates"] = 				Nameplates,
+			-- ["NameplatesVisible"] = 		NameplatesVisible,
+		-- };
+		-- for tName, tRef in pairs(tables) do
+			-- print(tName, table_count(tRef));
+		-- end
+		-- print(GetTime(), "-------------------------- END");
+		-- C_Timer.After(300, aaaaa);
+	-- end
 	
-	C_Timer.After(60, aaaaa);
+	-- C_Timer.After(60, aaaaa);
 	-- // todo: delete-end
 	
 	--@end-debug@
@@ -3584,20 +3581,17 @@ do
 		end
 	end
 	
-	--@debug@
-	EventFrame.SPELL_UPDATE_USABLE_startTime = GetTime();
-	EventFrame.SPELL_UPDATE_USABLE_counter = 0;
-	--@end-debug@
-	
-	function EventFrame.SPELL_UPDATE_USABLE()
+	local function UpdatePvPState()
 		local inPvPCombat = IsUsableSpell(SpellNameByID[195710]); -- // Honorable Medallion
 		if (inPvPCombat ~= InPvPCombat) then
 			InPvPCombat = inPvPCombat;
 			UpdateAllNameplates(false);
+			--@debug@
+			Print("PvP state is changed to " .. tostring(InPvPCombat));
+			--@end-debug@
 		end
-		--@debug@
-		EventFrame.SPELL_UPDATE_USABLE_counter = EventFrame.SPELL_UPDATE_USABLE_counter + 1;
-		--@end-debug@
+		CTimerAfter(1.0, UpdatePvPState);
 	end
+	CTimerAfter(1.0, UpdatePvPState);
 	
 end

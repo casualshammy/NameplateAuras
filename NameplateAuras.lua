@@ -3590,8 +3590,8 @@ do
 			Print("PvP state is changed to " .. tostring(InPvPCombat));
 			--@end-debug@
 		end
-		CTimerAfter(1.0, UpdatePvPState);
+		CTimerAfter(1, UpdatePvPState);
 	end
-	CTimerAfter(1.0, UpdatePvPState);
+	CTimerAfter(1, UpdatePvPState);
 	
 end

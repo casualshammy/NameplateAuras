@@ -915,42 +915,43 @@ do
 	
 	--@debug@
 	
-	-- local function aaaaa()
-		-- local functions = {
-			-- ["UpdateNameplate_SetCooldown"] = 	UpdateNameplate_SetCooldown,
-			-- ["OnUpdate"] = 						OnUpdate,
-		-- };
-		-- local t = { };
-		-- for funcName, func in pairs(functions) do
-			-- local usage, calls = GetFunctionCPUUsage(func, true);
-			-- if (calls > 0) then
-				-- t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
-			-- end
-		-- end
-		-- table_sort(t, function(item1, item2)
-			-- return item1.usage > item2.usage;
-		-- end);
-		-- print(GetTime(), "-------------------------- START");
-		-- for _, funcInfo in pairs(t) do
-			-- print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
-		-- end
-		-- local tables = {
-			-- ["SpellTextureByID"] = 			SpellTextureByID,
-			-- ["SpellNameByID"] =				SpellNameByID,
-			-- ["AurasPerNameplate"] = 		AurasPerNameplate,
-			-- ["EnabledAurasInfo"] = 			EnabledAurasInfo,
-			-- ["Nameplates"] = 				Nameplates,
-			-- ["NameplatesVisible"] = 		NameplatesVisible,
-		-- };
-		-- for tName, tRef in pairs(tables) do
-			-- print(tName, table_count(tRef));
-		-- end
-		-- print(GetTime(), "-------------------------- END");
-		-- C_Timer.After(300, aaaaa);
-	-- end
+	local function aaaaa()
+		local functions = {
+			["UpdateNameplate_SetCooldown"] = 	UpdateNameplate_SetCooldown,
+			["OnUpdate"] = 						OnUpdate,
+		};
+		local t = { };
+		for funcName, func in pairs(functions) do
+			local usage, calls = GetFunctionCPUUsage(func, true);
+			if (calls > 0) then
+				t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
+			end
+		end
+		table_sort(t, function(item1, item2)
+			return item1.usage > item2.usage;
+		end);
+		print(GetTime(), "-------------------------- START");
+		for _, funcInfo in pairs(t) do
+			print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
+		end
+		local tables = {
+			["SpellTextureByID"] = 			SpellTextureByID,
+			["SpellNameByID"] =				SpellNameByID,
+			["AurasPerNameplate"] = 		AurasPerNameplate,
+			["EnabledAurasInfo"] = 			EnabledAurasInfo,
+			["Nameplates"] = 				Nameplates,
+			["NameplatesVisible"] = 		NameplatesVisible,
+		};
+		for tName, tRef in pairs(tables) do
+			print(tName, table_count(tRef));
+		end
+		print(GetTime(), "-------------------------- END");
+		C_Timer.After(300, aaaaa);
+	end
 	
-	-- C_Timer.After(60, aaaaa);
-	-- // todo: delete-end
+	function NAuras_Bench()
+		aaaaa();
+	end
 	
 	--@end-debug@
 	

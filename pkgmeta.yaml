@@ -1,6 +1,6 @@
 package-as: NameplateAuras
 
-license-output: LICENSE.txt
+license-output: LICENSE.html
 
 manual-changelog:
     filename: CHANGELOG.html

@@ -760,9 +760,9 @@ do
 						AllocateIcon(frame, totalWidth);
 					end
 					local icon = frame.NAurasIcons[counter];
-					if (icon.spellID ~= spellName) then
+					if (icon.spellID ~= spellInfo.spellID) then
 						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
-						icon.spellID = spellName;
+						icon.spellID = spellInfo.spellID;
 					end
 					UpdateNameplate_SetCooldown(icon, last, spellInfo);
 					-- // stacks
@@ -3587,9 +3587,6 @@ do
 		if (inPvPCombat ~= InPvPCombat) then
 			InPvPCombat = inPvPCombat;
 			UpdateAllNameplates(false);
-			--@debug@
-			Print("PvP state is changed to " .. tostring(InPvPCombat));
-			--@end-debug@
 		end
 		CTimerAfter(1, UpdatePvPState);
 	end

@@ -33,3 +33,6 @@ externals:
     libs/AceLocale-3.0:
         url: https://repos.wowace.com/wow/ace3/trunk/AceLocale-3.0
         tag: latest
+    libs/AceGUI-3.0-SharedMediaWidgets
+        url: https://repos.wowace.com/wow/ace-gui-3-0-shared-media-widgets/trunk
+        tag: latest

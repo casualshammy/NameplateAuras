@@ -48,7 +48,7 @@ local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
-local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
+local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText, GetSelectorEx;
 
 --------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -1313,6 +1313,90 @@ do
 		return scrollAreaBackground;
 	end
 	
+	local selectorEx;
+	function GetSelectorEx()
+		if (not selectorEx) then
+			selectorEx = CreateFrame("Frame", nil, UIParent);
+			selectorEx:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
+			selectorEx:SetSize(350, 300);
+			selectorEx.texture = selectorEx:CreateTexture();
+			selectorEx.texture:SetAllPoints(selectorEx);
+			selectorEx.texture:SetColorTexture(0, 0, 0, 1);
+			
+			selectorEx.scrollArea = CreateFrame("ScrollFrame", nil, selectorEx, "UIPanelScrollFrameTemplate");
+			selectorEx.scrollArea:SetPoint("TOPLEFT", selectorEx, "TOPLEFT", 5, -5);
+			selectorEx.scrollArea:SetPoint("BOTTOMRIGHT", selectorEx, "BOTTOMRIGHT", -25, 5);
+			selectorEx.scrollArea:Show();
+			
+			local scrollAreaChildFrame = CreateFrame("Frame", nil, selectorEx.scrollArea);
+			selectorEx.scrollArea:SetScrollChild(scrollAreaChildFrame);
+			--scrollAreaChildFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 1);
+			scrollAreaChildFrame:SetWidth(288);
+			scrollAreaChildFrame:SetHeight(288);
+			
+			selectorEx.buttons = { };
+			
+			local function GetButton(counter)
+				if (selectorEx.buttons[counter] == nil) then
+					local button = GUICreateButton(scrollAreaChildFrame, "");
+					button.font, button.fontSize, button.fontFlags = button.Text:GetFont();
+					button:SetWidth(295);
+					button:SetHeight(20);
+					button:SetPoint("TOPLEFT", 23, -counter * 22 + 15);
+					button.Icon = button:CreateTexture();
+					button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
+					button.Icon:SetWidth(20);
+					button.Icon:SetHeight(20);
+					button.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+					button:Hide();
+					selectorEx.buttons[counter] = button;
+					return button;
+				else
+					return selectorEx.buttons[counter];
+				end
+			end
+			
+			selectorEx.SetList = function(t)
+				for _, button in pairs(selectorEx.buttons) do
+					button:Hide();
+					button.Icon:SetTexture();
+					button.Text:SetFont(button.font, button.fontSize, button.fontFlags);
+					button:SetScript("OnClick", nil);
+				end
+				local counter = 1;
+				for index, value in pairs(t) do
+					local button = GetButton(counter);
+					button.Text:SetText(value.text);
+					if (value.font ~= nil) then
+						button.Text:SetFont(value.font, button.fontSize, button.fontFlags);
+					end
+					button.Icon:SetTexture(value.icon);
+					button:SetScript("OnClick", function()
+						value:func();
+						selectorEx:Hide();
+					end);
+					button:Show();
+					counter = counter + 1;
+				end
+			end
+			
+			selectorEx.GetButtonByText = function(text)
+				for _, button in pairs(selectorEx.buttons) do
+					if (button.Text:GetText() == text) then
+						return button;
+					end
+				end
+				return nil;
+			end
+			
+			selectorEx.SetList({});
+			selectorEx:Hide();
+			selectorEx:HookScript("OnShow", function(self) self:SetFrameStrata("TOOLTIP"); end);
+		end
+		
+		return selectorEx;
+	end
+	
 	local function ShowGUICategory(index)
 		for i, v in pairs(GUIFrame.Categories) do
 			for k, l in pairs(v) do
@@ -1920,30 +2004,40 @@ do
 		-- // dropdownFont
 		do
 		
-			local dropdownFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownFont", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownFont, 315);
-			dropdownFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -28);
-			local info = {};
-			dropdownFont.initialize = function()
-				wipe(info);
-				for idx, font in next, LibStub("LibSharedMedia-3.0"):List("font") do
-					info.text = font;
-					info.value = font;
-					info.func = function(self)
-						db.Font = self.value;
-						_G[dropdownFont:GetName() .. "Text"]:SetText(self:GetText());
+			local fonts = { };
+			local button = GUICreateButton(GUIFrame, L["Font"] .. ": " .. db.Font);
+			
+			for idx, font in next, SML:List("font") do
+				table_insert(fonts, {
+					["text"] = font,
+					["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
+					["func"] = function(info)
+						button.Text:SetText(L["Font"] .. ": " .. info.text);
+						db.Font = info.text;
 						Nameplates_OnFontChanged();
-					end
-					info.checked = font == db.Font;
-					UIDropDownMenu_AddButton(info);
-				end
+					end,
+					["font"] = SML:Fetch("font", font),
+				});
 			end
-			_G[dropdownFont:GetName() .. "Text"]:SetText(db.Font);
-			dropdownFont.text = dropdownFont:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-			dropdownFont.text:SetPoint("LEFT", 20, 15);
-			dropdownFont.text:SetText(L["Font"]);
-			table_insert(GUIFrame.Categories[index], dropdownFont);
-			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFont:GetName() .. "Text"]:SetText(db.Font); end);
+			table_sort(fonts, function(item1, item2) return item1.text < item2.text; end);
+			
+			button:SetWidth(170);
+			button:SetHeight(24);
+			button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
+			button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
+			button:SetScript("OnClick", function(self, ...)
+				local fontSelector = GetSelectorEx();
+				if (fontSelector:IsVisible()) then
+					fontSelector:Hide();
+				else
+					fontSelector.SetList(fonts);
+					fontSelector:SetParent(self);
+					fontSelector:ClearAllPoints();
+					fontSelector:SetPoint("TOP", self, "BOTTOM", 0, 0);
+					fontSelector:Show();
+				end
+			end);
+			table_insert(GUIFrame.Categories[index], button);
 			
 		end
 		
@@ -2403,33 +2497,43 @@ do
 		-- // dropdownStacksFont
 		do
 		
-			local dropdownStacksFont = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksFont", GUIFrame, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownStacksFont, 315);
-			dropdownStacksFont:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -28);
-			local info = {};
-			dropdownStacksFont.initialize = function()
-				wipe(info);
-				for idx, font in next, LibStub("LibSharedMedia-3.0"):List("font") do
-					info.text = font;
-					info.value = font;
-					info.func = function(self)
-						db.StacksFont = self.value;
-						_G[dropdownStacksFont:GetName() .. "Text"]:SetText(self:GetText());
+			local fonts = { };
+			local button = GUICreateButton(GUIFrame, L["Font"] .. ": " .. db.StacksFont);
+			
+			for idx, font in next, SML:List("font") do
+				table_insert(fonts, {
+					["text"] = font,
+					["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
+					["func"] = function(info)
+						button.Text:SetText(L["Font"] .. ": " .. info.text);
+						db.StacksFont = info.text;
 						Nameplates_OnFontChanged();
-					end
-					info.checked = font == db.StacksFont;
-					UIDropDownMenu_AddButton(info);
-				end
+					end,
+					["font"] = SML:Fetch("font", font),
+				});
 			end
-			_G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont);
-			dropdownStacksFont.text = dropdownStacksFont:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-			dropdownStacksFont.text:SetPoint("LEFT", 20, 15);
-			dropdownStacksFont.text:SetText(L["Font"]);
-			table_insert(GUIFrame.Categories[index], dropdownStacksFont);
-			table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksFont:GetName() .. "Text"]:SetText(db.StacksFont); end);
+			table_sort(fonts, function(item1, item2) return item1.text < item2.text; end);
+			
+			button:SetWidth(170);
+			button:SetHeight(24);
+			button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
+			button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
+			button:SetScript("OnClick", function(self, ...)
+				local fontSelector = GetSelectorEx();
+				if (fontSelector:IsVisible()) then
+					fontSelector:Hide();
+				else
+					fontSelector.SetList(fonts);
+					fontSelector:SetParent(self);
+					fontSelector:ClearAllPoints();
+					fontSelector:SetPoint("TOP", self, "BOTTOM", 0, 0);
+					fontSelector:Show();
+				end
+			end);
+			table_insert(GUIFrame.Categories[index], button);
 			
 		end
-		
+				
 		-- // sliderStacksFontScale
 		do
 			

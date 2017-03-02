@@ -48,7 +48,7 @@ local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
-local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText, GetSelectorEx;
+local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
 ----- Initialize
@@ -1217,104 +1217,9 @@ do
 		button:SetScript("OnMouseUp", function(self) self.Text:SetPoint("CENTER", 0, 0) end);
 		return button;
 	end
-	
-	local function CreateSpellSelector()
-		local scrollAreaBackground = CreateFrame("Frame", "NAuras.SpellSelector", GUIFrame);
-		scrollAreaBackground:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -65);
-		scrollAreaBackground:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -30, 15);
-		scrollAreaBackground:SetBackdrop({
-			bgFile = 	"Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = 	"Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = true, edgeSize = 16, tileSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		local bRed, bGreen, bBlue = GUIFrame:GetBackdropColor();
-		scrollAreaBackground:SetBackdropColor(bRed, bGreen, bBlue, 0.8)
-		scrollAreaBackground:SetBackdropBorderColor(0.3, 0.3, 0.5, 1);
-		scrollAreaBackground:Hide();
 		
-		scrollAreaBackground.scrollArea = CreateFrame("ScrollFrame", "NAuras.SpellSelector.ScrollArea", scrollAreaBackground, "UIPanelScrollFrameTemplate");
-		scrollAreaBackground.scrollArea:SetPoint("TOPLEFT", scrollAreaBackground, "TOPLEFT", 5, -5);
-		scrollAreaBackground.scrollArea:SetPoint("BOTTOMRIGHT", scrollAreaBackground, "BOTTOMRIGHT", -5, 5);
-		scrollAreaBackground.scrollArea:Show();
-		
-		local scrollAreaChildFrame = CreateFrame("Frame", nil, scrollAreaBackground.scrollArea);
-		scrollAreaBackground.scrollArea:SetScrollChild(scrollAreaChildFrame);
-		scrollAreaChildFrame:SetPoint("CENTER", GUIFrame, "CENTER", 0, 1);
-		scrollAreaChildFrame:SetWidth(288);
-		scrollAreaChildFrame:SetHeight(288);
-		
-		scrollAreaBackground.buttons = { };
-		
-		local function GetButton(counter)
-			if (scrollAreaBackground.buttons[counter] == nil) then
-				local button = GUICreateButton(scrollAreaChildFrame, "");
-				button:SetWidth(280);
-				button:SetHeight(20);
-				button:SetPoint("TOPLEFT", 38, -counter * 22 + 15);
-				button.Icon = button:CreateTexture();
-				button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
-				button.Icon:SetWidth(20);
-				button.Icon:SetHeight(20);
-				button.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-				button:Hide();
-				scrollAreaBackground.buttons[counter] = button;
-				return button;
-			else
-				return scrollAreaBackground.buttons[counter];
-			end
-		end
-		
-		scrollAreaBackground.SetList = function(t)
-			for _, button in pairs(scrollAreaBackground.buttons) do
-				button:Hide();
-			end
-			local counter = 1;
-			for index, value in pairs(t) do
-				local button = GetButton(counter);
-				button.Text:SetText(value.text);
-				button.Icon:SetTexture(value.icon);
-				button:SetScript("OnClick", function()
-					value:func();
-					scrollAreaBackground:Hide();
-				end);
-				if (value.tooltipSpellID ~= nil) then
-					button:SetScript("OnEnter", function(self, ...)
-						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-						GameTooltip:SetSpellByID(value.tooltipSpellID);
-						local allSpellIDs = AllSpellIDsAndIconsByName[SpellNameByID[value.tooltipSpellID]];
-						if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
-							local descText = "\nAppropriate spell IDs:"; -- // todo:localize
-							for id, icon in pairs(allSpellIDs) do
-								descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
-							end
-							GameTooltip:AddLine(descText);
-						end
-						GameTooltip:Show();
-					end)
-					button:SetScript("OnLeave", function(self, ...)
-						GameTooltip:Hide();
-					end)
-				end
-				button:Show();
-				counter = counter + 1;
-			end
-		end
-		
-		scrollAreaBackground.GetButtonByText = function(text)
-			for _, button in pairs(scrollAreaBackground.buttons) do
-				if (button.Text:GetText() == text) then
-					return button;
-				end
-			end
-			return nil;
-		end
-		
-		return scrollAreaBackground;
-	end
-	
 	local selectorEx;
-	function GetSelectorEx()
+	local function GetSelectorEx()
 		if (not selectorEx) then
 			selectorEx = CreateFrame("Frame", nil, UIParent);
 			selectorEx:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
@@ -1323,8 +1228,40 @@ do
 			selectorEx.texture:SetAllPoints(selectorEx);
 			selectorEx.texture:SetColorTexture(0, 0, 0, 1);
 			
+			selectorEx.searchLabel = selectorEx:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+			selectorEx.searchLabel:SetPoint("TOPLEFT", 5, -10);
+			selectorEx.searchLabel:SetJustifyH("LEFT");
+			--selectorEx.searchLabel:SetTextColor(1, 0.82, 0, 1);
+			selectorEx.searchLabel:SetText("Search:"); -- // todo: localize
+			
+			selectorEx.searchBox = CreateFrame("EditBox", nil, selectorEx, "InputBoxTemplate");
+			selectorEx.searchBox:SetAutoFocus(false);
+			selectorEx.searchBox:SetFontObject(GameFontHighlightSmall);
+			selectorEx.searchBox:SetPoint("LEFT", selectorEx.searchLabel, "RIGHT", 10, 0);
+			selectorEx.searchBox:SetPoint("RIGHT", selectorEx, "RIGHT", -10, 0);
+			selectorEx.searchBox:SetHeight(20);
+			selectorEx.searchBox:SetWidth(175);
+			selectorEx.searchBox:SetJustifyH("LEFT");
+			selectorEx.searchBox:EnableMouse(true);
+			selectorEx.searchBox:SetScript("OnEscapePressed", function() selectorEx.searchBox:ClearFocus(); end);
+			selectorEx.searchBox:SetScript("OnTextChanged", function(self)
+				local text = self:GetText();
+				if (text == "") then
+					selectorEx.SetList(selectorEx.list);
+				else
+					local t = { };
+					for _, value in pairs(selectorEx.list) do
+						if (string_find(value.text:lower(), text:lower())) then
+							table_insert(t, value);
+						end
+					end
+					selectorEx.SetList(t, true);
+				end
+			end);
+			selectorEx:HookScript("OnHide", function() selectorEx.searchBox:SetText(""); end);
+			
 			selectorEx.scrollArea = CreateFrame("ScrollFrame", nil, selectorEx, "UIPanelScrollFrameTemplate");
-			selectorEx.scrollArea:SetPoint("TOPLEFT", selectorEx, "TOPLEFT", 5, -5);
+			selectorEx.scrollArea:SetPoint("TOPLEFT", selectorEx, "TOPLEFT", 5, -30);
 			selectorEx.scrollArea:SetPoint("BOTTOMRIGHT", selectorEx, "BOTTOMRIGHT", -25, 5);
 			selectorEx.scrollArea:Show();
 			
@@ -1335,6 +1272,7 @@ do
 			scrollAreaChildFrame:SetHeight(288);
 			
 			selectorEx.buttons = { };
+			selectorEx.list = { };
 			
 			local function GetButton(counter)
 				if (selectorEx.buttons[counter] == nil) then
@@ -1342,7 +1280,7 @@ do
 					button.font, button.fontSize, button.fontFlags = button.Text:GetFont();
 					button:SetWidth(295);
 					button:SetHeight(20);
-					button:SetPoint("TOPLEFT", 23, -counter * 22 + 15);
+					button:SetPoint("TOPLEFT", 23, -counter * 22 + 20);
 					button.Icon = button:CreateTexture();
 					button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
 					button.Icon:SetWidth(20);
@@ -1356,7 +1294,7 @@ do
 				end
 			end
 			
-			selectorEx.SetList = function(t)
+			selectorEx.SetList = function(t, dontUpdateInternalList)
 				for _, button in pairs(selectorEx.buttons) do
 					button:Hide();
 					button.Icon:SetTexture();
@@ -1364,7 +1302,7 @@ do
 					button:SetScript("OnClick", nil);
 				end
 				local counter = 1;
-				for index, value in pairs(t) do
+				for _, value in pairs(t) do
 					local button = GetButton(counter);
 					button.Text:SetText(value.text);
 					if (value.font ~= nil) then
@@ -1377,6 +1315,9 @@ do
 					end);
 					button:Show();
 					counter = counter + 1;
+				end
+				if (not dontUpdateInternalList) then
+					selectorEx.list = t;
 				end
 			end
 			
@@ -1494,8 +1435,6 @@ do
 		GUIFrame:SetScript("OnMouseDown", function() GUIFrame:StartMoving(); end);
 		GUIFrame:SetScript("OnMouseUp", function() GUIFrame:StopMovingOrSizing(); end);
 		GUIFrame:Hide();
-		
-		GUIFrame.SpellSelector = CreateSpellSelector();
 		
 		GUIFrame.CategoryButtons = {};
 		GUIFrame.ActiveCategory = 1;
@@ -3053,7 +2992,6 @@ do
 		do
 		
 			editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame, "InputBoxTemplate");
-			abra = editboxAddSpell;
 			editboxAddSpell:SetAutoFocus(false);
 			editboxAddSpell:SetFontObject(GameFontHighlightSmall);
 			editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 172, -30);
@@ -3061,13 +2999,6 @@ do
 			editboxAddSpell:SetWidth(175);
 			editboxAddSpell:SetJustifyH("LEFT");
 			editboxAddSpell:EnableMouse(true);
-			-- editboxAddSpell:SetBackdrop({
-				-- bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				-- edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				-- tile = true, edgeSize = 1, tileSize = 5,
-			-- });
-			-- editboxAddSpell:SetBackdropColor(0, 0, 0, 0.5);
-			-- editboxAddSpell:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 			editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 			editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
 			local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
@@ -3120,7 +3051,7 @@ do
 								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, db.DefaultIconSize, nil);
 								UpdateSpellCachesFromDB(spellID);
 								selectSpell:Click();
-								local btn = GUIFrame.SpellSelector.GetButtonByText(spellName);
+								local btn = GetSelectorEx().GetButtonByText(spellName);
 								if (btn ~= nil) then btn:Click(); end
 								UpdateAllNameplates(false);
 							else
@@ -3185,7 +3116,7 @@ do
 			selectSpell:SetHeight(24);
 			selectSpell:SetPoint("BOTTOMLEFT", spellArea, "TOPLEFT", 15, 5);
 			selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
-			selectSpell:SetScript("OnClick", function()
+			selectSpell:SetScript("OnClick", function(button)
 				local t = { };
 				for _, spellInfo in pairs(db.CustomSpells2) do
 					table_insert(t, {
@@ -3225,9 +3156,14 @@ do
 					});
 				end
 				table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
-				GUIFrame.SpellSelector:Show();
-				GUIFrame.SpellSelector.SetList(t);
-				GUIFrame.SpellSelector:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -95);
+				local fontSelector = GetSelectorEx();
+				fontSelector.SetList(t);
+				fontSelector:SetParent(button);
+				fontSelector:ClearAllPoints();
+				fontSelector:SetPoint("TOP", button, "BOTTOM", 0, 0);
+				fontSelector:Show();
+				fontSelector.searchBox:SetFocus();
+				fontSelector.searchBox:SetText("");
 				for _, control in pairs(controls) do
 					control:Hide();
 				end
@@ -3238,7 +3174,7 @@ do
 					control:Hide();
 				end
 				selectSpell.Text:SetText(L["Click to select spell"]);
-				GUIFrame.SpellSelector:Hide();
+				GetSelectorEx():Hide();
 			end);
 			table_insert(GUIFrame.Categories[index], selectSpell);
 			

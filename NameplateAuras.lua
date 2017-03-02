@@ -1313,6 +1313,8 @@ do
 						value:func();
 						selectorEx:Hide();
 					end);
+					button:SetScript("OnEnter", value.onEnter);
+					button:SetScript("OnLeave", value.onLeave);
 					button:Show();
 					counter = counter + 1;
 				end
@@ -1332,7 +1334,7 @@ do
 			
 			selectorEx.SetList({});
 			selectorEx:Hide();
-			selectorEx:HookScript("OnShow", function(self) self:SetFrameStrata("TOOLTIP"); end);
+			selectorEx:HookScript("OnShow", function(self) self:SetFrameStrata("TOOLTIP"); self.scrollArea:SetVerticalScroll(0); end);
 		end
 		
 		return selectorEx;
@@ -3111,6 +3113,40 @@ do
 		-- // selectSpell
 		do
 		
+			local function OnSpellSelected(buttonInfo)
+				for _, control in pairs(controls) do
+					control:Show();
+				end
+				selectedSpell = buttonInfo.info.spellID;
+				selectSpell.Text:SetText(buttonInfo.text);
+				sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
+				sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
+				_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[db.CustomSpells2[selectedSpell].auraType]);
+				editboxSpellID:SetText(db.CustomSpells2[selectedSpell].checkSpellID or "");
+				checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
+				checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
+				checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
+				if (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_DISABLED) then
+					checkboxEnabled:SetTriState(0);
+				elseif (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_ALL) then
+					checkboxEnabled:SetTriState(2);
+				else
+					checkboxEnabled:SetTriState(1);
+				end
+				if (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
+					checkboxPvPMode:SetTriState(0);
+				elseif (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
+					checkboxPvPMode:SetTriState(1);
+				else
+					checkboxPvPMode:SetTriState(2);
+				end
+				checkboxGlow:SetChecked(db.CustomSpells2[selectedSpell].showGlow);
+			end
+			
+			local function HideGameTooltip()
+				GameTooltip:Hide();
+			end
+		
 			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
@@ -3123,36 +3159,21 @@ do
 						icon = SpellTextureByID[spellInfo.spellID],
 						text = SpellNameByID[spellInfo.spellID],
 						info = spellInfo,
-						tooltipSpellID = spellInfo.spellID,
-						func = function(self)
-							for _, control in pairs(controls) do
-								control:Show();
+						onEnter = function(self)
+							GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+							GameTooltip:SetSpellByID(spellInfo.spellID);
+							local allSpellIDs = AllSpellIDsAndIconsByName[SpellNameByID[spellInfo.spellID]];
+							if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
+								local descText = "\nAppropriate spell IDs:"; -- // todo:localize
+								for id, icon in pairs(allSpellIDs) do
+									descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
+								end
+								GameTooltip:AddLine(descText);
 							end
-							selectedSpell = self.info.spellID;
-							selectSpell.Text:SetText(self.text);
-							sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
-							sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
-							_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[db.CustomSpells2[selectedSpell].auraType]);
-							editboxSpellID:SetText(db.CustomSpells2[selectedSpell].checkSpellID or "");
-							checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
-							checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
-							checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
-							if (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_DISABLED) then
-								checkboxEnabled:SetTriState(0);
-							elseif (db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_ALL) then
-								checkboxEnabled:SetTriState(2);
-							else
-								checkboxEnabled:SetTriState(1);
-							end
-							if (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
-								checkboxPvPMode:SetTriState(0);
-							elseif (db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
-								checkboxPvPMode:SetTriState(1);
-							else
-								checkboxPvPMode:SetTriState(2);
-							end
-							checkboxGlow:SetChecked(db.CustomSpells2[selectedSpell].showGlow);
+							GameTooltip:Show();
 						end,
+						onLeave = HideGameTooltip,
+						func = OnSpellSelected,
 					});
 				end
 				table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);

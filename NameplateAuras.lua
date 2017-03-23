@@ -12,7 +12,6 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
 			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After;
 
-NameplateAurasDB = {};
 local SpellTextureByID = setmetatable({}, {
 	__index = function(t, key)
 		local texture = GetSpellTexture(key);
@@ -33,7 +32,6 @@ local EnabledAurasInfo				= { };
 local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
-local LocalPlayerFullName 			= UnitName("player") .. " - " .. GetRealmName();
 local InPvPCombat					= false;
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
 
@@ -107,15 +105,6 @@ do
 		
 		-- // ...
 		aceDB = LibStub("AceDB-3.0"):New("NameplateAurasAceDB", aceDBDefaults);
-		-- // convert from old DB
-		if (NameplateAurasDB[LocalPlayerFullName] ~= nil) then
-			Print("Converting DB to Ace3DB...");
-			for index in pairs(NameplateAurasDB[LocalPlayerFullName]) do
-				aceDB.profile[index] = deepcopy(NameplateAurasDB[LocalPlayerFullName][index]);
-			end
-			NameplateAurasDB[LocalPlayerFullName] = nil;
-			Print("DB converting is completed");
-		end
 		-- // adding to blizz options
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras", {
 			name = "NameplateAuras",

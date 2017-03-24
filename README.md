@@ -12,6 +12,7 @@ NameplateAuras displays players' buffs/debuffs above their nameplates. It is ins
 ## Chat commands
 
 **/nauras** - opens options dialog.
+**/nauras ver** - queries raid/guild members if they have NAuras installed.
 
 ## Call to arms
 

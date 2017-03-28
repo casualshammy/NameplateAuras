@@ -42,14 +42,14 @@ local AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, A
 local TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = 1, 2, 3, 4;
 local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 1, 2, 3;
 
-local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB;
+local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
------ Initialize
+----- db, on start routines...
 --------------------------------------------------------------------------------------------------
 do
 
@@ -166,6 +166,8 @@ do
 				end
 				Print("Waiting for replies from " .. c);
 				SendAddonMessage("NAuras_prefix", "requesting", c);
+			elseif (msg == "delete-all-spells") then
+				DeleteAllSpellsFromDB();
 			else
 				ShowGUI();
 			end
@@ -366,7 +368,28 @@ do
 			EnabledAurasInfo[spellName] = nil;
 		end
 	end
-		
+	
+	function DeleteAllSpellsFromDB()
+		if (not StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"]) then
+			StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"] = {
+				text = L["Do you really want to delete ALL spells?"],
+				button1 = L["Yes"],
+				button2 = L["No"],
+				OnAccept = function()
+					for spellID in pairs(db.CustomSpells2) do
+						db.CustomSpells2[spellID] = nil;
+					end
+					ReloadDB();
+				end,
+				timeout = 0,
+				whileDead = true,
+				hideOnEscape = true,
+				preferredIndex = 3,
+			};
+		end
+		StaticPopup_Show("NAURAS_MSG_DELETE_ALL_SPELLS");
+	end
+	
 end
 
 --------------------------------------------------------------------------------------------------
@@ -3067,26 +3090,7 @@ do
 			buttonDeleteAllSpells:SetWidth(24);
 			buttonDeleteAllSpells:SetHeight(24);
 			buttonDeleteAllSpells:SetPoint("LEFT", buttonAddSpell, "RIGHT", 5, 0);
-			buttonDeleteAllSpells:SetScript("OnClick", function(self, ...)
-				if (not StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"]) then
-					StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"] = {
-						text = L["Do you really want to delete ALL spells?"],
-						button1 = L["Yes"],
-						button2 = L["No"],
-						OnAccept = function()
-							for spellID in pairs(db.CustomSpells2) do
-								db.CustomSpells2[spellID] = nil;
-							end
-							ReloadDB();
-						end,
-						timeout = 0,
-						whileDead = true,
-						hideOnEscape = true,
-						preferredIndex = 3,
-					};
-				end
-				StaticPopup_Show("NAURAS_MSG_DELETE_ALL_SPELLS");
-			end);
+			buttonDeleteAllSpells:SetScript("OnClick", DeleteAllSpellsFromDB);
 			buttonDeleteAllSpells:SetScript("OnEnter", function(self, ...)
 				GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT");
 				GameTooltip:SetText(L["Delete all spells"]);

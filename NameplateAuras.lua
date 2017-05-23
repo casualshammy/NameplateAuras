@@ -3112,6 +3112,14 @@ do
 				end
 				selectedSpell = buttonInfo.info.spellID;
 				selectSpell.Text:SetText(buttonInfo.text);
+				selectSpell:SetScript("OnEnter", function(self, ...)
+					GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
+					GameTooltip:SetSpellByID(buttonInfo.info.spellID);
+					GameTooltip:Show();
+				end);
+				selectSpell:HookScript("OnLeave", function(self, ...) GameTooltip:Hide(); end);
+				selectSpell.icon:SetTexture(SpellTextureByID[buttonInfo.info.spellID]);
+				selectSpell.icon:Show();
 				sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
 				sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
 				_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[db.CustomSpells2[selectedSpell].auraType]);
@@ -3139,10 +3147,26 @@ do
 			local function HideGameTooltip()
 				GameTooltip:Hide();
 			end
+			
+			local function ResetSelectSpell()
+				for _, control in pairs(controls) do
+					control:Hide();
+				end
+				selectSpell.Text:SetText(L["Click to select spell"]);
+				selectSpell:SetScript("OnEnter", nil);
+				selectSpell:SetScript("OnLeave", nil);
+				selectSpell.icon:Hide();
+			end
 		
 			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
+			selectSpell.icon = selectSpell:CreateTexture();
+			selectSpell.icon:SetPoint("RIGHT", selectSpell.Text, "LEFT", -3, 0);
+			selectSpell.icon:SetWidth(20);
+			selectSpell.icon:SetHeight(20);
+			selectSpell.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+			selectSpell.icon:Hide();
 			selectSpell:SetPoint("BOTTOMLEFT", spellArea, "TOPLEFT", 15, 5);
 			selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
 			selectSpell:SetScript("OnClick", function(button)
@@ -3178,16 +3202,11 @@ do
 				fontSelector:Show();
 				fontSelector.searchBox:SetFocus();
 				fontSelector.searchBox:SetText("");
-				for _, control in pairs(controls) do
-					control:Hide();
-				end
-				selectSpell.Text:SetText(L["Click to select spell"]);
+				ResetSelectSpell();
+				HideGameTooltip();
 			end);
 			selectSpell:SetScript("OnHide", function(self)
-				for _, control in pairs(controls) do
-					control:Hide();
-				end
-				selectSpell.Text:SetText(L["Click to select spell"]);
+				ResetSelectSpell();
 				GetSelectorEx():Hide();
 			end);
 			table_insert(GUIFrame.Categories[index], selectSpell);

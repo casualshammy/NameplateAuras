@@ -14,7 +14,12 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 
 local SpellTextureByID = setmetatable({}, {
 	__index = function(t, key)
-		local texture = GetSpellTexture(key);
+		local texture;
+		if (key == 197690) then -- // override for defensive stance
+			texture = GetSpellTexture(71);
+		else
+			texture = GetSpellTexture(key);
+		end
 		t[key] = texture;
 		return texture;
 	end

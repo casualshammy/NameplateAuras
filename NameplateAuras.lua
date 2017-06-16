@@ -21,9 +21,6 @@ local SpellTextureByID = setmetatable({
 		return texture;
 	end
 });
-for spellID in pairs(addonTable.Interrupts) do
-	SpellTextureByID[spellID] = GetSpellTexture(158102); -- // icon of Interrupting Shout
-end
 local SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
 		local spellName = GetSpellInfo(key);
@@ -40,7 +37,7 @@ local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
 local InPvPCombat					= false;
-local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor, InterruptSpells;
+local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
 
 -- // enums as variables: it's done for better performance
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = 1, 2, 3;
@@ -111,6 +108,8 @@ do
 				-- InterruptsRespectAuraSorting = false,
 				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
 				InterruptsGlow = false,
+				InterruptsUseSharedIconTexture = false,
+				InterruptsEnableOnlyInPvP = true,
 			},
 		};
 		
@@ -150,8 +149,6 @@ do
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
-		-- // making a fast reference to addonTable.Interrupts
-		InterruptSpells = addonTable.Interrupts;
 	end
 
 	function OnStartup()
@@ -335,6 +332,7 @@ do
 				--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
 				["showGlow"] =					db.InterruptsGlow,
 			};
+			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- // convert values
 		ReloadDB_ConvertInvalidValues();
@@ -646,7 +644,7 @@ do
 				end
 			end
 		end
-		if (db.InterruptsEnabled) then
+		if (db.InterruptsEnabled and (not db.InterruptsEnableOnlyInPvP or InPvPCombat)) then
 			local interrupt = InterruptsPerUnitGUID[unitGUID];
 			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
 				table_insert(AurasPerNameplate[frame], interrupt);
@@ -1288,8 +1286,7 @@ do
 			selectorEx.searchLabel = selectorEx:CreateFontString(nil, "OVERLAY", "GameFontNormal");
 			selectorEx.searchLabel:SetPoint("TOPLEFT", 5, -10);
 			selectorEx.searchLabel:SetJustifyH("LEFT");
-			--selectorEx.searchLabel:SetTextColor(1, 0.82, 0, 1);
-			selectorEx.searchLabel:SetText("Search:"); -- // todo: localize
+			selectorEx.searchLabel:SetText(L["options:selector:search"]);
 			
 			selectorEx.searchBox = CreateFrame("EditBox", nil, selectorEx, "InputBoxTemplate");
 			selectorEx.searchBox:SetAutoFocus(false);
@@ -1531,7 +1528,7 @@ do
 		GUIFrame.OnDBChangedHandlers = {};
 		table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 		
-		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["Interrupts"] };
+		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"] };
 		for index, value in pairs(categories) do
 			local b = CreateGUICategory();
 			b.index = index;
@@ -1843,7 +1840,7 @@ do
 					info.value = timerStyle;
 					info.func = function(self)
 						if (self.value == TIMER_STYLE_CIRCULAROMNICC and not IsAddOnLoaded("omnicc")) then
-							msg("You cannot select this option, OmniCC is not loaded!"); -- // todo:localize
+							msg(L["options:general:error-omnicc-is-not-loaded"]);
 						else
 							db.TimerStyle = self.value;
 							_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
@@ -3228,7 +3225,7 @@ do
 							GameTooltip:SetSpellByID(spellInfo.spellID);
 							local allSpellIDs = AllSpellIDsAndIconsByName[SpellNameByID[spellInfo.spellID]];
 							if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
-								local descText = "\nAppropriate spell IDs:"; -- // todo:localize
+								local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
 								for id, icon in pairs(allSpellIDs) do
 									descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
 								end
@@ -3485,7 +3482,7 @@ do
 		-- // checkboxGlow
 		do
 			
-			checkboxGlow = GUICreateCheckBoxEx("Icon glow", function(this) -- // todo:localize
+			checkboxGlow = GUICreateCheckBoxEx(L["options:spells:icon-glow"], function(this)
 				db.CustomSpells2[selectedSpell].showGlow = this:GetChecked() or nil; -- // making db smaller
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
@@ -3499,23 +3496,32 @@ do
 	end
 	
 	function GUICategory_Interrupts(index, value)
-	
+		
+		local interruptOptionsArea, checkBoxInterrupts;
+		
+		--[[
 		-- // interruptIcon
-		do
+		-- do
 			
-			local interruptIcon = GUIFrame:CreateTexture(nil, "BORDER");
-			interruptIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-			interruptIcon:SetSize(60, 60);
-			interruptIcon:SetPoint("TOPLEFT", 300, -20);
-			interruptIcon:SetTexture([[Interface\AddOns\NameplateAuras\media\warrior_disruptingshout.tga]]);
-			table_insert(GUIFrame.Categories[index], interruptIcon);
+			-- local interruptExample = GUIFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+			-- interruptExample:SetPoint("TOPLEFT", 170, -190);
+			-- interruptExample:SetText(L["options:interrupts:example-text"]);
+			-- table_insert(GUIFrame.Categories[index], interruptExample);
 			
-		end
+			-- local interruptIcon = GUIFrame:CreateTexture(nil, "BORDER");
+			-- interruptIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+			-- interruptIcon:SetSize(60, 60);
+			-- interruptIcon:SetPoint("LEFT", interruptExample, "RIGHT", 10, 0);
+			-- interruptIcon:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga");
+			-- table_insert(GUIFrame.Categories[index], interruptIcon);
+			
+		-- end
+		]]
 	
 		-- // checkBoxInterrupts
 		do
 		
-			local checkBoxInterrupts = GUICreateCheckBoxEx(L["options:interrupts:enable-interrupts"], function(this)
+			checkBoxInterrupts = GUICreateCheckBoxEx(L["options:interrupts:enable-interrupts"], function(this)
 				db.InterruptsEnabled = this:GetChecked();
 				if (db.InterruptsEnabled) then
 					EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
@@ -3525,7 +3531,7 @@ do
 			end);
 			checkBoxInterrupts:SetChecked(db.InterruptsEnabled);
 			checkBoxInterrupts:SetParent(GUIFrame);
-			checkBoxInterrupts:SetPoint("TOPLEFT", 160, -100);
+			checkBoxInterrupts:SetPoint("TOPLEFT", 160, -20);
 			table_insert(GUIFrame.Categories[index], checkBoxInterrupts);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxInterrupts:SetChecked(db.InterruptsEnabled);
@@ -3553,6 +3559,28 @@ do
 		-- end
 		]]
 		
+		-- // debuffArea
+		do
+		
+			interruptOptionsArea = CreateFrame("Frame", nil, GUIFrame);
+			interruptOptionsArea:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			interruptOptionsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			interruptOptionsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			interruptOptionsArea:SetPoint("TOPLEFT", 150, -40);
+			--interruptOptionsArea:SetPoint("LEFT", 150, 0);
+			interruptOptionsArea:SetWidth(360);
+			interruptOptionsArea:SetHeight(150);
+			table_insert(GUIFrame.Categories[index], interruptOptionsArea);
+		
+		end
+		
 		-- // checkBoxGlow
 		do
 		
@@ -3575,8 +3603,8 @@ do
 				UpdateAllNameplates(false);
 			end);
 			checkBoxGlow:SetChecked(db.InterruptsGlow);
-			checkBoxGlow:SetParent(GUIFrame);
-			checkBoxGlow:SetPoint("TOPLEFT", 160, -120);
+			checkBoxGlow:SetParent(interruptOptionsArea);
+			checkBoxGlow:SetPoint("TOPLEFT", 20, -10);
 			table_insert(GUIFrame.Categories[index], checkBoxGlow);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxGlow:SetChecked(db.InterruptsGlow);
@@ -3585,13 +3613,52 @@ do
 			
 		end
 		
+		-- // checkBoxUseSharedIconTexture
+		do
+		
+			local checkBoxUseSharedIconTexture = GUICreateCheckBoxEx(L["options:interrupts:use-shared-icon-texture"], function(this)
+				db.InterruptsUseSharedIconTexture = this:GetChecked();
+				for spellID in pairs(addonTable.Interrupts) do
+					SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+				end
+				UpdateAllNameplates(true);
+			end);
+			checkBoxUseSharedIconTexture:SetChecked(db.InterruptsUseSharedIconTexture);
+			checkBoxUseSharedIconTexture:SetParent(interruptOptionsArea);
+			checkBoxUseSharedIconTexture:SetPoint("TOPLEFT", 20, -30);
+			table_insert(GUIFrame.Categories[index], checkBoxUseSharedIconTexture);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				checkBoxUseSharedIconTexture:SetChecked(db.InterruptsUseSharedIconTexture);
+			end);
+			
+		end
+		
+		-- // checkBoxEnableOnlyInPvPMode
+		do
+		
+			local checkBoxEnableOnlyInPvPMode = GUICreateCheckBoxEx(L["options:interrupts:enable-only-during-pvp-battles"], function(this)
+				db.InterruptsEnableOnlyInPvP = this:GetChecked();
+				UpdateAllNameplates(false);
+			end);
+			checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsEnableOnlyInPvP);
+			checkBoxEnableOnlyInPvPMode:SetParent(interruptOptionsArea);
+			checkBoxEnableOnlyInPvPMode:SetPoint("TOPLEFT", 20, -50);
+			table_insert(GUIFrame.Categories[index], checkBoxEnableOnlyInPvPMode);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsEnableOnlyInPvP);
+			end);
+			
+		end
+		
 		-- // sliderInterruptIconSize
 		do
 		
-			sliderInterruptIconSize = GUICreateSlider(GUIFrame, 165, -140, 340);
+			sliderInterruptIconSize = GUICreateSlider(interruptOptionsArea, 20, -40, 175);
 			sliderInterruptIconSize.label:ClearAllPoints();
-			sliderInterruptIconSize.label:SetPoint("CENTER", sliderInterruptIconSize, "CENTER", 0, 20);
+			sliderInterruptIconSize.label:SetPoint("TOPLEFT", interruptOptionsArea, "TOPLEFT", 25, -80);
 			sliderInterruptIconSize.label:SetText(L["options:interrupts:icon-size"]);
+			sliderInterruptIconSize:ClearAllPoints();
+			sliderInterruptIconSize:SetPoint("LEFT", sliderInterruptIconSize.label, "RIGHT", 10, 5);
 			sliderInterruptIconSize.slider:ClearAllPoints();
 			sliderInterruptIconSize.slider:SetPoint("LEFT", 3, 0)
 			sliderInterruptIconSize.slider:SetPoint("RIGHT", -3, 0)
@@ -3790,6 +3857,7 @@ end
 do
 	
 	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
+	local InterruptSpells = addonTable.Interrupts;
 	
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");

@@ -1,6 +1,30 @@
 local _, addonTable = ...;
 local L = addonTable.L;
 
+addonTable.Interrupts = {
+	[1766] = 5,		-- Kick (Rogue)
+	[2139] = 6, 	-- Counterspell (Mage)
+	[6552] = 4, 	-- Pummel (Warrior)
+	[19647] = 6, 	-- Spell Lock (Warlock)
+	[47528] = 3, 	-- Mind Freeze (Death Knight)
+	[57994] = 3, 	-- Wind Shear (Shaman)
+	[91802] = 2, 	-- Shambling Rush (Death Knight)
+	[96231] = 4, 	-- Rebuke (Paladin)
+	[106839] = 4, 	-- Skull Bash (Feral)
+	[115781] = 6, 	-- Optical Blast (Warlock)
+	[116705] = 4, 	-- Spear Hand Strike (Monk)
+	[132409] = 6, 	-- Spell Lock (Warlock)
+	[147362] = 3, 	-- Countershot (Hunter)
+	[171138] = 6, 	-- Shadow Lock (Warlock)
+	[183752] = 3, 	-- Consume Magic (Demon Hunter)
+	[187707] = 3,	-- Muzzle (Hunter)
+	[212619] = 6,	-- Call Felhunter (Warlock)
+	[231665] = 3,	-- Avengers Shield (Paladin)
+};
+
+local spell1, spell2, spell3, spell4 = GetSpellInfo(221404), GetSpellInfo(221677), GetSpellInfo(221660), GetSpellInfo(221703);	-- // Burning Determination, Calming Waters, Holy Concentration, Casting Circle
+addonTable.TalentsReducingInterruptTime = { spell1, spell2, spell3, spell4 };
+
 addonTable.DefaultSpells = {
 	[51514] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 51514 }, -- // Hex
 	[6358] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 6358 },

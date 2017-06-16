@@ -12,18 +12,18 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
 			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After;
 
-local SpellTextureByID = setmetatable({}, {
+local SpellTextureByID = setmetatable({
+	[197690] = GetSpellTexture(71),		-- // override for defensive stance
+}, {
 	__index = function(t, key)
-		local texture;
-		if (key == 197690) then -- // override for defensive stance
-			texture = GetSpellTexture(71);
-		else
-			texture = GetSpellTexture(key);
-		end
+		local texture = GetSpellTexture(key);
 		t[key] = texture;
 		return texture;
 	end
 });
+for spellID in pairs(addonTable.Interrupts) do
+	SpellTextureByID[spellID] = GetSpellTexture(158102); -- // icon of Interrupting Shout
+end
 local SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
 		local spellName = GetSpellInfo(key);
@@ -33,12 +33,14 @@ local SpellNameByID = setmetatable({}, {
 });
 local AllSpellIDsAndIconsByName 	= { };
 local AurasPerNameplate 			= { };
+local InterruptsPerUnitGUID			= { };
+local UnitGUIDHasInterruptReduction	= { };
 local EnabledAurasInfo				= { };
 local ElapsedTimer 					= 0;
 local Nameplates 					= { };
 local NameplatesVisible 			= { };
 local InPvPCombat					= false;
-local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
+local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor, InterruptSpells;
 
 -- // enums as variables: it's done for better performance
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = 1, 2, 3;
@@ -50,7 +52,7 @@ local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
-local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders;
+local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
@@ -105,6 +107,10 @@ do
 				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
 				MinTimeToShowTenthsOfSeconds = 10,
+				InterruptsEnabled = true,
+				-- InterruptsRespectAuraSorting = false,
+				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
+				InterruptsGlow = false,
 			},
 		};
 		
@@ -144,6 +150,8 @@ do
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
+		-- // making a fast reference to addonTable.Interrupts
+		InterruptSpells = addonTable.Interrupts;
 	end
 
 	function OnStartup()
@@ -157,6 +165,9 @@ do
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
+		if (db.InterruptsEnabled) then
+			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		end
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
@@ -310,6 +321,21 @@ do
 		db = aceDB.profile;
 		-- // resetting all caches
 		wipe(EnabledAurasInfo);
+		-- // set interrupt spells infos
+		for spellID in pairs(addonTable.Interrupts) do
+			local spellName = SpellNameByID[spellID];
+			EnabledAurasInfo[spellName] = {
+				["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+				["auraType"] =					AURA_TYPE_DEBUFF,
+				["iconSize"] =					db.InterruptsIconSize,
+				--["checkSpellID"] =				nil,
+				--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
+				--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
+				--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
+				--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
+				["showGlow"] =					db.InterruptsGlow,
+			};
+		end
 		-- // convert values
 		ReloadDB_ConvertInvalidValues();
 		-- // import default spells
@@ -328,6 +354,13 @@ do
 		else
 			EventFrame:SetScript("OnUpdate", nil);
 		end
+		-- // COMBAT_LOG_EVENT_UNFILTERED
+		if (db.InterruptsEnabled) then
+			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		else
+			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		end
+		-- //
 		if (GUIFrame) then
 			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
 				func();
@@ -574,7 +607,8 @@ do
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
-		if ((LocalPlayerGUID ~= UnitGUID(unitID) or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
+		local unitGUID = UnitGUID(unitID);
+		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
 				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
@@ -610,6 +644,12 @@ do
 				if (buffName == nil and debuffName == nil) then
 					break;
 				end
+			end
+		end
+		if (db.InterruptsEnabled) then
+			local interrupt = InterruptsPerUnitGUID[unitGUID];
+			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
+				table_insert(AurasPerNameplate[frame], interrupt);
 			end
 		end
 		UpdateNameplate(frame);
@@ -1491,7 +1531,7 @@ do
 		GUIFrame.OnDBChangedHandlers = {};
 		table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 		
-		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"] };
+		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["Interrupts"] };
 		for index, value in pairs(categories) do
 			local b = CreateGUICategory();
 			b.index = index;
@@ -1500,7 +1540,7 @@ do
 				b:LockHighlight();
 				b.text:SetTextColor(1, 1, 1);
 				b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
-			elseif (index == #categories) then
+			elseif (index >= #categories - 1) then
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 			else
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
@@ -1520,6 +1560,8 @@ do
 				GUICategory_Borders(index, value);
 			elseif (index == 6) then
 				GUICategory_4(index, value);
+			elseif (index == 7) then
+				GUICategory_Interrupts(index, value);
 			else
 				
 			end
@@ -3456,6 +3498,157 @@ do
 		
 	end
 	
+	function GUICategory_Interrupts(index, value)
+	
+		-- // interruptIcon
+		do
+			
+			local interruptIcon = GUIFrame:CreateTexture(nil, "BORDER");
+			interruptIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+			interruptIcon:SetSize(60, 60);
+			interruptIcon:SetPoint("TOPLEFT", 300, -20);
+			interruptIcon:SetTexture([[Interface\AddOns\NameplateAuras\media\warrior_disruptingshout.tga]]);
+			table_insert(GUIFrame.Categories[index], interruptIcon);
+			
+		end
+	
+		-- // checkBoxInterrupts
+		do
+		
+			local checkBoxInterrupts = GUICreateCheckBoxEx(L["options:interrupts:enable-interrupts"], function(this)
+				db.InterruptsEnabled = this:GetChecked();
+				if (db.InterruptsEnabled) then
+					EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+				else
+					EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+				end
+			end);
+			checkBoxInterrupts:SetChecked(db.InterruptsEnabled);
+			checkBoxInterrupts:SetParent(GUIFrame);
+			checkBoxInterrupts:SetPoint("TOPLEFT", 160, -100);
+			table_insert(GUIFrame.Categories[index], checkBoxInterrupts);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				checkBoxInterrupts:SetChecked(db.InterruptsEnabled);
+			end);
+			
+		end
+		
+		--[[
+		-- // checkBoxRespectAuraSorting
+		-- do
+		
+			-- local checkBoxRespectAuraSorting = GUICreateCheckBoxEx(L["options:interrupts:respect-auras-sorting"], function(this)
+				-- db.InterruptsRespectAuraSorting = this:GetChecked();
+				-- Nameplates_OnSortModeChanged();
+			-- end);
+			-- checkBoxRespectAuraSorting:SetChecked(db.InterruptsRespectAuraSorting);
+			-- checkBoxRespectAuraSorting:SetParent(GUIFrame);
+			-- checkBoxRespectAuraSorting:SetPoint("TOPLEFT", 160, -120);
+			-- table_insert(GUIFrame.Categories[index], checkBoxRespectAuraSorting);
+			-- table_insert(GUIFrame.OnDBChangedHandlers, function()
+				-- checkBoxRespectAuraSorting:SetChecked(db.InterruptsRespectAuraSorting);
+			-- end);
+			-- aa3 = checkBoxRespectAuraSorting;
+			
+		-- end
+		]]
+		
+		-- // checkBoxGlow
+		do
+		
+			local checkBoxGlow = GUICreateCheckBoxEx(L["options:interrupts:glow"], function(this)
+				db.InterruptsGlow = this:GetChecked();
+				for spellID in pairs(addonTable.Interrupts) do
+					local spellName = SpellNameByID[spellID];
+					EnabledAurasInfo[spellName] = {
+						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+						["auraType"] =					AURA_TYPE_DEBUFF,
+						["iconSize"] =					db.InterruptsIconSize,
+						--["checkSpellID"] =				nil,
+						--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
+						--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
+						--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
+						--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
+						["showGlow"] =					db.InterruptsGlow,
+					};
+				end
+				UpdateAllNameplates(false);
+			end);
+			checkBoxGlow:SetChecked(db.InterruptsGlow);
+			checkBoxGlow:SetParent(GUIFrame);
+			checkBoxGlow:SetPoint("TOPLEFT", 160, -120);
+			table_insert(GUIFrame.Categories[index], checkBoxGlow);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				checkBoxGlow:SetChecked(db.InterruptsGlow);
+			end);
+			aa4 = checkBoxGlow;
+			
+		end
+		
+		-- // sliderInterruptIconSize
+		do
+		
+			sliderInterruptIconSize = GUICreateSlider(GUIFrame, 165, -140, 340);
+			sliderInterruptIconSize.label:ClearAllPoints();
+			sliderInterruptIconSize.label:SetPoint("CENTER", sliderInterruptIconSize, "CENTER", 0, 20);
+			sliderInterruptIconSize.label:SetText(L["options:interrupts:icon-size"]);
+			sliderInterruptIconSize.slider:ClearAllPoints();
+			sliderInterruptIconSize.slider:SetPoint("LEFT", 3, 0)
+			sliderInterruptIconSize.slider:SetPoint("RIGHT", -3, 0)
+			sliderInterruptIconSize.slider:SetValueStep(1);
+			sliderInterruptIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
+			sliderInterruptIconSize.slider:SetScript("OnValueChanged", function(self, value)
+				sliderInterruptIconSize.editbox:SetText(tostring(math_ceil(value)));
+				db.InterruptsIconSize = math_ceil(value);
+				for spellID in pairs(addonTable.Interrupts) do
+					local spellName = SpellNameByID[spellID];
+					EnabledAurasInfo[spellName] = {
+						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+						["auraType"] =					AURA_TYPE_DEBUFF,
+						["iconSize"] =					db.InterruptsIconSize,
+						--["checkSpellID"] =				nil,
+						--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
+						--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
+						--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
+						--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
+						["showGlow"] =					db.InterruptsGlow,
+					};
+				end
+				UpdateAllNameplates(false);
+			end);
+			sliderInterruptIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderInterruptIconSize.editbox:GetText() ~= "") then
+					local v = tonumber(sliderInterruptIconSize.editbox:GetText());
+					if (v == nil) then
+						sliderInterruptIconSize.editbox:SetText(tostring(db.InterruptsIconSize));
+						Print(L["Value must be a number"]);
+					else
+						if (v > MAX_AURA_ICON_SIZE) then
+							v = MAX_AURA_ICON_SIZE;
+						end
+						if (v < 1) then
+							v = 1;
+						end
+						sliderInterruptIconSize.slider:SetValue(v);
+					end
+					sliderInterruptIconSize.editbox:ClearFocus();
+				end
+			end);
+			sliderInterruptIconSize.lowtext:SetText("1");
+			sliderInterruptIconSize.hightext:SetText(tostring(MAX_AURA_ICON_SIZE));
+			sliderInterruptIconSize.slider:SetValue(db.InterruptsIconSize);
+			sliderInterruptIconSize.editbox:SetText(tostring(db.InterruptsIconSize));
+			table_insert(GUIFrame.Categories[index], sliderInterruptIconSize);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				sliderInterruptIconSize.slider:SetValue(db.InterruptsIconSize);
+				sliderInterruptIconSize.editbox:SetText(tostring(db.InterruptsIconSize));
+			end);
+			aa5 = sliderInterruptIconSize;
+			
+		end
+		
+	end
+	
 end
 
 --------------------------------------------------------------------------------------------------
@@ -3596,6 +3789,8 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	
+	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
+	
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
 	EventFrame:RegisterEvent("CHAT_MSG_ADDON");
@@ -3612,7 +3807,7 @@ do
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		NameplatesVisible[nameplate] = true;
+		NameplatesVisible[nameplate] = unitID;
 		if (not Nameplates[nameplate]) then
 			nameplate.NAurasIcons = {};
 			nameplate.NAurasIconsCount = 0;
@@ -3622,6 +3817,15 @@ do
 		ProcessAurasForNameplate(nameplate, unitID);
 		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 			nameplate.NAurasFrame:Show();
+		end
+		if (db.InterruptsEnabled) then
+			local interrupt = InterruptsPerUnitGUID[UnitGUID(unitID)];
+			if (interrupt ~= nil) then
+				local remainingTime = interrupt.expires - GetTime();
+				if (remainingTime > 0) then
+					CTimerAfter(remainingTime, function() ProcessAurasForNameplate(nameplate, unitID); end);
+				end
+			end
 		end
 	end
 	
@@ -3656,6 +3860,41 @@ do
 				end
 			elseif (string_find(message, "requesting")) then
 				SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
+			end
+		end
+	end
+	
+	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
+		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
+		if (event == "SPELL_INTERRUPT") then
+			local spellDuration = InterruptSpells[spellID];
+			if (spellDuration ~= nil) then
+				if (UnitGUIDHasInterruptReduction[destGUID]) then
+					spellDuration = spellDuration * 0.3;
+				end
+				InterruptsPerUnitGUID[destGUID] = {
+					["duration"] = spellDuration,
+					["expires"] = GetTime() + spellDuration,
+					["stacks"] = 1,
+					["spellID"] = spellID,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = spellName,
+				};
+				for frame, unitID in pairs(NameplatesVisible) do
+					if (destGUID == UnitGUID(unitID)) then
+						ProcessAurasForNameplate(frame, unitID);
+						CTimerAfter(spellDuration, function() ProcessAurasForNameplate(frame, unitID); end);
+						break;
+					end
+				end
+			end
+		elseif (event == "SPELL_AURA_APPLIED") then
+			if (table_contains_value(TalentsReducingInterruptTime, spellName)) then
+				UnitGUIDHasInterruptReduction[destGUID] = true;
+			end
+		elseif (event == "SPELL_AURA_REMOVED") then
+			if (table_contains_value(TalentsReducingInterruptTime, spellName)) then
+				UnitGUIDHasInterruptReduction[destGUID] = nil;
 			end
 		end
 	end

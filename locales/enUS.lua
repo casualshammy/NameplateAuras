@@ -119,6 +119,6 @@ L["options:selector:search"] = "Search:"
 L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
 L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
 L["options:spells:icon-glow"] = "Icon glow"
-L["options:interrupts:use-shared-icon-texture"] = "Use shared texture for all interrupt spells"
+L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
 

@@ -25,6 +25,21 @@ addonTable.Interrupts = {
 local spell1, spell2, spell3, spell4 = GetSpellInfo(221404), GetSpellInfo(221677), GetSpellInfo(221660), GetSpellInfo(221703);	-- // Burning Determination, Calming Waters, Holy Concentration, Casting Circle
 addonTable.TalentsReducingInterruptTime = { spell1, spell2, spell3, spell4 };
 
+addonTable.MarkerSpellsForRestorationShamansAndShadowPriests = {
+	[232698] = true,	-- // Облик Тьмы
+	[34914] = true,		-- // Прикосновение вампира
+	[15407] = true,		-- // Пытка разума
+	[47585] = true,		-- // Слияние с тьмой
+	[8092] = true,		-- // Взрыв разума
+	[228260] = true,	-- // Извержение бездны
+	[79206] = true,		-- // Благосклонность предков
+	[61295] = true,		-- // Быстрина
+	[77130] = true,		-- // Возрождение духа
+	[77472] = true,		-- // Волна исцеления
+	[5394] = true,		-- // Тотем исцеляющего потока
+	[1064] = true,		-- // Цепное исцеление
+};
+
 addonTable.DefaultSpells = {
 	[51514] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 51514 }, -- // Hex
 	[6358] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellID"] = 6358 },

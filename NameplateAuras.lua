@@ -8,9 +8,9 @@ SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAur
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band;
 
 local SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
@@ -28,15 +28,23 @@ local SpellNameByID = setmetatable({}, {
 		return spellName;
 	end
 });
-local AllSpellIDsAndIconsByName 	= { };
-local AurasPerNameplate 			= { };
-local InterruptsPerUnitGUID			= { };
-local UnitGUIDHasInterruptReduction	= { };
-local EnabledAurasInfo				= { };
-local ElapsedTimer 					= 0;
-local Nameplates 					= { };
-local NameplatesVisible 			= { };
-local InPvPCombat					= false;
+local UnitClassByGUID = setmetatable({}, {
+	__index = function(t, key)
+		local _, classFilename = GetPlayerInfoByGUID(key);
+		t[key] = classFilename;
+		return classFilename;
+	end
+});
+local AllSpellIDsAndIconsByName 				= { };
+local AurasPerNameplate 						= { };
+local InterruptsPerUnitGUID						= { };
+local UnitGUIDHasInterruptReduction				= { };
+local UnitGUIDHasAdditionalInterruptReduction	= { };
+local EnabledAurasInfo							= { };
+local ElapsedTimer 								= 0;
+local Nameplates 								= { };
+local NameplatesVisible 						= { };
+local InPvPCombat								= false;
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
 
 -- // enums as variables: it's done for better performance
@@ -109,7 +117,7 @@ do
 				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
 				InterruptsGlow = false,
 				InterruptsUseSharedIconTexture = false,
-				InterruptsEnableOnlyInPvP = true,
+				InterruptsShowOnlyOnPlayers = true,
 			},
 		};
 		
@@ -280,7 +288,7 @@ do
 	end
 	
 	local function ReloadDB_ConvertInvalidValues()
-		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells" }) do
+		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells", "InterruptsEnableOnlyInPvP" }) do
 			if (db[entry] ~= nil) then
 				db[entry] = nil;
 				Print("Old db record is deleted: " .. entry);
@@ -644,7 +652,7 @@ do
 				end
 			end
 		end
-		if (db.InterruptsEnabled and (not db.InterruptsEnableOnlyInPvP or InPvPCombat)) then
+		if (db.InterruptsEnabled) then
 			local interrupt = InterruptsPerUnitGUID[unitGUID];
 			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
 				table_insert(AurasPerNameplate[frame], interrupt);
@@ -3559,7 +3567,7 @@ do
 		-- end
 		]]
 		
-		-- // debuffArea
+		-- // interruptOptionsArea
 		do
 		
 			interruptOptionsArea = CreateFrame("Frame", nil, GUIFrame);
@@ -3576,7 +3584,7 @@ do
 			interruptOptionsArea:SetPoint("TOPLEFT", 150, -40);
 			--interruptOptionsArea:SetPoint("LEFT", 150, 0);
 			interruptOptionsArea:SetWidth(360);
-			interruptOptionsArea:SetHeight(150);
+			interruptOptionsArea:SetHeight(140);
 			table_insert(GUIFrame.Categories[index], interruptOptionsArea);
 		
 		end
@@ -3637,15 +3645,15 @@ do
 		do
 		
 			local checkBoxEnableOnlyInPvPMode = GUICreateCheckBoxEx(L["options:interrupts:enable-only-during-pvp-battles"], function(this)
-				db.InterruptsEnableOnlyInPvP = this:GetChecked();
+				db.InterruptsShowOnlyOnPlayers = this:GetChecked();
 				UpdateAllNameplates(false);
 			end);
-			checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsEnableOnlyInPvP);
+			checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsShowOnlyOnPlayers);
 			checkBoxEnableOnlyInPvPMode:SetParent(interruptOptionsArea);
 			checkBoxEnableOnlyInPvPMode:SetPoint("TOPLEFT", 20, -50);
 			table_insert(GUIFrame.Categories[index], checkBoxEnableOnlyInPvPMode);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
-				checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsEnableOnlyInPvP);
+				checkBoxEnableOnlyInPvPMode:SetChecked(db.InterruptsShowOnlyOnPlayers);
 			end);
 			
 		end
@@ -3857,7 +3865,9 @@ end
 do
 	
 	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
+	local MarkerSpellsForRestorationShamansAndShadowPriests = addonTable.MarkerSpellsForRestorationShamansAndShadowPriests;
 	local InterruptSpells = addonTable.Interrupts;
+	local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER;
 	
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -3871,6 +3881,7 @@ do
 		for nameplate in pairs(AurasPerNameplate) do
 			wipe(AurasPerNameplate[nameplate]);
 		end
+		wipe(UnitGUIDHasAdditionalInterruptReduction);
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
@@ -3932,27 +3943,37 @@ do
 		end
 	end
 	
-	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
+	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, _, _, destGUID, destName, destFlags, _, spellID, spellName)
 		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
 		if (event == "SPELL_INTERRUPT") then
 			local spellDuration = InterruptSpells[spellID];
 			if (spellDuration ~= nil) then
-				if (UnitGUIDHasInterruptReduction[destGUID]) then
-					spellDuration = spellDuration * 0.3;
-				end
-				InterruptsPerUnitGUID[destGUID] = {
-					["duration"] = spellDuration,
-					["expires"] = GetTime() + spellDuration,
-					["stacks"] = 1,
-					["spellID"] = spellID,
-					["type"] = AURA_TYPE_DEBUFF,
-					["spellName"] = spellName,
-				};
-				for frame, unitID in pairs(NameplatesVisible) do
-					if (destGUID == UnitGUID(unitID)) then
-						ProcessAurasForNameplate(frame, unitID);
-						CTimerAfter(spellDuration, function() ProcessAurasForNameplate(frame, unitID); end);
-						break;
+				if (not db.InterruptsShowOnlyOnPlayers or bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0) then
+					-- // warlocks have 30% interrupt lockout reduction
+					if (UnitClassByGUID[destGUID] == "WARLOCK") then
+						spellDuration = spellDuration * 0.7;
+					-- // Restoration Shamans and Shadow Priests have 30% interrupt lockout reduction
+					elseif (UnitGUIDHasAdditionalInterruptReduction[destGUID]) then
+						spellDuration = spellDuration * 0.7;
+					end
+					-- // pvp talents
+					if (UnitGUIDHasInterruptReduction[destGUID]) then
+						spellDuration = spellDuration * 0.3;
+					end
+					InterruptsPerUnitGUID[destGUID] = {
+						["duration"] = spellDuration,
+						["expires"] = GetTime() + spellDuration,
+						["stacks"] = 1,
+						["spellID"] = spellID,
+						["type"] = AURA_TYPE_DEBUFF,
+						["spellName"] = spellName,
+					};
+					for frame, unitID in pairs(NameplatesVisible) do
+						if (destGUID == UnitGUID(unitID)) then
+							ProcessAurasForNameplate(frame, unitID);
+							CTimerAfter(spellDuration, function() ProcessAurasForNameplate(frame, unitID); end);
+							break;
+						end
 					end
 				end
 			end
@@ -3963,6 +3984,14 @@ do
 		elseif (event == "SPELL_AURA_REMOVED") then
 			if (table_contains_value(TalentsReducingInterruptTime, spellName)) then
 				UnitGUIDHasInterruptReduction[destGUID] = nil;
+			end
+		elseif (event == "SPELL_CAST_SUCCESS") then
+			if (MarkerSpellsForRestorationShamansAndShadowPriests[spellID]) then
+				if (not UnitGUIDHasAdditionalInterruptReduction[sourceGUID]) then
+					local class, classFilename, race, raceFilename, sex, name, realm = GetPlayerInfoByGUID(sourceGUID); -- // todo: delete
+					print(string_format("%s (%s): %s", name, classFilename, GetSpellInfo(spellID))); -- // todo: delete
+				end
+				UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
 			end
 		end
 	end

@@ -43,7 +43,8 @@ L["By icon size, descending"] = "By icon size, descending"
 --Translation missing 
 L["CENTER"] = "Center"
 --Translation missing 
-L["Check spell ID"] = "Check spell ID"
+L["Check spell ID"] = [=[Check spell IDs
+(comma-separated)]=]
 --Translation missing 
 L["Circular"] = "Circular"
 --Translation missing 
@@ -137,8 +138,28 @@ L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
 --Translation missing 
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
 --Translation missing 
+L["options:category:interrupts"] = "Interrupts"
+--Translation missing 
 L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
 your auras will be shown regardless of other filters]=]
+--Translation missing 
+L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
+--Translation missing 
+L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
+--Translation missing 
+L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
+--Translation missing 
+L["options:interrupts:glow"] = "Icon glow"
+--Translation missing 
+L["options:interrupts:icon-size"] = "Icon size"
+--Translation missing 
+L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
+--Translation missing 
+L["options:selector:search"] = "Search:"
+--Translation missing 
+L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
+--Translation missing 
+L["options:spells:icon-glow"] = "Icon glow"
 --Translation missing 
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
 --Translation missing 

@@ -23,7 +23,8 @@ L["By expire time, descending"] = "Nach Ablaufzeit, abnehmend"
 L["By icon size, ascending"] = "Nach Symbolgröße, zunehmend"
 L["By icon size, descending"] = "Nach Symbolgröße, abnehmend"
 L["CENTER"] = "Mittig"
-L["Check spell ID"] = "Zauber-ID prüfen"
+L["Check spell ID"] = [=[Zauber-ID prüfen
+(comma-separated)]=]
 L["Circular"] = "Kreisförmig"
 L["Circular with OmniCC support"] = "Kreisförmig mit OmniCC-Unterstützung"
 L["Circular with timer"] = "Kreisförmig mit Timer"
@@ -36,7 +37,7 @@ L["Delete spell"] = "Zauber löschen"
 L["Disabled"] = "Deaktiviert"
 L["Disease"] = "Krankheit"
 L["Display auras on nameplates of friendly units"] = "Auren auf Namensplaketten verbündeter Einheiten anzeigen"
-L["Display auras on player's nameplate"] = "Auren auf der Namensplakette des Spieler anzeigen"
+L["Display auras on player's nameplate"] = "Auren auf der Namensplakette des Spielers anzeigen"
 L["Display tenths of seconds"] = "Zehntelsekunden anzeigen"
 L["Do you really want to delete ALL spells?"] = "Willst du wirklich ALLE Zauber entfernen?"
 L["Font"] = "Schriftart"
@@ -73,9 +74,21 @@ L["options:auras:enabled-state-mineonly"] = "Aktiviert, nur meine Auren zeigen"
 L["options:auras:pvp-state-dontshowinpvp"] = "Diese Aura während eines PvP-Kampfes nicht zeigen"
 L["options:auras:pvp-state-indefinite"] = "Diese Aura während eines PvP-Kampfes zeigen"
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Diese Aura nur während eines PvP-Kampfes zeigen"
+L["options:category:interrupts"] = "Unterbrechungen"
 L["options:general:always-show-my-auras:tooltip"] = [=[Dies ist ein Filter höchster Priorität. Falls du diese
  Funktion aktivierst, werden Auren, die du gewirkt hast,
  unabhängig von anderen Filtern gezeigt]=]
+L["options:general:error-omnicc-is-not-loaded"] = "Du kannst diese Option nicht auswählen, weil OmniCC nicht geladen ist!"
+L["options:interrupts:enable-interrupts"] = "Unterbrechungsverfolgung aktivieren"
+L["options:interrupts:enable-only-during-pvp-battles"] = "Nur während PvP-Kämpfen aktivieren"
+L["options:interrupts:glow"] = "Symbolleuchten"
+L["options:interrupts:icon-size"] = "Symbolgröße"
+--Translation missing 
+L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
+--Translation missing 
+L["options:selector:search"] = "Search:"
+L["options:spells:appropriate-spell-ids"] = "Passende Zauber-IDs:"
+L["options:spells:icon-glow"] = "Symbolleuchten"
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimale Dauer zur Anzeige von Zehntelsekunden"
 L["options:timer-text:scale-font-size"] = [=[Schriftgröße an
 Symbolgröße
@@ -111,3 +124,4 @@ L["Value must be a number"] = "Wert muss eine Zahl sein"
 L["X offset"] = "X-Verschiebung"
 L["Y offset"] = "Y-Verschiebung"
 L["Yes"] = "Ja"
+

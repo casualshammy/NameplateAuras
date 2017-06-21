@@ -23,7 +23,8 @@ L["By expire time, descending"] = "По оставшемуся времени, �
 L["By icon size, ascending"] = "По размеру иконки, по возрастанию"
 L["By icon size, descending"] = "По размеру иконки, по убыванию"
 L["CENTER"] = "В центре"
-L["Check spell ID"] = "Проверять ID заклинания"
+L["Check spell ID"] = [=[Проверять ID'ы заклинания
+(через запятую)]=]
 L["Circular"] = "Круговой"
 L["Circular with OmniCC support"] = "Круговой с поддержкой OmniCC"
 L["Circular with timer"] = "Круговой с таймером"
@@ -74,8 +75,18 @@ L["options:auras:enabled-state-mineonly"] = "Включено, показыва�
 L["options:auras:pvp-state-dontshowinpvp"] = "Не отображать эту ауру в PvP битвах"
 L["options:auras:pvp-state-indefinite"] = "Отображать эту ауру в PvP битвах"
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Отображать эту ауру только в PvP битвах"
+L["options:category:interrupts"] = "Прерывания"
 L["options:general:always-show-my-auras:tooltip"] = [=[Это высший по приоритету фильтр. Если он включен, ваши ауры
 будут отображаться вне зависимости от других фильтров]=]
+L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выбрать эту опцию, потому что OmniCC не загружен!"
+L["options:interrupts:enable-interrupts"] = "Включить отслеживание прерываний"
+L["options:interrupts:enable-only-during-pvp-battles"] = "Активно только в PvP"
+L["options:interrupts:glow"] = "Подсветка иконки"
+L["options:interrupts:icon-size"] = "Размер иконки"
+L["options:interrupts:use-shared-icon-texture"] = "Использовать одну текстуру для всех прерываний"
+L["options:selector:search"] = "Поиск:"
+L["options:spells:appropriate-spell-ids"] = "Соответствующие ID'ы заклинаний:"
+L["options:spells:icon-glow"] = "Подсветка иконки"
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Минимальная длительность для отображения десятых долей секунд"
 L["options:timer-text:scale-font-size"] = [=[Масштабировать
 размер текста в

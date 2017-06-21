@@ -58,7 +58,7 @@ local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, Dele
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts;
-local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
+local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText, StringToTableKeys;
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
@@ -113,7 +113,6 @@ do
 				FrameAnchor = "CENTER",
 				MinTimeToShowTenthsOfSeconds = 10,
 				InterruptsEnabled = true,
-				-- InterruptsRespectAuraSorting = false,
 				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
 				InterruptsGlow = false,
 				InterruptsUseSharedIconTexture = false,
@@ -320,6 +319,11 @@ do
 			db.DefaultSpellsLastSetImported = 1;
 			db.DefaultSpellsAreImported = nil;
 		end
+		for spellID, spellInfo in pairs(db.CustomSpells2) do
+			if (type(spellInfo.checkSpellID) == "number") then
+				spellInfo.checkSpellID = { spellInfo.checkSpellID };
+			end
+		end
 	end
 	
 	function ReloadDB()
@@ -333,11 +337,6 @@ do
 				["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 				["auraType"] =					AURA_TYPE_DEBUFF,
 				["iconSize"] =					db.InterruptsIconSize,
-				--["checkSpellID"] =				nil,
-				--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
-				--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
-				--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
-				--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
 				["showGlow"] =					db.InterruptsGlow,
 			};
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
@@ -579,7 +578,7 @@ do
 						if (spellInfo.auraType == AURA_TYPE_ANY or (isBuff and spellInfo.auraType == AURA_TYPE_BUFF or spellInfo.auraType == AURA_TYPE_DEBUFF)) then
 							local showInPvPCombat = spellInfo.pvpCombat;
 							if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
-								if (spellInfo.checkSpellID == nil or spellInfo.checkSpellID == auraSpellID) then
+								if (spellInfo.checkSpellID == nil or spellInfo.checkSpellID[auraSpellID]) then
 									return true;
 								end
 							end
@@ -3175,7 +3174,15 @@ do
 				sliderSpellIconSize.slider:SetValue(db.CustomSpells2[selectedSpell].iconSize);
 				sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
 				_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[db.CustomSpells2[selectedSpell].auraType]);
-				editboxSpellID:SetText(db.CustomSpells2[selectedSpell].checkSpellID or "");
+				if (db.CustomSpells2[selectedSpell].checkSpellID) then
+					local t = { };
+					for key in pairs(db.CustomSpells2[selectedSpell].checkSpellID) do
+						table_insert(t, key);
+					end
+					editboxSpellID:SetText(table.concat(t, ","));
+				else
+					editboxSpellID:SetText("");
+				end
 				checkboxShowOnFriends:SetChecked(db.CustomSpells2[selectedSpell].showOnFriends);
 				checkboxShowOnEnemies:SetChecked(db.CustomSpells2[selectedSpell].showOnEnemies);
 				checkboxAllowMultipleInstances:SetChecked(db.CustomSpells2[selectedSpell].allowMultipleInstances);
@@ -3348,7 +3355,7 @@ do
 			editboxSpellID:SetFontObject(GameFontHighlightSmall);
 			editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -230);
-			editboxSpellID.text:SetText(L["Check spell ID"] .. ": ");
+			editboxSpellID.text:SetText(L["Check spell ID"]);
 			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
 			editboxSpellID:SetPoint("RIGHT", spellArea, "RIGHT", -30, 0);
 			editboxSpellID:SetHeight(20);
@@ -3365,10 +3372,10 @@ do
 			editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
 			editboxSpellID:SetScript("OnEnterPressed", function(self, value)
 				local text = self:GetText();
-				local textAsNumber = tonumber(text);
-				db.CustomSpells2[selectedSpell].checkSpellID = textAsNumber;
+				local t = StringToTableKeys(text);
+				db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
 				UpdateSpellCachesFromDB(selectedSpell);
-				if (textAsNumber == nil) then
+				if (table_count(t) == 0) then
 					self:SetText("");
 				end
 				self:ClearFocus();
@@ -3600,11 +3607,6 @@ do
 						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 						["auraType"] =					AURA_TYPE_DEBUFF,
 						["iconSize"] =					db.InterruptsIconSize,
-						--["checkSpellID"] =				nil,
-						--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
-						--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
-						--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
-						--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
 						["showGlow"] =					db.InterruptsGlow,
 					};
 				end
@@ -3681,11 +3683,6 @@ do
 						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 						["auraType"] =					AURA_TYPE_DEBUFF,
 						["iconSize"] =					db.InterruptsIconSize,
-						--["checkSpellID"] =				nil,
-						--["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
-						--["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
-						--["allowMultipleInstances"] =		db.CustomSpells2[spellID].allowMultipleInstances,
-						--["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
 						["showGlow"] =					db.InterruptsGlow,
 					};
 				end
@@ -3809,6 +3806,14 @@ do
 	
 	function ColorizeText(text, r, g, b)
 		return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
+	end
+	
+	function StringToTableKeys(str)
+		local t = { };
+		for key in gmatch(str, "%w+") do
+			t[key] = true;
+		end
+		return t;
 	end
 	
 	-- // CoroutineProcessor
@@ -3943,7 +3948,7 @@ do
 		end
 	end
 	
-	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, sourceName, _, _, destGUID, destName, destFlags, _, spellID, spellName)
+	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, _, _, _, destGUID, _, destFlags, _, spellID, spellName)
 		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
 		if (event == "SPELL_INTERRUPT") then
 			local spellDuration = InterruptSpells[spellID];
@@ -3978,20 +3983,20 @@ do
 				end
 			end
 		elseif (event == "SPELL_AURA_APPLIED") then
-			if (table_contains_value(TalentsReducingInterruptTime, spellName)) then
+			if (TalentsReducingInterruptTime[spellName]) then
 				UnitGUIDHasInterruptReduction[destGUID] = true;
 			end
 		elseif (event == "SPELL_AURA_REMOVED") then
-			if (table_contains_value(TalentsReducingInterruptTime, spellName)) then
+			if (TalentsReducingInterruptTime[spellName]) then
 				UnitGUIDHasInterruptReduction[destGUID] = nil;
 			end
 		elseif (event == "SPELL_CAST_SUCCESS") then
 			if (MarkerSpellsForRestorationShamansAndShadowPriests[spellID]) then
 				if (not UnitGUIDHasAdditionalInterruptReduction[sourceGUID]) then
-					local class, classFilename, race, raceFilename, sex, name, realm = GetPlayerInfoByGUID(sourceGUID); -- // todo: delete
-					print(string_format("%s (%s): %s", name, classFilename, GetSpellInfo(spellID))); -- // todo: delete
+					UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
+					CTimerAfter(60, function() UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = nil; end);
 				end
-				UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
+				
 			end
 		end
 	end

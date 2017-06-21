@@ -27,7 +27,8 @@ L["By expire time, descending"] = "Por tiempo de expiración, descendente"
 L["By icon size, ascending"] = "Por tamaño de icono, ascendente"
 L["By icon size, descending"] = "Por tamaño de icono, descendente"
 L["CENTER"] = "Parte central"
-L["Check spell ID"] = "Comprobar ID de hechizo"
+L["Check spell ID"] = [=[Comprobar ID de hechizo
+(comma-separated)]=]
 L["Circular"] = "Circular"
 L["Circular with OmniCC support"] = "Circular, compatible con OmniCC"
 L["Circular with timer"] = "Circular con temporizador"
@@ -86,8 +87,28 @@ L["options:auras:pvp-state-dontshowinpvp"] = "No mostrar este aura durante comba
 L["options:auras:pvp-state-indefinite"] = "Mostrar este aura durante combate de JcJ"
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Mostrar este aura solo en combate de JcJ"
 --Translation missing 
+L["options:category:interrupts"] = "Interrupts"
+--Translation missing 
 L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
 your auras will be shown regardless of other filters]=]
+--Translation missing 
+L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
+--Translation missing 
+L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
+--Translation missing 
+L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
+--Translation missing 
+L["options:interrupts:glow"] = "Icon glow"
+--Translation missing 
+L["options:interrupts:icon-size"] = "Icon size"
+--Translation missing 
+L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
+--Translation missing 
+L["options:selector:search"] = "Search:"
+--Translation missing 
+L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
+--Translation missing 
+L["options:spells:icon-glow"] = "Icon glow"
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Duración mínima para mostrar décimas de segundo"
 L["options:timer-text:scale-font-size"] = [=[Modificar el tamaño de fuente
 de acuerdo con

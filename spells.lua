@@ -22,8 +22,12 @@ addonTable.Interrupts = {
 	[231665] = 3,	-- Avengers Shield (Paladin)
 };
 
-local spell1, spell2, spell3, spell4 = GetSpellInfo(221404), GetSpellInfo(221677), GetSpellInfo(221660), GetSpellInfo(221703);	-- // Burning Determination, Calming Waters, Holy Concentration, Casting Circle
-addonTable.TalentsReducingInterruptTime = { spell1, spell2, spell3, spell4 };
+addonTable.TalentsReducingInterruptTime = {
+	[GetSpellInfo(221404)] = true, -- // Burning Determination
+	[GetSpellInfo(221677)] = true, -- // Calming Waters
+	[GetSpellInfo(221660)] = true, -- // Holy Concentration
+	[GetSpellInfo(221703)] = true, -- // Casting Circle
+};
 
 addonTable.MarkerSpellsForRestorationShamansAndShadowPriests = {
 	[232698] = true,	-- // Облик Тьмы

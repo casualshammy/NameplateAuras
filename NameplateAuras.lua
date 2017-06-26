@@ -321,7 +321,7 @@ do
 		end
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			if (type(spellInfo.checkSpellID) == "number") then
-				spellInfo.checkSpellID = { spellInfo.checkSpellID };
+				spellInfo.checkSpellID = { [spellInfo.checkSpellID] = true };
 			end
 		end
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
@@ -338,6 +338,24 @@ do
 				end
 				for _, value in pairs(t) do
 					spellInfo.checkSpellID[value] = nil;
+				end
+			end
+		end
+		for spellID, spellInfo in pairs(db.CustomSpells2) do
+			if (spellInfo.checkSpellID ~= nil) then
+				local toAdd = { };
+				local toDelete = { };
+				for key, value in pairs(spellInfo.checkSpellID) do
+					if (type(value) == "number") then
+						table_insert(toAdd, value);
+						table_insert(toDelete, key);
+					end
+				end
+				for _, value in pairs(toDelete) do
+					spellInfo.checkSpellID[value] = nil;
+				end
+				for _, value in pairs(toAdd) do
+					spellInfo.checkSpellID[value] = true;
 				end
 			end
 		end

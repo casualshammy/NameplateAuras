@@ -58,7 +58,7 @@ local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, Dele
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts;
-local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText, StringToTableKeys;
+local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
@@ -322,6 +322,23 @@ do
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			if (type(spellInfo.checkSpellID) == "number") then
 				spellInfo.checkSpellID = { spellInfo.checkSpellID };
+			end
+		end
+		for spellID, spellInfo in pairs(db.CustomSpells2) do
+			if (spellInfo.checkSpellID ~= nil) then
+				local t = {  };
+				for key in pairs(spellInfo.checkSpellID) do
+					if (type(key) == "string") then
+						table_insert(t, key);
+						local nmbr = tonumber(key);
+						if (nmbr ~= nil) then
+							spellInfo.checkSpellID[nmbr] = true;
+						end
+					end
+				end
+				for _, value in pairs(t) do
+					spellInfo.checkSpellID[value] = nil;
+				end
 			end
 		end
 	end
@@ -3350,6 +3367,17 @@ do
 		-- // editboxSpellID
 		do
 		
+			local function StringToTableKeys(str)
+				local t = { };
+				for key in gmatch(str, "%w+") do
+					local nmbr = tonumber(key);
+					if (nmbr ~= nil) then
+						t[key] = true;
+					end
+				end
+				return t;
+			end
+		
 			editboxSpellID = CreateFrame("EditBox", nil, spellArea);
 			editboxSpellID:SetAutoFocus(false);
 			editboxSpellID:SetFontObject(GameFontHighlightSmall);
@@ -3806,14 +3834,6 @@ do
 	
 	function ColorizeText(text, r, g, b)
 		return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
-	end
-	
-	function StringToTableKeys(str)
-		local t = { };
-		for key in gmatch(str, "%w+") do
-			t[key] = true;
-		end
-		return t;
 	end
 	
 	-- // CoroutineProcessor

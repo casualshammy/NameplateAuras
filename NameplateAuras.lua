@@ -326,33 +326,29 @@ do
 		end
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			if (spellInfo.checkSpellID ~= nil) then
-				local t = {  };
+				local toAdd = { };
 				for key in pairs(spellInfo.checkSpellID) do
 					if (type(key) == "string") then
-						table_insert(t, key);
+						spellInfo.checkSpellID[key] = nil;
 						local nmbr = tonumber(key);
 						if (nmbr ~= nil) then
-							spellInfo.checkSpellID[nmbr] = true;
+							table_insert(toAdd, nmbr);
 						end
 					end
 				end
-				for _, value in pairs(t) do
-					spellInfo.checkSpellID[value] = nil;
+				for _, value in pairs(toAdd) do
+					spellInfo.checkSpellID[value] = true;
 				end
 			end
 		end
 		for spellID, spellInfo in pairs(db.CustomSpells2) do
 			if (spellInfo.checkSpellID ~= nil) then
 				local toAdd = { };
-				local toDelete = { };
 				for key, value in pairs(spellInfo.checkSpellID) do
 					if (type(value) == "number") then
 						table_insert(toAdd, value);
-						table_insert(toDelete, key);
+						spellInfo.checkSpellID[key] = nil;
 					end
-				end
-				for _, value in pairs(toDelete) do
-					spellInfo.checkSpellID[value] = nil;
 				end
 				for _, value in pairs(toAdd) do
 					spellInfo.checkSpellID[value] = true;

@@ -497,11 +497,11 @@ do
 			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
 			icon.cooldownFrame:SetAllPoints(icon);
 			icon.cooldownFrame:SetReverse(true);
+			icon.cooldownFrame:SetHideCountdownNumbers(true);
 			if (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC) then
 				icon.cooldownFrame:SetDrawEdge(false);
 				icon.cooldownFrame:SetDrawSwipe(true);
 				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
-				icon.cooldownFrame:SetHideCountdownNumbers(true);
 			else
 				icon.cooldownFrame.noCooldownCount = true;
 			end

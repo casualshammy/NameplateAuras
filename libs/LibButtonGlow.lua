@@ -86,7 +86,11 @@ local function AnimIn_OnPlay(group)
 	frame.innerGlow:SetAlpha(1.0)
 	frame.innerGlowOver:SetAlpha(1.0)
 	frame.outerGlow:SetSize(frameWidth * 2, frameHeight * 2)
-	frame.outerGlow:SetAlpha(1.0)
+	if (frame.dimGlow) then
+		frame.outerGlow:SetAlpha(0.0);
+	else
+		frame.outerGlow:SetAlpha(1.0);
+	end
 	frame.outerGlowOver:SetAlpha(1.0)
 	frame.ants:SetSize(frameWidth * 0.85, frameHeight * 0.85)
 	frame.ants:SetAlpha(0)
@@ -195,10 +199,11 @@ local function GetOverlayGlow()
 	return overlay
 end
 
-function NAuras_LibButtonGlow.ShowOverlayGlow(frame, updateSize)
+function NAuras_LibButtonGlow.ShowOverlayGlow(frame, updateSize, dimGlow)
 	if frame.__NAurasLBGoverlay then
 		if frame.__NAurasLBGoverlay.animOut:IsPlaying() then
 			frame.__NAurasLBGoverlay.animOut:Stop()
+			frame.__NAurasLBGoverlay.dimGlow = dimGlow;
 			frame.__NAurasLBGoverlay.animIn:Play()
 		end
 		if (updateSize) then
@@ -206,6 +211,7 @@ function NAuras_LibButtonGlow.ShowOverlayGlow(frame, updateSize)
 			frame.__NAurasLBGoverlay:SetSize(frameWidth * 1.4, frameHeight * 1.4);
 			frame.__NAurasLBGoverlay:SetPoint("TOPLEFT", frame, "TOPLEFT", -frameWidth * 0.2, frameHeight * 0.2);
 			frame.__NAurasLBGoverlay:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", frameWidth * 0.2, -frameHeight * 0.2);
+			frame.__NAurasLBGoverlay.dimGlow = dimGlow;
 			frame.__NAurasLBGoverlay.animIn:Play();
 		end
 	else
@@ -218,6 +224,7 @@ function NAuras_LibButtonGlow.ShowOverlayGlow(frame, updateSize)
 		overlay:SetSize(frameWidth * 1.4, frameHeight * 1.4)
 		overlay:SetPoint("TOPLEFT", frame, "TOPLEFT", -frameWidth * 0.2, frameHeight * 0.2)
 		overlay:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", frameWidth * 0.2, -frameHeight * 0.2)
+		overlay.dimGlow = dimGlow;
 		overlay.animIn:Play()
 		frame.__NAurasLBGoverlay = overlay
 

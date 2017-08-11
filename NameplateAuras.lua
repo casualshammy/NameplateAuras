@@ -8,9 +8,9 @@ SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAur
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer;
 
 local SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
@@ -53,6 +53,7 @@ local AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = 1, 2, 3;
 local AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE = 1, 2, 3, 4, 5, 6;
 local TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = 1, 2, 3, 4;
 local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 1, 2, 3;
+local GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
 
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
@@ -117,6 +118,7 @@ do
 				InterruptsGlow = false,
 				InterruptsUseSharedIconTexture = false,
 				InterruptsShowOnlyOnPlayers = true,
+				UseDimGlow = nil,
 			},
 		};
 		
@@ -209,9 +211,9 @@ do
 				if (spellInfo.showOnEnemies == nil) then
 					spellInfo.showOnEnemies = true;
 				end
-				if (spellInfo.allowMultipleInstances == nil) then
-					spellInfo.allowMultipleInstances = false;
-				end
+				-- if (spellInfo.allowMultipleInstances == nil) then
+					-- spellInfo.allowMultipleInstances = false;
+				-- end
 				if (spellInfo.pvpCombat == nil) then
 					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
 				end
@@ -355,6 +357,16 @@ do
 				end
 			end
 		end
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			if (spellInfo.showGlow ~= nil and type(spellInfo.showGlow) == "boolean") then
+				spellInfo.showGlow = GLOW_TIME_INFINITE;
+			end
+		end
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			if (spellInfo.allowMultipleInstances ~= nil and type(spellInfo.allowMultipleInstances) == "boolean" and spellInfo.allowMultipleInstances == false) then
+				spellInfo.allowMultipleInstances = nil;
+			end
+		end
 	end
 	
 	function ReloadDB()
@@ -368,7 +380,7 @@ do
 				["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 				["auraType"] =					AURA_TYPE_DEBUFF,
 				["iconSize"] =					db.InterruptsIconSize,
-				["showGlow"] =					db.InterruptsGlow,
+				["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
 			};
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
@@ -418,7 +430,7 @@ do
 			["checkSpellID"] =				checkSpellID,
 			["showOnFriends"] =				true,
 			["showOnEnemies"] =				true,
-			["allowMultipleInstances"] =	false,
+			["allowMultipleInstances"] =	nil,
 			["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
 			["showGlow"] =					nil,
 		};
@@ -470,6 +482,8 @@ end
 ----- Nameplates
 --------------------------------------------------------------------------------------------------
 do
+	
+	local glowInfo = { };
 	
 	local BORDER_TEXTURES = {
 		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
@@ -829,11 +843,18 @@ do
 		end
 	end
 	
-	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized)
-		if (auraInfo and auraInfo.showGlow) then
-			LBG_ShowOverlayGlow(icon, iconResized);
-		else
-			LBG_HideOverlayGlow(icon);
+	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized, dimGlow, remainingAuraTime)
+		LBG_HideOverlayGlow(icon);
+		if (glowInfo[icon]) then
+			glowInfo[icon]:Cancel();
+			glowInfo[icon] = nil;
+		end
+		if (auraInfo and auraInfo.showGlow ~= nil) then
+			if (remainingAuraTime < auraInfo.showGlow) then
+				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
+			else
+				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end);
+			end
 		end
 	end
 	
@@ -871,7 +892,7 @@ do
 						iconResized = true;
 					end
 					-- // glow
-					UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized);
+					UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, db.UseDimGlow, last);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
@@ -1121,7 +1142,7 @@ do
 		local checkButton = GUICreateCheckBoxEx(textEntries[1], nil);
 		checkButton.state = 0;
 		checkButton.SetTriState = function(self, tristate)
-			self:SetText(textEntries[tristate+1]);
+			self:SetText(textEntries[tristate+1] .. " |TInterface\\common\\help-i:26:26:0:0|t");
 			self:SetChecked(tristate == 1 or tristate == 2);
 			self.state = tristate;
 		end;
@@ -1348,6 +1369,7 @@ do
 						end
 					end
 					selectorEx.SetList(t, true);
+					selectorEx.scrollArea:SetVerticalScroll(0);
 				end
 			end);
 			selectorEx:HookScript("OnHide", function() selectorEx.searchBox:SetText(""); end);
@@ -1508,7 +1530,7 @@ do
 				self:Show();
 			end
 		end);
-		GUIFrame:SetHeight(400);
+		GUIFrame:SetHeight(445);
 		GUIFrame:SetWidth(530);
 		GUIFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 80);
 		GUIFrame:SetBackdrop({
@@ -1535,7 +1557,7 @@ do
 		
 		local header = GUIFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 		header:SetFont(GameFontNormal:GetFont(), 22, "THICKOUTLINE");
-		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 210);
+		header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 230);
 		header:SetText("NameplateAuras");
 		
 		GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame);
@@ -1854,6 +1876,22 @@ do
 			SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
+		
+		end
+		
+		-- // checkBoxUseDimGlow
+		do
+		
+			local checkBoxUseDimGlow = GUICreateCheckBoxEx(L["options:general:use-dim-glow"], function(this)
+				db.UseDimGlow = this:GetChecked();
+				UpdateAllNameplates(true);
+			end);
+			checkBoxUseDimGlow:SetChecked(db.UseDimGlow);
+			checkBoxUseDimGlow:SetParent(GUIFrame);
+			checkBoxUseDimGlow:SetPoint("TOPLEFT", 160, -240);
+			SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
+			table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(db.UseDimGlow); end);
 		
 		end
 			
@@ -2349,8 +2387,8 @@ do
 			timerTextColorArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			timerTextColorArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 			timerTextColorArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -210);
-			timerTextColorArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 95);
 			timerTextColorArea:SetWidth(360);
+			timerTextColorArea:SetHeight(71);
 			table_insert(GUIFrame.Categories[index], timerTextColorArea);
 		
 		end
@@ -2463,8 +2501,8 @@ do
 			tenthsOfSecondsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			tenthsOfSecondsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 			tenthsOfSecondsArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -285);
-			tenthsOfSecondsArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 20);
 			tenthsOfSecondsArea:SetWidth(360);
+			tenthsOfSecondsArea:SetHeight(71);
 			table_insert(GUIFrame.Categories[index], tenthsOfSecondsArea);
 			
 		end
@@ -2884,8 +2922,8 @@ do
 			debuffArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			debuffArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 			debuffArea:SetPoint("TOPLEFT", 150, -120);
-			debuffArea:SetPoint("LEFT", 150, 25);
 			debuffArea:SetWidth(360);
+			debuffArea:SetHeight(110);
 			table_insert(GUIFrame.Categories[index], debuffArea);
 		
 		end
@@ -3056,7 +3094,7 @@ do
 		local controls = { };
 		local selectedSpell = 0;
 		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow;
+			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs;
 		local AuraTypesLocalization = {
 			[AURA_TYPE_BUFF] =		L["Buff"],
 			[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -3231,7 +3269,19 @@ do
 				else
 					checkboxPvPMode:SetTriState(2);
 				end
-				checkboxGlow:SetChecked(db.CustomSpells2[selectedSpell].showGlow);
+				if (db.CustomSpells2[selectedSpell].showGlow == nil) then
+					checkboxGlow:SetTriState(0);
+					sliderGlowThreshold:Hide();
+					areaGlow:SetHeight(40);
+				elseif (db.CustomSpells2[selectedSpell].showGlow == GLOW_TIME_INFINITE) then
+					checkboxGlow:SetTriState(2);
+					sliderGlowThreshold:Hide();
+					areaGlow:SetHeight(40);
+				else
+					checkboxGlow:SetTriState(1);
+					sliderGlowThreshold.slider:SetValue(db.CustomSpells2[selectedSpell].showGlow);
+					areaGlow:SetHeight(80);
+				end
 			end
 			
 			local function HideGameTooltip()
@@ -3251,7 +3301,7 @@ do
 			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
-			selectSpell.icon = selectSpell:CreateTexture();
+			selectSpell.icon = selectSpell:CreateTexture(nil, "OVERLAY");
 			selectSpell.icon:SetPoint("RIGHT", selectSpell.Text, "LEFT", -3, 0);
 			selectSpell.icon:SetWidth(20);
 			selectSpell.icon:SetHeight(20);
@@ -3301,129 +3351,6 @@ do
 			end);
 			table_insert(GUIFrame.Categories[index], selectSpell);
 			
-		end
-				
-		-- // dropdownSpellShowType
-		do
-		
-			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", spellArea, "UIDropDownMenuTemplate");
-			UIDropDownMenu_SetWidth(dropdownSpellShowType, 180);
-			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-			dropdownSpellShowType.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -150);
-			dropdownSpellShowType.text:SetText(L["Aura type"]);
-			dropdownSpellShowType:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 118, -140);
-			local info = {};
-			dropdownSpellShowType.initialize = function()
-				wipe(info);
-				for _, auraType in pairs({ AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY }) do
-					info.text = AuraTypesLocalization[auraType];
-					info.value = auraType;
-					info.func = function(self)
-						db.CustomSpells2[selectedSpell].auraType = self.value;
-						UpdateSpellCachesFromDB(selectedSpell);
-						_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
-					end
-					info.checked = (info.value == db.CustomSpells2[selectedSpell].auraType);
-					UIDropDownMenu_AddButton(info);
-				end
-			end
-			_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
-			table_insert(controls, dropdownSpellShowType);
-		
-		end
-		
-		-- // sliderSpellIconSize
-		do
-		
-			sliderSpellIconSize = GUICreateSlider(spellArea, 18, -23, 200);
-			sliderSpellIconSize.label:ClearAllPoints();
-			sliderSpellIconSize.label:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -190);
-			sliderSpellIconSize.label:SetText(L["Icon size"]);
-			sliderSpellIconSize:ClearAllPoints();
-			sliderSpellIconSize:SetPoint("LEFT", sliderSpellIconSize.label, "RIGHT", 20, 0);
-			sliderSpellIconSize.slider:ClearAllPoints();
-			sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
-			sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
-			sliderSpellIconSize.slider:SetValueStep(1);
-			sliderSpellIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
-			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
-				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
-				db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
-				UpdateSpellCachesFromDB(selectedSpell);
-				for nameplate in pairs(NameplatesVisible) do
-					UpdateNameplate(nameplate);
-				end
-			end);
-			sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
-				if (sliderSpellIconSize.editbox:GetText() ~= "") then
-					local v = tonumber(sliderSpellIconSize.editbox:GetText());
-					if (v == nil) then
-						sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
-						Print(L["Value must be a number"]);
-					else
-						if (v > MAX_AURA_ICON_SIZE) then
-							v = MAX_AURA_ICON_SIZE;
-						end
-						if (v < 1) then
-							v = 1;
-						end
-						sliderSpellIconSize.slider:SetValue(v);
-					end
-					sliderSpellIconSize.editbox:ClearFocus();
-				end
-			end);
-			sliderSpellIconSize.lowtext:SetText("1");
-			sliderSpellIconSize.hightext:SetText(tostring(MAX_AURA_ICON_SIZE));
-			table_insert(controls, sliderSpellIconSize);
-			
-		end
-		
-		-- // editboxSpellID
-		do
-		
-			local function StringToTableKeys(str)
-				local t = { };
-				for key in gmatch(str, "%w+") do
-					local nmbr = tonumber(key);
-					if (nmbr ~= nil) then
-						t[key] = true;
-					end
-				end
-				return t;
-			end
-		
-			editboxSpellID = CreateFrame("EditBox", nil, spellArea);
-			editboxSpellID:SetAutoFocus(false);
-			editboxSpellID:SetFontObject(GameFontHighlightSmall);
-			editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-			editboxSpellID.text:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 18, -230);
-			editboxSpellID.text:SetText(L["Check spell ID"]);
-			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
-			editboxSpellID:SetPoint("RIGHT", spellArea, "RIGHT", -30, 0);
-			editboxSpellID:SetHeight(20);
-			editboxSpellID:SetWidth(215);
-			editboxSpellID:SetJustifyH("LEFT");
-			editboxSpellID:EnableMouse(true);
-			editboxSpellID:SetBackdrop({
-				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				tile = true, edgeSize = 1, tileSize = 5,
-			});
-			editboxSpellID:SetBackdropColor(0, 0, 0, 0.5);
-			editboxSpellID:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
-			editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
-			editboxSpellID:SetScript("OnEnterPressed", function(self, value)
-				local text = self:GetText();
-				local t = StringToTableKeys(text);
-				db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
-				UpdateSpellCachesFromDB(selectedSpell);
-				if (table_count(t) == 0) then
-					self:SetText("");
-				end
-				self:ClearFocus();
-			end);
-			table_insert(controls, editboxSpellID);
-		
 		end
 		
 		-- // buttonDeleteSpell
@@ -3502,7 +3429,7 @@ do
 		-- // checkboxAllowMultipleInstances
 		do
 			checkboxAllowMultipleInstances = GUICreateCheckBoxEx(L["options:aura-options:allow-multiple-instances"], function(this)
-				db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked();
+				db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked() or nil;
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
@@ -3536,17 +3463,290 @@ do
 			
 		end
 		
+		-- // areaGlow
+		do
+		
+			areaGlow = CreateFrame("Frame", nil, spellArea);
+			areaGlow:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			areaGlow:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			areaGlow:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			areaGlow:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 10, -115);
+			areaGlow:SetWidth(340);
+			areaGlow:SetHeight(80);
+			table_insert(controls, areaGlow);
+		
+		end
+		
 		-- // checkboxGlow
 		do
-			
-			checkboxGlow = GUICreateCheckBoxEx(L["options:spells:icon-glow"], function(this)
-				db.CustomSpells2[selectedSpell].showGlow = this:GetChecked() or nil; -- // making db smaller
+			checkboxGlow = GUICreateCheckBoxTristate({
+				ColorizeText(L["options:spells:icon-glow"], 1, 1, 1),
+				ColorizeText(L["options:spells:icon-glow-threshold"], 0, 1, 1),
+				ColorizeText(L["options:spells:icon-glow-always"], 0, 1, 0),
+			});
+			checkboxGlow:SetClickHandler(function(self)
+				if (self:GetTriState() == 0) then
+					db.CustomSpells2[selectedSpell].showGlow = nil; -- // making db smaller
+					sliderGlowThreshold:Hide();
+					areaGlow:SetHeight(40);
+				elseif (self:GetTriState() == 1) then
+					db.CustomSpells2[selectedSpell].showGlow = 5;
+					sliderGlowThreshold:Show();
+					sliderGlowThreshold.slider:SetValue(5);
+					areaGlow:SetHeight(80);
+				else
+					db.CustomSpells2[selectedSpell].showGlow = GLOW_TIME_INFINITE;
+					sliderGlowThreshold:Hide();
+					areaGlow:SetHeight(40);
+				end
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxGlow:SetParent(spellArea);
-			checkboxGlow:SetPoint("TOPLEFT", 15, -115);
+			checkboxGlow:SetParent(areaGlow);
+			checkboxGlow:SetPoint("TOPLEFT", 10, -10);
+			-- SetTooltip(checkboxGlow, format(L["options:auras:enabled-state:tooltip"],
+				-- ColorizeText(L["Disabled"], 1, 1, 1),
+				-- ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+				-- ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 			table_insert(controls, checkboxGlow);
+			
+		end
+		
+		-- // sliderGlowThreshold
+		do
+		
+			local minV, maxV = 1, 30;
+			sliderGlowThreshold = GUICreateSlider(areaGlow, 18, -23, 320);
+			sliderGlowThreshold.label:ClearAllPoints();
+			sliderGlowThreshold.label:SetPoint("CENTER", sliderGlowThreshold, "CENTER", 0, 15);
+			sliderGlowThreshold.label:SetText();
+			sliderGlowThreshold:ClearAllPoints();
+			sliderGlowThreshold:SetPoint("TOPLEFT", areaGlow, "TOPLEFT", 10, 5);
+			sliderGlowThreshold.slider:ClearAllPoints();
+			sliderGlowThreshold.slider:SetPoint("LEFT", 3, 0)
+			sliderGlowThreshold.slider:SetPoint("RIGHT", -3, 0)
+			sliderGlowThreshold.slider:SetValueStep(1);
+			sliderGlowThreshold.slider:SetMinMaxValues(minV, maxV);
+			sliderGlowThreshold.slider:SetScript("OnValueChanged", function(self, value)
+				sliderGlowThreshold.editbox:SetText(tostring(math_ceil(value)));
+				db.CustomSpells2[selectedSpell].showGlow = math_ceil(value);
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+			end);
+			sliderGlowThreshold.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderGlowThreshold.editbox:GetText() ~= "") then
+					local v = tonumber(sliderGlowThreshold.editbox:GetText());
+					if (v == nil) then
+						sliderGlowThreshold.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].showGlow));
+						Print(L["Value must be a number"]);
+					else
+						if (v > maxV) then
+							v = maxV;
+						end
+						if (v < minV) then
+							v = minV;
+						end
+						sliderGlowThreshold.slider:SetValue(v);
+					end
+					sliderGlowThreshold.editbox:ClearFocus();
+				end
+			end);
+			sliderGlowThreshold.lowtext:SetText("1");
+			sliderGlowThreshold.hightext:SetText("30");
+			table_insert(controls, sliderGlowThreshold);
+			
+		end
+		
+		-- // areaIconSize
+		do
+		
+			areaIconSize = CreateFrame("Frame", nil, spellArea);
+			areaIconSize:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			areaIconSize:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			areaIconSize:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			areaIconSize:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 170, 0);
+			areaIconSize:SetWidth(170);
+			areaIconSize:SetHeight(70);
+			table_insert(controls, areaIconSize);
+		
+		end
+		
+		-- // sliderSpellIconSize
+		do
+		
+			sliderSpellIconSize = GUICreateSlider(areaIconSize, 18, -23, 160);
+			sliderSpellIconSize.label:ClearAllPoints();
+			sliderSpellIconSize.label:SetPoint("CENTER", sliderSpellIconSize, "CENTER", 0, 15);
+			sliderSpellIconSize.label:SetText(L["Icon size"]);
+			sliderSpellIconSize:ClearAllPoints();
+			sliderSpellIconSize:SetPoint("CENTER", areaIconSize, "CENTER", 0, 0);
+			sliderSpellIconSize.slider:ClearAllPoints();
+			sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
+			sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
+			sliderSpellIconSize.slider:SetValueStep(1);
+			sliderSpellIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
+			sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
+				sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
+				db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
+				UpdateSpellCachesFromDB(selectedSpell);
+				for nameplate in pairs(NameplatesVisible) do
+					UpdateNameplate(nameplate);
+				end
+			end);
+			sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+				if (sliderSpellIconSize.editbox:GetText() ~= "") then
+					local v = tonumber(sliderSpellIconSize.editbox:GetText());
+					if (v == nil) then
+						sliderSpellIconSize.editbox:SetText(tostring(db.CustomSpells2[selectedSpell].iconSize));
+						Print(L["Value must be a number"]);
+					else
+						if (v > MAX_AURA_ICON_SIZE) then
+							v = MAX_AURA_ICON_SIZE;
+						end
+						if (v < 1) then
+							v = 1;
+						end
+						sliderSpellIconSize.slider:SetValue(v);
+					end
+					sliderSpellIconSize.editbox:ClearFocus();
+				end
+			end);
+			sliderSpellIconSize.lowtext:SetText("1");
+			sliderSpellIconSize.hightext:SetText(tostring(MAX_AURA_ICON_SIZE));
+			table_insert(controls, sliderSpellIconSize);
+			
+		end
+		
+		-- // areaAuraType
+		do
+		
+			areaAuraType = CreateFrame("Frame", nil, spellArea);
+			areaAuraType:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			areaAuraType:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			areaAuraType:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			areaAuraType:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 0, 0);
+			areaAuraType:SetWidth(170);
+			areaAuraType:SetHeight(70);
+			table_insert(controls, areaAuraType);
+		
+		end
+		
+		-- // dropdownSpellShowType
+		do
+		
+			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", areaAuraType, "UIDropDownMenuTemplate");
+			UIDropDownMenu_SetWidth(dropdownSpellShowType, 130);
+			
+			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+			dropdownSpellShowType.text:SetPoint("LEFT", 20, 15);
+			dropdownSpellShowType.text:SetText(L["Aura type"]);
+			dropdownSpellShowType:SetPoint("LEFT", -5, 0);
+			local info = {};
+			dropdownSpellShowType.initialize = function()
+				wipe(info);
+				for _, auraType in pairs({ AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY }) do
+					info.text = AuraTypesLocalization[auraType];
+					info.value = auraType;
+					info.func = function(self)
+						db.CustomSpells2[selectedSpell].auraType = self.value;
+						UpdateSpellCachesFromDB(selectedSpell);
+						_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
+					end
+					info.checked = (info.value == db.CustomSpells2[selectedSpell].auraType);
+					UIDropDownMenu_AddButton(info);
+				end
+			end
+			_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
+			table_insert(controls, dropdownSpellShowType);
+		
+		end
+		
+		-- // areaIDs
+		do
+		
+			areaIDs = CreateFrame("Frame", nil, spellArea);
+			areaIDs:SetBackdrop({
+				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				tile = 1,
+				tileSize = 16,
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			});
+			areaIDs:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			areaIDs:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			areaIDs:SetPoint("TOPLEFT", areaAuraType, "BOTTOMLEFT", 0, 0);
+			areaIDs:SetWidth(340);
+			areaIDs:SetHeight(40);
+			table_insert(controls, areaIDs);
+		
+		end
+		
+		-- // editboxSpellID
+		do
+		
+			local function StringToTableKeys(str)
+				local t = { };
+				for key in gmatch(str, "%w+") do
+					local nmbr = tonumber(key);
+					if (nmbr ~= nil) then
+						t[key] = true;
+					end
+				end
+				return t;
+			end
+		
+			editboxSpellID = CreateFrame("EditBox", nil, areaIDs);
+			editboxSpellID:SetAutoFocus(false);
+			editboxSpellID:SetFontObject(GameFontHighlightSmall);
+			editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+			editboxSpellID.text:SetPoint("TOPLEFT", areaIDs, "TOPLEFT", 10, -10);
+			editboxSpellID.text:SetText(L["Check spell ID"]);
+			editboxSpellID:SetPoint("LEFT", editboxSpellID.text, "RIGHT", 5, 0);
+			editboxSpellID:SetPoint("RIGHT", areaIDs, "RIGHT", -15, 0);
+			editboxSpellID:SetHeight(20);
+			editboxSpellID:SetJustifyH("LEFT");
+			editboxSpellID:EnableMouse(true);
+			editboxSpellID:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				tile = true, edgeSize = 1, tileSize = 5,
+			});
+			editboxSpellID:SetBackdropColor(0, 0, 0, 0.5);
+			editboxSpellID:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+			editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
+			editboxSpellID:SetScript("OnEnterPressed", function(self, value)
+				local text = self:GetText();
+				local t = StringToTableKeys(text);
+				db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
+				UpdateSpellCachesFromDB(selectedSpell);
+				if (table_count(t) == 0) then
+					self:SetText("");
+				end
+				self:ClearFocus();
+			end);
+			table_insert(controls, editboxSpellID);
 		
 		end
 		
@@ -3555,26 +3755,7 @@ do
 	function GUICategory_Interrupts(index, value)
 		
 		local interruptOptionsArea, checkBoxInterrupts;
-		
-		--[[
-		-- // interruptIcon
-		-- do
 			
-			-- local interruptExample = GUIFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-			-- interruptExample:SetPoint("TOPLEFT", 170, -190);
-			-- interruptExample:SetText(L["options:interrupts:example-text"]);
-			-- table_insert(GUIFrame.Categories[index], interruptExample);
-			
-			-- local interruptIcon = GUIFrame:CreateTexture(nil, "BORDER");
-			-- interruptIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-			-- interruptIcon:SetSize(60, 60);
-			-- interruptIcon:SetPoint("LEFT", interruptExample, "RIGHT", 10, 0);
-			-- interruptIcon:SetTexture("Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga");
-			-- table_insert(GUIFrame.Categories[index], interruptIcon);
-			
-		-- end
-		]]
-	
 		-- // checkBoxInterrupts
 		do
 		
@@ -3595,27 +3776,7 @@ do
 			end);
 			
 		end
-		
-		--[[
-		-- // checkBoxRespectAuraSorting
-		-- do
-		
-			-- local checkBoxRespectAuraSorting = GUICreateCheckBoxEx(L["options:interrupts:respect-auras-sorting"], function(this)
-				-- db.InterruptsRespectAuraSorting = this:GetChecked();
-				-- Nameplates_OnSortModeChanged();
-			-- end);
-			-- checkBoxRespectAuraSorting:SetChecked(db.InterruptsRespectAuraSorting);
-			-- checkBoxRespectAuraSorting:SetParent(GUIFrame);
-			-- checkBoxRespectAuraSorting:SetPoint("TOPLEFT", 160, -120);
-			-- table_insert(GUIFrame.Categories[index], checkBoxRespectAuraSorting);
-			-- table_insert(GUIFrame.OnDBChangedHandlers, function()
-				-- checkBoxRespectAuraSorting:SetChecked(db.InterruptsRespectAuraSorting);
-			-- end);
-			-- aa3 = checkBoxRespectAuraSorting;
-			
-		-- end
-		]]
-		
+				
 		-- // interruptOptionsArea
 		do
 		
@@ -3649,7 +3810,7 @@ do
 						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 						["auraType"] =					AURA_TYPE_DEBUFF,
 						["iconSize"] =					db.InterruptsIconSize,
-						["showGlow"] =					db.InterruptsGlow,
+						["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
 					};
 				end
 				UpdateAllNameplates(false);
@@ -3661,7 +3822,6 @@ do
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxGlow:SetChecked(db.InterruptsGlow);
 			end);
-			aa4 = checkBoxGlow;
 			
 		end
 		
@@ -3757,7 +3917,6 @@ do
 				sliderInterruptIconSize.slider:SetValue(db.InterruptsIconSize);
 				sliderInterruptIconSize.editbox:SetText(tostring(db.InterruptsIconSize));
 			end);
-			aa5 = sliderInterruptIconSize;
 			
 		end
 		

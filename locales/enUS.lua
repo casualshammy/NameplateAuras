@@ -125,3 +125,5 @@ L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you wi
 (this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
 L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
 L["options:spells:icon-glow-always"] = "Show glow all the time"
+L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
+You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]

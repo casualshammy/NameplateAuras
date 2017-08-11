@@ -844,17 +844,22 @@ do
 	end
 	
 	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized, dimGlow, remainingAuraTime)
-		LBG_HideOverlayGlow(icon);
 		if (glowInfo[icon]) then
-			glowInfo[icon]:Cancel();
+			glowInfo[icon]:Cancel(); -- // cancel delayed glow
 			glowInfo[icon] = nil;
 		end
 		if (auraInfo and auraInfo.showGlow ~= nil) then
-			if (remainingAuraTime < auraInfo.showGlow) then
-				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
-			else
-				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end);
+			if (type(auraInfo.showGlow) == "boolean") then
+				print(auraInfo.showGlow, icon.spellID);
 			end
+			if (remainingAuraTime < auraInfo.showGlow) then
+				LBG_ShowOverlayGlow(icon, iconResized, dimGlow); -- // show glow immediatly
+			else
+				LBG_HideOverlayGlow(icon); -- // hide glow
+				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end); -- // queue delayed glow
+			end
+		else
+			LBG_HideOverlayGlow(icon); -- // this aura doesn't require glow
 		end
 	end
 	
@@ -3406,6 +3411,9 @@ do
 		do
 			checkboxShowOnFriends = GUICreateCheckBoxEx(L["Show this aura on nameplates of allies"], function(this)
 				db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
+				if (this:GetChecked() and not db.ShowAboveFriendlyUnits) then
+					msg(L["options:spells:show-on-friends:warning0"]);
+				end
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
@@ -3885,7 +3893,7 @@ do
 						["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 						["auraType"] =					AURA_TYPE_DEBUFF,
 						["iconSize"] =					db.InterruptsIconSize,
-						["showGlow"] =					db.InterruptsGlow,
+						["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
 					};
 				end
 				UpdateAllNameplates(false);

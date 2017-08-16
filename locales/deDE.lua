@@ -23,8 +23,8 @@ L["By expire time, descending"] = "Nach Ablaufzeit, abnehmend"
 L["By icon size, ascending"] = "Nach Symbolgröße, zunehmend"
 L["By icon size, descending"] = "Nach Symbolgröße, abnehmend"
 L["CENTER"] = "Mittig"
-L["Check spell ID"] = [=[Zauber-ID prüfen
-(comma-separated)]=]
+L["Check spell ID"] = [=[Zauber-IDs prüfen
+(kommagetrennt)]=]
 L["Circular"] = "Kreisförmig"
 L["Circular with OmniCC support"] = "Kreisförmig mit OmniCC-Unterstützung"
 L["Circular with timer"] = "Kreisförmig mit Timer"
@@ -79,16 +79,26 @@ L["options:general:always-show-my-auras:tooltip"] = [=[Dies ist ein Filter höch
  Funktion aktivierst, werden Auren, die du gewirkt hast,
  unabhängig von anderen Filtern gezeigt]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Du kannst diese Option nicht auswählen, weil OmniCC nicht geladen ist!"
+--Translation missing 
+L["options:general:use-dim-glow"] = "Weak glow of icons"
+--Translation missing 
+L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
+(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
 L["options:interrupts:enable-interrupts"] = "Unterbrechungsverfolgung aktivieren"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Nur während PvP-Kämpfen aktivieren"
 L["options:interrupts:glow"] = "Symbolleuchten"
 L["options:interrupts:icon-size"] = "Symbolgröße"
---Translation missing 
-L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
---Translation missing 
-L["options:selector:search"] = "Search:"
+L["options:interrupts:use-shared-icon-texture"] = "Die gleiche Textur für alle Unterbrechungszauber verwenden"
+L["options:selector:search"] = "Suchen:"
 L["options:spells:appropriate-spell-ids"] = "Passende Zauber-IDs:"
 L["options:spells:icon-glow"] = "Symbolleuchten"
+--Translation missing 
+L["options:spells:icon-glow-always"] = "Show glow all the time"
+--Translation missing 
+L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
+--Translation missing 
+L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
+You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimale Dauer zur Anzeige von Zehntelsekunden"
 L["options:timer-text:scale-font-size"] = [=[Schriftgröße an
 Symbolgröße
@@ -124,4 +134,3 @@ L["Value must be a number"] = "Wert muss eine Zahl sein"
 L["X offset"] = "X-Verschiebung"
 L["Y offset"] = "Y-Verschiebung"
 L["Yes"] = "Ja"
-

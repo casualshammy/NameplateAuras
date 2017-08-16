@@ -1,4 +1,3 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "ptBR");
 L = L or {}
 L["< 1min"] = "< 1min"
 L["< 5sec"] = "< 5 seg"
@@ -145,6 +144,11 @@ your auras will be shown regardless of other filters]=]
 --Translation missing 
 L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
 --Translation missing 
+L["options:general:use-dim-glow"] = "Weak glow of icons"
+--Translation missing 
+L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
+(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
+--Translation missing 
 L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
 --Translation missing 
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
@@ -159,7 +163,14 @@ L["options:selector:search"] = "Search:"
 --Translation missing 
 L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
 --Translation missing 
-L["options:spells:icon-glow"] = "Icon glow"
+L["options:spells:icon-glow"] = "Show glow"
+--Translation missing 
+L["options:spells:icon-glow-always"] = "Show glow all the time"
+--Translation missing 
+L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
+--Translation missing 
+L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
+You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
 --Translation missing 
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
 --Translation missing 

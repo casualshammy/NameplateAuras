@@ -79,6 +79,9 @@ L["options:category:interrupts"] = "Прерывания"
 L["options:general:always-show-my-auras:tooltip"] = [=[Это высший по приоритету фильтр. Если он включен, ваши ауры
 будут отображаться вне зависимости от других фильтров]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выбрать эту опцию, потому что OmniCC не загружен!"
+L["options:general:use-dim-glow"] = "Слабое свечение иконок"
+L["options:general:use-dim-glow:tooltip"] = [=[Если эта опция включена, вы не увидите постоянного внутреннего и внешнего свечения значков
+(эта опция работает только для тех заклинаний, для которых вы явно включили подсветку иконки)]=]
 L["options:interrupts:enable-interrupts"] = "Включить отслеживание прерываний"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Активно только в PvP"
 L["options:interrupts:glow"] = "Подсветка иконки"
@@ -87,6 +90,10 @@ L["options:interrupts:use-shared-icon-texture"] = "Использовать од
 L["options:selector:search"] = "Поиск:"
 L["options:spells:appropriate-spell-ids"] = "Соответствующие ID'ы заклинаний:"
 L["options:spells:icon-glow"] = "Подсветка иконки"
+L["options:spells:icon-glow-always"] = "Показывать свечение постоянно"
+L["options:spells:icon-glow-threshold"] = [=[Показывать свечение если таймер меньше чем]=]
+L["options:spells:show-on-friends:warning0"] = [=[Пожалуйста, обратите внимание:
+Вы не увидите эту ауру на нэймплэйтах союзников, пока не включите эту опцию: <Общее> --> <Отображать ауры на нэймплэйтах союзников>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Минимальная длительность для отображения десятых долей секунд"
 L["options:timer-text:scale-font-size"] = [=[Масштабировать
 размер текста в

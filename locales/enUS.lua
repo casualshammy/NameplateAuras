@@ -120,7 +120,8 @@ L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
 L["options:spells:icon-glow"] = "Show glow"
 L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
-L["options:general:use-dim-glow"] = "Use a dim glow of the icons"
+
+L["options:general:use-dim-glow"] = "Weak glow of icons"
 L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
 (this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
 L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"

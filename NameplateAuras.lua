@@ -58,13 +58,35 @@ local GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
-local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts;
+local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GetDebugPopup;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
 --------------------------------------------------------------------------------------------------
 do
+
+	local function ChatCommand_Debug()
+		local d = GetDebugPopup();
+		d:AddText("List of enabled addons: \n");
+		for i = 1, GetNumAddOns() do
+			local name, _, _, _, _, security = GetAddOnInfo(i);
+			if (security == "INSECURE" and IsAddOnLoaded(name)) then
+				d:AddText(name);
+			end
+		end
+		d:AddText("\nNumber of nameplates: " .. table_count(Nameplates));
+		d:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
+		d:AddText("EnabledAurasInfo count: " .. table_count(EnabledAurasInfo));
+		d:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
+		d:AddText("\nConfig:\n");
+		for index, value in pairs(db) do
+			if (type(value) ~= "table") then
+				d:AddText(string_format("%s: %s (%s)", index, tostring(value), type(value)));
+			end
+		end
+		d:Show();
+	end
 
 	local function InitializeDB()
 		-- // set defaults
@@ -190,6 +212,8 @@ do
 				SendAddonMessage("NAuras_prefix", "requesting", c);
 			elseif (msg == "delete-all-spells") then
 				DeleteAllSpellsFromDB();
+			elseif (msg == "debug") then
+				ChatCommand_Debug();
 			else
 				ShowGUI();
 			end
@@ -3928,6 +3952,81 @@ do
 			
 		end
 		
+	end
+	
+	function GetDebugPopup()
+		local popup;
+		if (not _G["NAuras_DebugPopup"]) then
+			popup = CreateFrame("EditBox", "NAuras_DebugPopup", UIParent);
+			popup:SetFrameStrata("DIALOG");
+			popup:SetMultiLine(true);
+			popup:SetAutoFocus(true);
+			popup:SetFontObject(ChatFontNormal);
+			popup:SetSize(450, 300);
+			popup:Hide();
+			popup.orig_Hide = popup.Hide;
+			popup.orig_Show = popup.Show;
+			
+			popup.Hide = function(self)
+				self:SetText("");
+				self.ScrollFrame:Hide();
+				self.Background:Hide();
+				self:orig_Hide();
+			end
+			
+			popup.Show = function(self)
+				self.ScrollFrame:Show();
+				self.Background:Show();
+				self:orig_Show();
+			end
+			
+			popup.AddText = function(self, v)
+				if not v then return end
+				local m = self:GetText();
+				if (m ~= "") then
+					m = m.."\n";
+				end
+				self:SetText(m..v);
+			end
+
+			popup:SetScript("OnEscapePressed", function(self)
+				self:ClearFocus();
+				self:Hide();
+				self.ScrollFrame:Hide();
+				self.Background:Hide();
+			end);
+
+			local s = CreateFrame("ScrollFrame", "NAuras_DebugPopupScrollFrame", UIParent, "UIPanelScrollFrameTemplate");
+			s:SetFrameStrata("DIALOG");
+			s:SetSize(450, 300);
+			s:SetPoint("CENTER");
+			s:SetScrollChild(popup);
+			s:Hide();
+
+			s:SetScript("OnMouseDown",function(self)
+				self:GetScrollChild():SetFocus();
+			end);
+
+			local bg = CreateFrame("Frame",nil,UIParent)
+			bg:SetFrameStrata("DIALOG")
+			bg:SetBackdrop({
+				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+				edgeFile = "Interface\\Tooltips\\UI-Tooltip-border",
+				edgeSize = 16,
+				insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			})
+			bg:SetBackdropColor(.05,.05,.05,.8)
+			bg:SetBackdropBorderColor(.5,.5,.5)
+			bg:SetPoint("TOPLEFT",s,-10,10)
+			bg:SetPoint("BOTTOMRIGHT",s,30,-10)
+			bg:Hide()
+
+			popup.ScrollFrame = s;
+			popup.Background = bg;
+			
+		end
+		popup = _G["NAuras_DebugPopup"];
+		return popup;
 	end
 	
 end

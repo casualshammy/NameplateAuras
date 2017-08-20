@@ -11,9 +11,9 @@ NameplateAuras displays players' buffs/debuffs above their nameplates. It is ins
 
 ## Chat commands
 
-**/nauras** - opens options dialog
-**/nauras ver** - queries raid/guild members if they have NAuras installed
-**/nauras delete-all-spells** - deletes all spells from database
+**/nauras** - opens options dialog  
+**/nauras ver** - queries raid/guild members if they have NAuras installed  
+**/nauras delete-all-spells** - deletes all spells from database  
 
 ## Call to arms
 

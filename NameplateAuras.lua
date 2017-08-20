@@ -1,4 +1,7 @@
 local _, addonTable = ...;
+--[===[@non-debug@
+local buildTimestamp = @file-timestamp@;
+--@end-non-debug@]===]
 
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
@@ -68,6 +71,7 @@ do
 
 	local function ChatCommand_Debug()
 		local d = GetDebugPopup();
+		d:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY") .. "\n");
 		d:AddText("List of enabled addons: \n");
 		for i = 1, GetNumAddOns() do
 			local name, _, _, _, _, security = GetAddOnInfo(i);

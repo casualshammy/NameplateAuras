@@ -1,6 +1,6 @@
 local _, addonTable = ...;
 --[===[@non-debug@
-local buildTimestamp = @file-timestamp@;
+local buildTimestamp = @project-version@;
 --@end-non-debug@]===]
 
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");

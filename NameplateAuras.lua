@@ -1504,7 +1504,7 @@ do
 		GUIFrame.ActiveCategory = self.index;
 		self.text:SetTextColor(1, 1, 1);
 		self:LockHighlight();
-		PlaySound("igMainMenuOptionCheckBoxOn");
+		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
 		ShowGUICategory(GUIFrame.ActiveCategory);
 	end
 	

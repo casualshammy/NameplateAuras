@@ -1,18 +1,18 @@
 ## About
 
-NameplateAuras displays players' buffs/debuffs above their nameplates. It is inspired by PlateBuffs which isn't maintained now.
+NameplateAuras displays buffs/debuffs of players above their nameplates. This addon is inspired by PlateBuffs which isn't maintained now.
 
 ## Facts
 
-*   NameplateAuras should work with any non default nameplates (ofc default nameplates are supported too)
-*   You can select filter for spells (only your buffs/debuffs or all). More filters soon.
-*   List of built-in spells is short, but you can add custom spells.
-*   It should has a little impact on performance (I'll do my best)
+*   NameplateAuras works along with any non default nameplates (ofc default nameplates are supported, too)
+*   Various per-spell filters
+*   Built-in list of spells contains important PvP and PvE spells, also you can add your own
+*   NAuras has a little impact on performance
 
 ## Chat commands
 
 **/nauras** - opens options dialog  
-**/nauras ver** - queries raid/guild members if they have NAuras installed  
+**/nauras ver** - asks raid/guild members if they have NAuras installed  
 **/nauras delete-all-spells** - deletes all spells from database  
 
 ## Call to arms
@@ -23,4 +23,3 @@ I'm looking for anyone who can help on translating NameplateAuras. If you are in
 
 All suggestions and bug reports are highly appeciated!  
 Ticket tracker: [click](https://wow.curseforge.com/projects/nameplateauras/issues)  
-I've closed comments because it's really hard to track issues in comments.

@@ -9,6 +9,7 @@ addonTable.Interrupts = {
 	[47528] = 3, 	-- Mind Freeze (Death Knight)
 	[57994] = 3, 	-- Wind Shear (Shaman)
 	[91802] = 2, 	-- Shambling Rush (Death Knight)
+	[93985] = 4,	-- Skull Bash (feral+bear, tested)
 	[96231] = 4, 	-- Rebuke (Paladin)
 	[106839] = 4, 	-- Skull Bash (Feral)
 	[115781] = 6, 	-- Optical Blast (Warlock)

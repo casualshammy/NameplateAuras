@@ -71,6 +71,7 @@ do
 
 	local function ChatCommand_Debug()
 		local d = GetDebugPopup();
+		d:AddText("PRESS ESC TO CLOSE THIS WINDOW\n");
 		d:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY") .. "\n");
 		d:AddText("List of enabled addons: \n");
 		for i = 1, GetNumAddOns() do

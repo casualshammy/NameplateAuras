@@ -79,11 +79,9 @@ L["options:general:always-show-my-auras:tooltip"] = [=[Dies ist ein Filter höch
  Funktion aktivierst, werden Auren, die du gewirkt hast,
  unabhängig von anderen Filtern gezeigt]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Du kannst diese Option nicht auswählen, weil OmniCC nicht geladen ist!"
---Translation missing 
-L["options:general:use-dim-glow"] = "Weak glow of icons"
---Translation missing 
-L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
-(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
+L["options:general:use-dim-glow"] = "Schwaches Leuchten von Symbolen "
+L["options:general:use-dim-glow:tooltip"] = [=[Wenn diese Option aktiviert ist wird kein konstantes inneres und äußeres Leuchten des Symbols sichtbar sein.
+(Diese Option ist nur verfügbar für Zauber welche explizit für das Leuchten von Symbolen aktiviert wurden)]=]
 L["options:interrupts:enable-interrupts"] = "Unterbrechungsverfolgung aktivieren"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Nur während PvP-Kämpfen aktivieren"
 L["options:interrupts:glow"] = "Symbolleuchten"
@@ -91,14 +89,12 @@ L["options:interrupts:icon-size"] = "Symbolgröße"
 L["options:interrupts:use-shared-icon-texture"] = "Die gleiche Textur für alle Unterbrechungszauber verwenden"
 L["options:selector:search"] = "Suchen:"
 L["options:spells:appropriate-spell-ids"] = "Passende Zauber-IDs:"
-L["options:spells:icon-glow"] = "Symbolleuchten"
---Translation missing 
-L["options:spells:icon-glow-always"] = "Show glow all the time"
---Translation missing 
-L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
---Translation missing 
-L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
-You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
+L["options:spells:icon-glow"] = "Zeige Leuchten"
+L["options:spells:icon-glow-always"] = "Zeige Leuchten immer aktiv"
+L["options:spells:icon-glow-threshold"] = "Zeige Leuchte wenn verbleibende Zeit der Aura kleiner ist als"
+L["options:spells:show-on-friends:warning0"] = [=[Achtung:
+Die Aura wird nicht bei Nameplates freundlicher Einhaten angezeigt bis folgende option aktiviert wird:
+<Allgemein> --> <Zeige Aura bei Nameplates von freundlichen Einheiten>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimale Dauer zur Anzeige von Zehntelsekunden"
 L["options:timer-text:scale-font-size"] = [=[Schriftgröße an
 Symbolgröße

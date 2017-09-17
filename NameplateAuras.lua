@@ -45,8 +45,7 @@ local UnitGUIDHasInterruptReduction				= { };
 local UnitGUIDHasAdditionalInterruptReduction	= { };
 local EnabledAurasInfo							= { };
 local ElapsedTimer 								= 0;
-local Nameplates 								= { };
-local NameplatesVisible 						= { };
+local Nameplates, NameplatesVisible 			= { }, { };
 local InPvPCombat								= false;
 local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
 
@@ -71,24 +70,46 @@ do
 
 	local function ChatCommand_Debug()
 		local d = GetDebugPopup();
-		d:AddText("PRESS ESC TO CLOSE THIS WINDOW\n");
-		d:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY") .. "\n");
-		d:AddText("List of enabled addons: \n");
-		for i = 1, GetNumAddOns() do
-			local name, _, _, _, _, security = GetAddOnInfo(i);
-			if (security == "INSECURE" and IsAddOnLoaded(name)) then
-				d:AddText(name);
-			end
-		end
-		d:AddText("\nNumber of nameplates: " .. table_count(Nameplates));
+		d:AddText("PRESS ESC TO CLOSE THIS WINDOW");
+		d:AddText("PRESS CTRL+A AND THEN CTRL+C TO COPY THIS TEXT");
+		d:AddText("");
+		d:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY"));
+		d:AddText("");
+		d:AddText("InPvPCombat: " .. tostring(InPvPCombat));
+		d:AddText("Number of nameplates: " .. table_count(Nameplates));
 		d:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
 		d:AddText("EnabledAurasInfo count: " .. table_count(EnabledAurasInfo));
 		d:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
-		d:AddText("\nConfig:\n");
+		d:AddText("");
+		d:AddText("LIST OF ENABLED ADDONS----------");
+		for i = 1, GetNumAddOns() do
+			local name, _, _, _, _, security = GetAddOnInfo(i);
+			if (security == "INSECURE" and IsAddOnLoaded(name)) then
+				d:AddText("    " .. name);
+			end
+		end
+		d:AddText("");
+		d:AddText("CONFIG----------");
 		for index, value in pairs(db) do
 			if (type(value) ~= "table") then
-				d:AddText(string_format("%s: %s (%s)", index, tostring(value), type(value)));
+				d:AddText(string_format("    %s: %s (%s)", index, tostring(value), type(value)));
 			end
+		end
+		d:AddText("");
+		d:AddText("LIST OF SPELLS----------");
+		local enabledStateTokens = { [CONST_SPELL_MODE_DISABLED] = "DISABLED", [CONST_SPELL_MODE_ALL] = "ALL", [CONST_SPELL_MODE_MYAURAS] = "MYAURAS" };
+		local auraTypeTokens = { [AURA_TYPE_BUFF] = "BUFF", [AURA_TYPE_DEBUFF] = "DEBUFF", [AURA_TYPE_ANY] = "ANY" };
+		for spellName, spellInfo in pairs(EnabledAurasInfo) do
+			d:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellName,
+				tostring(enabledStateTokens[spellInfo.enabledState]),
+				tostring(auraTypeTokens[spellInfo.auraType]),
+				tostring(spellInfo.iconSize),
+				tostring(spellInfo.checkSpellID),
+				tostring(spellInfo.showOnFriends),
+				tostring(spellInfo.showOnEnemies),
+				tostring(spellInfo.allowMultipleInstances),
+				tostring(spellInfo.pvpCombat),
+				tostring(spellInfo.showGlow)));
 		end
 		d:Show();
 	end

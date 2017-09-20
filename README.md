@@ -22,4 +22,4 @@ I'm looking for anyone who can help on translating NameplateAuras. If you are in
 ## Feedback
 
 All suggestions and bug reports are highly appeciated!  
-Ticket tracker: [click](https://wow.curseforge.com/projects/nameplateauras/issues)  
+Ticket tracker (no registration required): [click](https://bitbucket.org/CasualShammy/nameplateauras/issues/new)  

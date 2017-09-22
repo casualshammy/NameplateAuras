@@ -1,0 +1,11 @@
+## Interface: 70300
+## Title: NameplateAuras
+## Notes: Displays people's buffs/debuffs above their nameplates
+## SavedVariables: NameplateAurasAceDB
+## Version: @project-version@
+## OptionalDeps: OmniCC
+
+embeds.xml
+locales\localizations.xml
+spells.lua
+NameplateAuras.lua

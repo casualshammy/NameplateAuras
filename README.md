@@ -3,6 +3,7 @@
 ## About
 
 NameplateAuras displays buffs/debuffs of players above their nameplates. This addon is inspired by PlateBuffs which isn't maintained now.
+Tst Test
 
 ## Facts
 

@@ -8,3 +8,6 @@ libs/AceLocale-3.0/.+
 libs/CallbackHandler-1.0/.+
 libs/LibSharedMedia-3.0/.+
 libs/LibStub/.+
+.git/.+
+syntax: glob
+_git-push.bat

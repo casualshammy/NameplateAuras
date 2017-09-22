@@ -1,3 +1,5 @@
+###***This repository does not contain required libs (e.g. Ace3). Releases can be downloaded [here](https://wow.curseforge.com/projects/nameplateauras/files)***
+
 ## About
 
 NameplateAuras displays buffs/debuffs of players above their nameplates. This addon is inspired by PlateBuffs which isn't maintained now.

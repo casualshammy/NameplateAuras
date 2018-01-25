@@ -3799,6 +3799,7 @@ do
 				local t = StringToTableKeys(text);
 				db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
 				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(true);
 				if (table_count(t) == 0) then
 					self:SetText("");
 				end

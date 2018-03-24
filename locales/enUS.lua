@@ -127,3 +127,6 @@ L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is
 L["options:spells:icon-glow-always"] = "Show glow all the time"
 L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
 You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
+L["options:category:apps"] = "Apps";
+L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
+This aura have a bright glow and default size]=]

@@ -11,9 +11,9 @@ SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAur
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer,   strsplit =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
 
 local SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
@@ -56,11 +56,12 @@ local AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, A
 local TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = 1, 2, 3, 4;
 local CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 1, 2, 3;
 local GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
+local EXPLOSIVE_ORB_SPELL_ID = 240446;
 
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
-local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GetDebugPopup;
+local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GetDebugPopup, GUICategory_Additions;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
@@ -167,6 +168,7 @@ do
 				InterruptsUseSharedIconTexture = false,
 				InterruptsShowOnlyOnPlayers = true,
 				UseDimGlow = nil,
+				Additions_ExplosiveOrbs = true,
 			},
 		};
 		
@@ -261,9 +263,6 @@ do
 				if (spellInfo.showOnEnemies == nil) then
 					spellInfo.showOnEnemies = true;
 				end
-				-- if (spellInfo.allowMultipleInstances == nil) then
-					-- spellInfo.allowMultipleInstances = false;
-				-- end
 				if (spellInfo.pvpCombat == nil) then
 					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
 				end
@@ -434,6 +433,14 @@ do
 			};
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
+		-- // set explosive orb spell info
+		local explosiveOrbSpellName = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID];
+		EnabledAurasInfo[explosiveOrbSpellName] = {
+			["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+			["auraType"] =					AURA_TYPE_DEBUFF,
+			["iconSize"] =					db.DefaultIconSize,
+			["showGlow"] =					GLOW_TIME_INFINITE,
+		};
 		-- // convert values
 		ReloadDB_ConvertInvalidValues();
 		-- // import default spells
@@ -752,6 +759,20 @@ do
 				table_insert(AurasPerNameplate[frame], interrupt);
 			end
 		end
+		if (db.Additions_ExplosiveOrbs and unitGUID ~= nil) then
+            local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+			if (npcID == "120651") then -- // or npcID == "87761"
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = GLOW_TIME_INFINITE - 1,
+					["expires"] = GLOW_TIME_INFINITE - 1,
+					["stacks"] = 1,
+					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
+					["overrideDimGlow"] = false,
+				});
+			end
+		end
 		UpdateNameplate(frame);
 	end
 	
@@ -947,7 +968,11 @@ do
 						iconResized = true;
 					end
 					-- // glow
-					UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, db.UseDimGlow, last);
+					if (spellInfo.overrideDimGlow == nil) then
+						UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, db.UseDimGlow, last);
+					else
+						UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, spellInfo.overrideDimGlow, last);
+					end
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
@@ -1643,7 +1668,7 @@ do
 		GUIFrame.OnDBChangedHandlers = {};
 		table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 		
-		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"] };
+		local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:apps"] };
 		for index, value in pairs(categories) do
 			local b = CreateGUICategory();
 			b.index = index;
@@ -1652,7 +1677,7 @@ do
 				b:LockHighlight();
 				b.text:SetTextColor(1, 1, 1);
 				b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
-			elseif (index >= #categories - 1) then
+			elseif (index >= #categories - 2) then
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 			else
 				b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
@@ -1674,8 +1699,8 @@ do
 				GUICategory_4(index, value);
 			elseif (index == 7) then
 				GUICategory_Interrupts(index, value);
-			else
-				
+			elseif (value == L["options:category:apps"]) then
+				GUICategory_Additions(index, value);
 			end
 		end
 		InitializeGUI_CreateSpellInfoCaches();
@@ -3149,7 +3174,8 @@ do
 		local controls = { };
 		local selectedSpell = 0;
 		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs;
+			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
+			areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter;
 		local AuraTypesLocalization = {
 			[AURA_TYPE_BUFF] =		L["Buff"],
 			[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -3173,6 +3199,30 @@ do
 			spellArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -85);
 			spellArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 0);
 			spellArea:SetWidth(360);
+			
+			spellArea.scrollArea = CreateFrame("ScrollFrame", nil, spellArea, "UIPanelScrollFrameTemplate");
+			spellArea.scrollArea:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 0, -3);
+			spellArea.scrollArea:SetPoint("BOTTOMRIGHT", spellArea, "BOTTOMRIGHT", -8, 3);
+			spellArea.scrollArea:Show();
+			
+			spellArea.controlsFrame = CreateFrame("Frame", nil, spellArea.scrollArea);
+			spellArea.scrollArea:SetScrollChild(spellArea.controlsFrame);
+			spellArea.controlsFrame:SetWidth(360);
+			spellArea.controlsFrame:SetHeight(spellArea:GetHeight() + 150);
+			
+			spellArea.scrollBG = CreateFrame("Frame", nil, spellArea)
+			spellArea.scrollBG:SetBackdrop({
+				bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],
+				edgeFile = [[Interface\Tooltips\UI-Tooltip-Border]], edgeSize = 16,
+				insets = { left = 4, right = 3, top = 4, bottom = 3 }
+			});
+			spellArea.scrollBG:SetBackdropColor(0, 0, 0)
+			spellArea.scrollBG:SetBackdropBorderColor(0.4, 0.4, 0.4)
+			spellArea.scrollBG:SetWidth(20);
+			spellArea.scrollBG:SetHeight(spellArea.scrollArea:GetHeight());
+			spellArea.scrollBG:SetPoint("TOPRIGHT", spellArea.scrollArea, "TOPRIGHT", 23, 0)
+			
+			
 			table_insert(controls, spellArea);
 		
 		end
@@ -3407,27 +3457,6 @@ do
 			table_insert(GUIFrame.Categories[index], selectSpell);
 			
 		end
-		
-		-- // buttonDeleteSpell
-		do
-		
-			buttonDeleteSpell = GUICreateButton(spellArea, L["Delete spell"]);
-			buttonDeleteSpell:SetWidth(90);
-			buttonDeleteSpell:SetHeight(20);
-			buttonDeleteSpell:SetPoint("BOTTOMLEFT", spellArea, "BOTTOMLEFT", 20, 10);
-			buttonDeleteSpell:SetPoint("BOTTOMRIGHT", spellArea, "BOTTOMRIGHT", -20, 10);
-			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
-				db.CustomSpells2[selectedSpell] = nil;
-				UpdateSpellCachesFromDB(selectedSpell);
-				UpdateAllNameplates(false);
-				selectSpell.Text:SetText(L["Click to select spell"]);
-				for _, control in pairs(controls) do
-					control:Hide();
-				end
-			end);
-			table_insert(controls, buttonDeleteSpell);
-		
-		end
 			
 		-- // checkboxEnabled
 		do
@@ -3447,7 +3476,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxEnabled:SetParent(spellArea);
+			checkboxEnabled:SetParent(spellArea.controlsFrame);
 			checkboxEnabled:SetPoint("TOPLEFT", 15, -15);
 			SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
 				ColorizeText(L["Disabled"], 1, 1, 1),
@@ -3467,7 +3496,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxShowOnFriends:SetParent(spellArea);
+			checkboxShowOnFriends:SetParent(spellArea.controlsFrame);
 			checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -35);
 			table_insert(controls, checkboxShowOnFriends);
 		end
@@ -3479,7 +3508,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxShowOnEnemies:SetParent(spellArea);
+			checkboxShowOnEnemies:SetParent(spellArea.controlsFrame);
 			checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -55);
 			table_insert(controls, checkboxShowOnEnemies);
 		end
@@ -3491,7 +3520,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxAllowMultipleInstances:SetParent(spellArea);
+			checkboxAllowMultipleInstances:SetParent(spellArea.controlsFrame);
 			checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -75);
 			SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
 			table_insert(controls, checkboxAllowMultipleInstances);
@@ -3515,7 +3544,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
-			checkboxPvPMode:SetParent(spellArea);
+			checkboxPvPMode:SetParent(spellArea.controlsFrame);
 			checkboxPvPMode:SetPoint("TOPLEFT", 15, -95);
 			table_insert(controls, checkboxPvPMode);
 			
@@ -3524,7 +3553,7 @@ do
 		-- // areaGlow
 		do
 		
-			areaGlow = CreateFrame("Frame", nil, spellArea);
+			areaGlow = CreateFrame("Frame", nil, spellArea.controlsFrame);
 			areaGlow:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -3535,7 +3564,7 @@ do
 			});
 			areaGlow:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			areaGlow:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-			areaGlow:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 10, -115);
+			areaGlow:SetPoint("TOPLEFT", spellArea.controlsFrame, "TOPLEFT", 10, -115);
 			areaGlow:SetWidth(340);
 			areaGlow:SetHeight(80);
 			table_insert(controls, areaGlow);
@@ -3625,7 +3654,7 @@ do
 		-- // areaIconSize
 		do
 		
-			areaIconSize = CreateFrame("Frame", nil, spellArea);
+			areaIconSize = CreateFrame("Frame", nil, spellArea.controlsFrame);
 			areaIconSize:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -3692,7 +3721,7 @@ do
 		-- // areaAuraType
 		do
 		
-			areaAuraType = CreateFrame("Frame", nil, spellArea);
+			areaAuraType = CreateFrame("Frame", nil, spellArea.controlsFrame);
 			areaAuraType:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -3716,10 +3745,10 @@ do
 			dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", areaAuraType, "UIDropDownMenuTemplate");
 			UIDropDownMenu_SetWidth(dropdownSpellShowType, 130);
 			
-			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-			dropdownSpellShowType.text:SetPoint("LEFT", 20, 15);
+			dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+			dropdownSpellShowType.text:SetPoint("CENTER", areaAuraType, "CENTER", 0, 15);
 			dropdownSpellShowType.text:SetText(L["Aura type"]);
-			dropdownSpellShowType:SetPoint("LEFT", -5, 0);
+			dropdownSpellShowType:SetPoint("CENTER", 0, -11);
 			local info = {};
 			dropdownSpellShowType.initialize = function()
 				wipe(info);
@@ -3743,7 +3772,7 @@ do
 		-- // areaIDs
 		do
 		
-			areaIDs = CreateFrame("Frame", nil, spellArea);
+			areaIDs = CreateFrame("Frame", nil, spellArea.controlsFrame);
 			areaIDs:SetBackdrop({
 				bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 				edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -3809,6 +3838,75 @@ do
 		
 		end
 		
+		-- // max-aura-duration-filter
+		do
+			
+			-- areaMaxAuraDurationFilter = CreateFrame("Frame", nil, spellArea.controlsFrame);
+			-- areaMaxAuraDurationFilter:SetBackdrop({
+				-- bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+				-- edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+				-- tile = 1,
+				-- tileSize = 16,
+				-- edgeSize = 16,
+				-- insets = { left = 4, right = 4, top = 4, bottom = 4 }
+			-- });
+			-- areaMaxAuraDurationFilter:SetBackdropColor(0.1, 0.1, 0.2, 1);
+			-- areaMaxAuraDurationFilter:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+			-- areaMaxAuraDurationFilter:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 0, 0);
+			-- areaMaxAuraDurationFilter:SetWidth(340);
+			-- areaMaxAuraDurationFilter:SetHeight(90);
+			-- table_insert(controls, areaMaxAuraDurationFilter);
+			
+		end
+		
+		-- // sliderMaxAuraDurationFilter
+		do
+			
+			-- local minValue, maxValue = 0, 300;
+			-- sliderMaxAuraDurationFilter = GUICreateSlider(areaMaxAuraDurationFilter, 18, -23, areaMaxAuraDurationFilter:GetWidth() - 40);
+			-- sliderMaxAuraDurationFilter.label:ClearAllPoints();
+			-- sliderMaxAuraDurationFilter.label:SetPoint("CENTER", sliderMaxAuraDurationFilter, "CENTER", 0, 30);
+			-- sliderMaxAuraDurationFilter.label:SetText(L["Show this aura if its remaining time is less than X sec\n(set to 0 to disable this feature)"]);
+			-- sliderMaxAuraDurationFilter:ClearAllPoints();
+			-- sliderMaxAuraDurationFilter:SetPoint("CENTER", areaMaxAuraDurationFilter, "CENTER", 0, -10);
+			-- sliderMaxAuraDurationFilter.slider:ClearAllPoints();
+			-- sliderMaxAuraDurationFilter.slider:SetPoint("LEFT", 3, 0)
+			-- sliderMaxAuraDurationFilter.slider:SetPoint("RIGHT", -3, 0)
+			-- sliderMaxAuraDurationFilter.slider:SetValueStep(1);
+			-- sliderMaxAuraDurationFilter.slider:SetMinMaxValues(minValue, maxValue);
+			-- sliderMaxAuraDurationFilter.slider:SetScript("OnValueChanged", function(self, value)
+				
+			-- end);
+			-- sliderMaxAuraDurationFilter.editbox:SetScript("OnEnterPressed", function(self, value)
+				
+			-- end);
+			-- sliderMaxAuraDurationFilter.lowtext:SetText(tostring(minValue));
+			-- sliderMaxAuraDurationFilter.hightext:SetText(tostring(maxValue));
+			-- table_insert(controls, sliderMaxAuraDurationFilter);
+			
+		end
+		
+		-- // buttonDeleteSpell
+		do
+		
+			buttonDeleteSpell = GUICreateButton(spellArea.controlsFrame, L["Delete spell"]);
+			buttonDeleteSpell:SetWidth(90);
+			buttonDeleteSpell:SetHeight(20);
+			buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
+			buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
+			buttonDeleteSpell:SetScript("OnClick", function(self, ...)
+				db.CustomSpells2[selectedSpell] = nil;
+				UpdateSpellCachesFromDB(selectedSpell);
+				UpdateAllNameplates(false);
+				selectSpell.Text:SetText(L["Click to select spell"]);
+				for _, control in pairs(controls) do
+					control:Hide();
+				end
+			end);
+			table_insert(controls, buttonDeleteSpell);
+		
+		end
+		
 	end
 	
 	function GUICategory_Interrupts(index, value)
@@ -3851,7 +3949,6 @@ do
 			interruptOptionsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 			interruptOptionsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 			interruptOptionsArea:SetPoint("TOPLEFT", 150, -40);
-			--interruptOptionsArea:SetPoint("LEFT", 150, 0);
 			interruptOptionsArea:SetWidth(360);
 			interruptOptionsArea:SetHeight(140);
 			table_insert(GUIFrame.Categories[index], interruptOptionsArea);
@@ -3975,6 +4072,30 @@ do
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				sliderInterruptIconSize.slider:SetValue(db.InterruptsIconSize);
 				sliderInterruptIconSize.editbox:SetText(tostring(db.InterruptsIconSize));
+			end);
+			
+		end
+		
+	end
+	
+	function GUICategory_Additions(index, value)
+		
+		-- // checkBoxExplosiveOrbs
+		do
+		
+			checkBoxExplosiveOrbs = GUICreateCheckBoxEx(L["options:apps:explosive-orbs"], function(this)
+				db.Additions_ExplosiveOrbs = this:GetChecked();
+				if (not db.Additions_ExplosiveOrbs) then
+					UpdateAllNameplates(true);
+				end
+			end);
+			checkBoxExplosiveOrbs:SetChecked(db.Additions_ExplosiveOrbs);
+			checkBoxExplosiveOrbs:SetParent(GUIFrame);
+			checkBoxExplosiveOrbs:SetPoint("TOPLEFT", 160, -20);
+			SetTooltip(checkBoxExplosiveOrbs, L["options:apps:explosive-orbs:tooltip"]);
+			table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				checkBoxExplosiveOrbs:SetChecked(db.Additions_ExplosiveOrbs);
 			end);
 			
 		end

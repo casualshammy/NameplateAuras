@@ -10,5 +10,6 @@
 <Include	file="libs\AceDBOptions-3.0\AceDBOptions-3.0.xml"/>
 <Include	file="libs\AceLocale-3.0\AceLocale-3.0.xml"/>
 <Script		file="libs\LibButtonGlow.lua"/>
+<Include	file="libs\LibRedDropdown-1.0\LibRedDropdown-1.0.xml"/>
 </Ui>
 

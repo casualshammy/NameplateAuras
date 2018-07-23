@@ -9,5 +9,6 @@ libs/CallbackHandler-1.0/.+
 libs/LibSharedMedia-3.0/.+
 libs/LibStub/.+
 .git/.+
+libs/LibRedDropdown-1.0/docs/*
 syntax: glob
 _git-push.bat

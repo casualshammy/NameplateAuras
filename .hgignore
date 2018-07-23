@@ -10,5 +10,6 @@ libs/LibSharedMedia-3.0/.+
 libs/LibStub/.+
 .git/.+
 libs/LibRedDropdown-1.0/docs/*
+libs/LibRedDropdown-1.0/*
 syntax: glob
 _git-push.bat

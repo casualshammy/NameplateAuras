@@ -3,6 +3,7 @@ local _, addonTable = ...;
 local buildTimestamp = "@project-version@";
 --@end-non-debug@]===]
 
+local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
@@ -47,7 +48,7 @@ local EnabledAurasInfo							= { };
 local ElapsedTimer 								= 0;
 local Nameplates, NameplatesVisible 			= { }, { };
 local InPvPCombat								= false;
-local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor;
+local GUIFrame, EventFrame, db, aceDB, LocalPlayerGUID, ProfileOptionsFrame, CoroutineProcessor, DebugWindow;
 
 -- // enums as variables: it's done for better performance
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = 1, 2, 3;
@@ -61,7 +62,7 @@ local EXPLOSIVE_ORB_SPELL_ID = 240446;
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
 local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
 	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
-local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GetDebugPopup, GUICategory_Additions;
+local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GUICategory_Additions;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
 --------------------------------------------------------------------------------------------------
@@ -70,38 +71,38 @@ local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, 
 do
 
 	local function ChatCommand_Debug()
-		local d = GetDebugPopup();
-		d:AddText("PRESS ESC TO CLOSE THIS WINDOW");
-		d:AddText("PRESS CTRL+A AND THEN CTRL+C TO COPY THIS TEXT");
-		d:AddText("");
-		d:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY"));
-		d:AddText("");
-		d:AddText("InPvPCombat: " .. tostring(InPvPCombat));
-		d:AddText("Number of nameplates: " .. table_count(Nameplates));
-		d:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
-		d:AddText("EnabledAurasInfo count: " .. table_count(EnabledAurasInfo));
-		d:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
-		d:AddText("");
-		d:AddText("LIST OF ENABLED ADDONS----------");
+		DebugWindow = DebugWindow or VGUI.CreateDebugWindow();
+		DebugWindow:AddText("PRESS ESC TO CLOSE THIS WINDOW");
+		DebugWindow:AddText("PRESS CTRL+A AND THEN CTRL+C TO COPY THIS TEXT");
+		DebugWindow:AddText("");
+		DebugWindow:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY"));
+		DebugWindow:AddText("");
+		DebugWindow:AddText("InPvPCombat: " .. tostring(InPvPCombat));
+		DebugWindow:AddText("Number of nameplates: " .. table_count(Nameplates));
+		DebugWindow:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
+		DebugWindow:AddText("EnabledAurasInfo count: " .. table_count(EnabledAurasInfo));
+		DebugWindow:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
+		DebugWindow:AddText("");
+		DebugWindow:AddText("LIST OF ENABLED ADDONS----------");
 		for i = 1, GetNumAddOns() do
 			local name, _, _, _, _, security = GetAddOnInfo(i);
 			if (security == "INSECURE" and IsAddOnLoaded(name)) then
-				d:AddText("    " .. name);
+				DebugWindow:AddText("    " .. name);
 			end
 		end
-		d:AddText("");
-		d:AddText("CONFIG----------");
+		DebugWindow:AddText("");
+		DebugWindow:AddText("CONFIG----------");
 		for index, value in pairs(db) do
 			if (type(value) ~= "table") then
-				d:AddText(string_format("    %s: %s (%s)", index, tostring(value), type(value)));
+				DebugWindow:AddText(string_format("    %s: %s (%s)", index, tostring(value), type(value)));
 			end
 		end
-		d:AddText("");
-		d:AddText("LIST OF SPELLS----------");
+		DebugWindow:AddText("");
+		DebugWindow:AddText("LIST OF SPELLS----------");
 		local enabledStateTokens = { [CONST_SPELL_MODE_DISABLED] = "DISABLED", [CONST_SPELL_MODE_ALL] = "ALL", [CONST_SPELL_MODE_MYAURAS] = "MYAURAS" };
 		local auraTypeTokens = { [AURA_TYPE_BUFF] = "BUFF", [AURA_TYPE_DEBUFF] = "DEBUFF", [AURA_TYPE_ANY] = "ANY" };
 		for spellName, spellInfo in pairs(EnabledAurasInfo) do
-			d:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellName,
+			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellName,
 				tostring(enabledStateTokens[spellInfo.enabledState]),
 				tostring(auraTypeTokens[spellInfo.auraType]),
 				tostring(spellInfo.iconSize),
@@ -112,7 +113,7 @@ do
 				tostring(spellInfo.pvpCombat),
 				tostring(spellInfo.showGlow)));
 		end
-		d:Show();
+		DebugWindow:Show();
 	end
 
 	local function InitializeDB()
@@ -237,7 +238,7 @@ do
 					c = "GUILD";
 				end
 				Print("Waiting for replies from " .. c);
-				SendAddonMessage("NAuras_prefix", "requesting", c);
+				C_ChatInfo.SendAddonMessage("NAuras_prefix", "requesting2", c);
 			elseif (msg == "delete-all-spells") then
 				DeleteAllSpellsFromDB();
 			elseif (msg == "debug") then
@@ -246,7 +247,7 @@ do
 				ShowGUI();
 			end
 		end
-		RegisterAddonMessagePrefix("NAuras_prefix");
+		C_ChatInfo.RegisterAddonMessagePrefix("NAuras_prefix");
 		OnStartup = nil;
 	end
 
@@ -717,7 +718,7 @@ do
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
-				local buffName, _, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
+				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
 					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack)) then
@@ -732,7 +733,7 @@ do
 						end
 					end
 				end
-				local debuffName, _, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
+				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
 					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
@@ -921,7 +922,7 @@ do
 		end
 		if (auraInfo and auraInfo.showGlow ~= nil) then
 			if (type(auraInfo.showGlow) == "boolean") then
-				print(auraInfo.showGlow, icon.spellID);
+				error(auraInfo.showGlow, icon.spellID);
 			end
 			if (remainingAuraTime < auraInfo.showGlow) then
 				LBG_ShowOverlayGlow(icon, iconResized, dimGlow); -- // show glow immediatly
@@ -1158,17 +1159,6 @@ do
 
 	local MAX_AURA_ICON_SIZE = 75;
 
-	local function SetTooltip(frame, text)
-		frame:HookScript("OnEnter", function(self, ...)
-			GameTooltip:SetOwner(self, "ANCHOR_CURSOR");
-			GameTooltip:SetText(text);
-			GameTooltip:Show();
-		end)
-		frame:HookScript("OnLeave", function(self, ...)
-			GameTooltip:Hide();
-		end)
-	end
-
 	local function PopupReloadUI()
 		if (StaticPopupDialogs["NAURAS_MSG_RELOAD"] == nil) then
 			StaticPopupDialogs["NAURAS_MSG_RELOAD"] = {
@@ -1182,356 +1172,6 @@ do
 			};
 		end
 		StaticPopup_Show("NAURAS_MSG_RELOAD");
-	end
-
-	local function GUICreateCheckBoxEx(text, func)
-		local checkBox = CreateFrame("CheckButton");
-		checkBox:SetHeight(20);
-		checkBox:SetWidth(20);
-		checkBox:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up");
-		checkBox:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down");
-		checkBox:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight");
-		checkBox:SetDisabledCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check-Disabled");
-		checkBox:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check");
-		checkBox.textFrame = CreateFrame("frame", nil, checkBox);
-		checkBox.textFrame:SetPoint("LEFT", checkBox, "RIGHT", 0, 0);
-		checkBox.textFrame:EnableMouse(true);
-		checkBox.textFrame:HookScript("OnEnter", function(self, ...) checkBox:LockHighlight(); end);
-		checkBox.textFrame:HookScript("OnLeave", function(self, ...) checkBox:UnlockHighlight(); end);
-		checkBox.textFrame:Show();
-		checkBox.textFrame:HookScript("OnMouseDown", function(self) checkBox:SetButtonState("PUSHED"); end);
-		checkBox.textFrame:HookScript("OnMouseUp", function(self) checkBox:SetButtonState("NORMAL"); checkBox:Click(); end);
-		checkBox.Text = checkBox.textFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		checkBox.Text:SetPoint("LEFT", 0, 0);
-		checkBox.SetText = function(self, _text)
-			checkBox.Text:SetText(_text);
-			checkBox.textFrame:SetWidth(checkBox.Text:GetStringWidth() + checkBox:GetWidth());
-			checkBox.textFrame:SetHeight(max(checkBox.Text:GetStringHeight(), checkBox:GetHeight()));
-		end;
-		local handlersToBeCopied = { "OnEnter", "OnLeave" };
-		hooksecurefunc(checkBox, "HookScript", function(self, script, proc) if (table_contains_value(handlersToBeCopied, script)) then checkBox.textFrame:HookScript(script, proc); end end);
-		hooksecurefunc(checkBox, "SetScript",  function(self, script, proc) if (table_contains_value(handlersToBeCopied, script)) then checkBox.textFrame:SetScript(script, proc); end end);
-		checkBox:SetText(text);
-		checkBox:EnableMouse(true);
-		checkBox:SetScript("OnClick", func);
-		checkBox:Hide();
-		return checkBox;
-	end
-	
-	local function GUICreateCheckBoxTristate(textEntries)
-		local checkButton = GUICreateCheckBoxEx(textEntries[1], nil);
-		checkButton.state = 0;
-		checkButton.SetTriState = function(self, tristate)
-			self:SetText(textEntries[tristate+1] .. " |TInterface\\common\\help-i:26:26:0:0|t");
-			self:SetChecked(tristate == 1 or tristate == 2);
-			self.state = tristate;
-		end;
-		checkButton.GetTriState = function(self)
-			return self.state;
-		end;
-		checkButton.SetClickHandler = function(self, _func)
-			self:SetScript("OnClick", function(_self)
-				local newState = _self:GetTriState() + 1;
-				if (newState > 2) then newState = 0; end
-				_self:SetTriState(newState);
-				_func(_self);
-			end);
-		end;
-		return checkButton;
-	end
-	
-	local function GUICreateCheckBoxWithColorPicker(x, y, text, checkedChangedCallback)
-		local checkBox = GUICreateCheckBoxEx(text, checkedChangedCallback);
-		
-		checkBox.textFrame:SetPoint("LEFT", checkBox, "RIGHT", 20, 0);
-		
-		checkBox.ColorButton = CreateFrame("Button", nil, checkBox);
-		checkBox.ColorButton:SetPoint("LEFT", 19, 0);
-		checkBox.ColorButton:SetWidth(20);
-		checkBox.ColorButton:SetHeight(20);
-		checkBox.ColorButton:Show();
-
-		checkBox.ColorButton:EnableMouse(true);
-
-		checkBox.ColorButton.colorSwatch = checkBox.ColorButton:CreateTexture(nil, "OVERLAY");
-		checkBox.ColorButton.colorSwatch:SetWidth(19);
-		checkBox.ColorButton.colorSwatch:SetHeight(19);
-		checkBox.ColorButton.colorSwatch:SetTexture("Interface\\ChatFrame\\ChatFrameColorSwatch");
-		checkBox.ColorButton.colorSwatch:SetPoint("LEFT");
-		checkBox.ColorButton.SetColor = checkBox.ColorButton.colorSwatch.SetVertexColor;
-
-		checkBox.ColorButton.texture = checkBox.ColorButton:CreateTexture(nil, "BACKGROUND");
-		checkBox.ColorButton.texture:SetWidth(16);
-		checkBox.ColorButton.texture:SetHeight(16);
-		checkBox.ColorButton.texture:SetTexture(1, 1, 1);
-		checkBox.ColorButton.texture:SetPoint("CENTER", checkBox.ColorButton.colorSwatch);
-		checkBox.ColorButton.texture:Show();
-
-		checkBox.ColorButton.checkers = checkBox.ColorButton:CreateTexture(nil, "BACKGROUND");
-		checkBox.ColorButton.checkers:SetWidth(14);
-		checkBox.ColorButton.checkers:SetHeight(14);
-		checkBox.ColorButton.checkers:SetTexture("Tileset\\Generic\\Checkers");
-		checkBox.ColorButton.checkers:SetTexCoord(.25, 0, 0.5, .25);
-		checkBox.ColorButton.checkers:SetDesaturated(true);
-		checkBox.ColorButton.checkers:SetVertexColor(1, 1, 1, 0.75);
-		checkBox.ColorButton.checkers:SetPoint("CENTER", checkBox.ColorButton.colorSwatch);
-		checkBox.ColorButton.checkers:Show();
-				
-		return checkBox;
-	end
-		
-	local function GUICreateColorPicker(parent, x, y, text)
-		local colorButton = CreateFrame("Button", nil, parent);
-		colorButton:SetPoint("TOPLEFT", x, y);
-		colorButton:SetWidth(20);
-		colorButton:SetHeight(20);
-		colorButton:Hide();
-		colorButton:EnableMouse(true);
-
-		colorButton.colorSwatch = colorButton:CreateTexture(nil, "OVERLAY");
-		colorButton.colorSwatch:SetWidth(19);
-		colorButton.colorSwatch:SetHeight(19);
-		colorButton.colorSwatch:SetTexture("Interface\\ChatFrame\\ChatFrameColorSwatch");
-		colorButton.colorSwatch:SetPoint("LEFT");
-
-		colorButton.texture = colorButton:CreateTexture(nil, "BACKGROUND");
-		colorButton.texture:SetWidth(16);
-		colorButton.texture:SetHeight(16);
-		colorButton.texture:SetTexture(1, 1, 1);
-		colorButton.texture:SetPoint("CENTER", colorButton.colorSwatch);
-		colorButton.texture:Show();
-
-		colorButton.checkers = colorButton:CreateTexture(nil, "BACKGROUND");
-		colorButton.checkers:SetWidth(14);
-		colorButton.checkers:SetHeight(14);
-		colorButton.checkers:SetTexture("Tileset\\Generic\\Checkers");
-		colorButton.checkers:SetTexCoord(.25, 0, 0.5, .25);
-		colorButton.checkers:SetDesaturated(true);
-		colorButton.checkers:SetVertexColor(1, 1, 1, 0.75);
-		colorButton.checkers:SetPoint("CENTER", colorButton.colorSwatch);
-		colorButton.checkers:Show();
-		
-		colorButton.text = colorButton:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		colorButton.text:SetPoint("LEFT", 22, 0);
-		colorButton.text:SetText(text);
-		return colorButton;
-	end
-	
-	local function GUICreateSlider(parent, x, y, size)
-		local frame = CreateFrame("Frame", nil, parent);
-		frame:SetHeight(100);
-		frame:SetWidth(size);
-		frame:SetPoint("TOPLEFT", x, y);
-
-		frame.label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		frame.label:SetPoint("TOPLEFT");
-		frame.label:SetPoint("TOPRIGHT");
-		frame.label:SetJustifyH("CENTER");
-		--frame.label:SetHeight(15);
-		
-		frame.slider = CreateFrame("Slider", nil, frame);
-		frame.slider:SetOrientation("HORIZONTAL")
-		frame.slider:SetHeight(15)
-		frame.slider:SetHitRectInsets(0, 0, -10, 0)
-		frame.slider:SetBackdrop({
-			bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-			edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-			tile = true, tileSize = 8, edgeSize = 8,
-			insets = { left = 3, right = 3, top = 6, bottom = 6 }
-		});
-		frame.slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
-		frame.slider:SetPoint("TOP", frame.label, "BOTTOM")
-		frame.slider:SetPoint("LEFT", 3, 0)
-		frame.slider:SetPoint("RIGHT", -3, 0)
-
-		frame.lowtext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		frame.lowtext:SetPoint("TOPLEFT", frame.slider, "BOTTOMLEFT", 2, 3)
-
-		frame.hightext = frame.slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		frame.hightext:SetPoint("TOPRIGHT", frame.slider, "BOTTOMRIGHT", -2, 3)
-
-		frame.editbox = CreateFrame("EditBox", nil, frame)
-		frame.editbox:SetAutoFocus(false)
-		frame.editbox:SetFontObject(GameFontHighlightSmall)
-		frame.editbox:SetPoint("TOP", frame.slider, "BOTTOM")
-		frame.editbox:SetHeight(14)
-		frame.editbox:SetWidth(70)
-		frame.editbox:SetJustifyH("CENTER")
-		frame.editbox:EnableMouse(true)
-		frame.editbox:SetBackdrop({
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			tile = true, edgeSize = 1, tileSize = 5,
-		});
-		frame.editbox:SetBackdropColor(0, 0, 0, 0.5)
-		frame.editbox:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80)
-		frame.editbox:SetScript("OnEscapePressed", function() frame.editbox:ClearFocus(); end)
-		frame:Hide();
-		return frame;
-	end
-	
-	local function GUICreateButton(parentFrame, text)
-		-- After creation we need to set up :SetWidth, :SetHeight, :SetPoint, :SetScript
-		local button = CreateFrame("Button", nil, parentFrame);
-		button.Background = button:CreateTexture(nil, "BORDER");
-		button.Background:SetPoint("TOPLEFT", 1, -1);
-		button.Background:SetPoint("BOTTOMRIGHT", -1, 1);
-		button.Background:SetColorTexture(0, 0, 0, 1);
-
-		button.Border = button:CreateTexture(nil, "BACKGROUND");
-		button.Border:SetPoint("TOPLEFT", 0, 0);
-		button.Border:SetPoint("BOTTOMRIGHT", 0, 0);
-		button.Border:SetColorTexture(unpack({0.73, 0.26, 0.21, 1}));
-
-		button.Normal = button:CreateTexture(nil, "ARTWORK");
-		button.Normal:SetPoint("TOPLEFT", 2, -2);
-		button.Normal:SetPoint("BOTTOMRIGHT", -2, 2);
-		button.Normal:SetColorTexture(unpack({0.38, 0, 0, 1}));
-		button:SetNormalTexture(button.Normal);
-
-		button.Disabled = button:CreateTexture(nil, "OVERLAY");
-		button.Disabled:SetPoint("TOPLEFT", 3, -3);
-		button.Disabled:SetPoint("BOTTOMRIGHT", -3, 3);
-		button.Disabled:SetColorTexture(0.6, 0.6, 0.6, 0.2);
-		button:SetDisabledTexture(button.Disabled);
-
-		button.Highlight = button:CreateTexture(nil, "OVERLAY");
-		button.Highlight:SetPoint("TOPLEFT", 3, -3);
-		button.Highlight:SetPoint("BOTTOMRIGHT", -3, 3);
-		button.Highlight:SetColorTexture(0.6, 0.6, 0.6, 0.2);
-		button:SetHighlightTexture(button.Highlight);
-
-		button.Text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-		button.Text:SetPoint("CENTER", 0, 0);
-		button.Text:SetJustifyH("CENTER");
-		button.Text:SetTextColor(1, 0.82, 0, 1);
-		button.Text:SetText(text);
-
-		button:SetScript("OnMouseDown", function(self) self.Text:SetPoint("CENTER", 1, -1) end);
-		button:SetScript("OnMouseUp", function(self) self.Text:SetPoint("CENTER", 0, 0) end);
-		return button;
-	end
-		
-	local selectorEx;
-	local function GetSelectorEx()
-		if (not selectorEx) then
-			selectorEx = CreateFrame("Frame", nil, UIParent);
-			selectorEx:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
-			selectorEx:SetSize(350, 300);
-			selectorEx.texture = selectorEx:CreateTexture();
-			selectorEx.texture:SetAllPoints(selectorEx);
-			selectorEx.texture:SetColorTexture(0, 0, 0, 1);
-			
-			selectorEx.searchLabel = selectorEx:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-			selectorEx.searchLabel:SetPoint("TOPLEFT", 5, -10);
-			selectorEx.searchLabel:SetJustifyH("LEFT");
-			selectorEx.searchLabel:SetText(L["options:selector:search"]);
-			
-			selectorEx.searchBox = CreateFrame("EditBox", nil, selectorEx, "InputBoxTemplate");
-			selectorEx.searchBox:SetAutoFocus(false);
-			selectorEx.searchBox:SetFontObject(GameFontHighlightSmall);
-			selectorEx.searchBox:SetPoint("LEFT", selectorEx.searchLabel, "RIGHT", 10, 0);
-			selectorEx.searchBox:SetPoint("RIGHT", selectorEx, "RIGHT", -10, 0);
-			selectorEx.searchBox:SetHeight(20);
-			selectorEx.searchBox:SetWidth(175);
-			selectorEx.searchBox:SetJustifyH("LEFT");
-			selectorEx.searchBox:EnableMouse(true);
-			selectorEx.searchBox:SetScript("OnEscapePressed", function() selectorEx.searchBox:ClearFocus(); end);
-			selectorEx.searchBox:SetScript("OnTextChanged", function(self)
-				local text = self:GetText();
-				if (text == "") then
-					selectorEx.SetList(selectorEx.list);
-				else
-					local t = { };
-					for _, value in pairs(selectorEx.list) do
-						if (string_find(value.text:lower(), text:lower())) then
-							table_insert(t, value);
-						end
-					end
-					selectorEx.SetList(t, true);
-					selectorEx.scrollArea:SetVerticalScroll(0);
-				end
-			end);
-			selectorEx:HookScript("OnHide", function() selectorEx.searchBox:SetText(""); end);
-			
-			selectorEx.scrollArea = CreateFrame("ScrollFrame", nil, selectorEx, "UIPanelScrollFrameTemplate");
-			selectorEx.scrollArea:SetPoint("TOPLEFT", selectorEx, "TOPLEFT", 5, -30);
-			selectorEx.scrollArea:SetPoint("BOTTOMRIGHT", selectorEx, "BOTTOMRIGHT", -25, 5);
-			selectorEx.scrollArea:Show();
-			
-			local scrollAreaChildFrame = CreateFrame("Frame", nil, selectorEx.scrollArea);
-			selectorEx.scrollArea:SetScrollChild(scrollAreaChildFrame);
-			--scrollAreaChildFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 1);
-			scrollAreaChildFrame:SetWidth(288);
-			scrollAreaChildFrame:SetHeight(288);
-			
-			selectorEx.buttons = { };
-			selectorEx.list = { };
-			
-			local function GetButton(counter)
-				if (selectorEx.buttons[counter] == nil) then
-					local button = GUICreateButton(scrollAreaChildFrame, "");
-					button.font, button.fontSize, button.fontFlags = button.Text:GetFont();
-					button:SetWidth(295);
-					button:SetHeight(20);
-					button:SetPoint("TOPLEFT", 23, -counter * 22 + 20);
-					button.Icon = button:CreateTexture();
-					button.Icon:SetPoint("RIGHT", button, "LEFT", -3, 0);
-					button.Icon:SetWidth(20);
-					button.Icon:SetHeight(20);
-					button.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-					button:Hide();
-					selectorEx.buttons[counter] = button;
-					return button;
-				else
-					return selectorEx.buttons[counter];
-				end
-			end
-			
-			selectorEx.SetList = function(t, dontUpdateInternalList)
-				for _, button in pairs(selectorEx.buttons) do
-					button:Hide();
-					button.Icon:SetTexture();
-					button.Text:SetFont(button.font, button.fontSize, button.fontFlags);
-					button:SetScript("OnClick", nil);
-				end
-				local counter = 1;
-				for _, value in pairs(t) do
-					local button = GetButton(counter);
-					button.Text:SetText(value.text);
-					if (value.font ~= nil) then
-						button.Text:SetFont(value.font, button.fontSize, button.fontFlags);
-					end
-					button.Icon:SetTexture(value.icon);
-					button:SetScript("OnClick", function()
-						value:func();
-						selectorEx:Hide();
-					end);
-					button:SetScript("OnEnter", value.onEnter);
-					button:SetScript("OnLeave", value.onLeave);
-					button:Show();
-					counter = counter + 1;
-				end
-				if (not dontUpdateInternalList) then
-					selectorEx.list = t;
-				end
-			end
-			
-			selectorEx.GetButtonByText = function(text)
-				for _, button in pairs(selectorEx.buttons) do
-					if (button.Text:GetText() == text) then
-						return button;
-					end
-				end
-				return nil;
-			end
-			
-			selectorEx.SetList({});
-			selectorEx:Hide();
-			selectorEx:HookScript("OnShow", function(self) self:SetFrameStrata("TOOLTIP"); self.scrollArea:SetVerticalScroll(0); end);
-		end
-		
-		return selectorEx;
 	end
 	
 	local function ShowGUICategory(index)
@@ -1723,7 +1363,10 @@ do
 		-- // sliderIconSize
 		do
 		
-			local sliderIconSize = GUICreateSlider(GUIFrame, 160, -25, 155);
+			local sliderIconSize = VGUI.CreateSlider();
+			sliderIconSize:SetParent(GUIFrame);
+			sliderIconSize:SetWidth(155);
+			sliderIconSize:SetPoint("TOPLEFT", 160, -25);
 			sliderIconSize.label:SetText(L["Default icon size"]);
 			sliderIconSize.slider:SetValueStep(1);
 			sliderIconSize.slider:SetMinMaxValues(1, MAX_AURA_ICON_SIZE);
@@ -1769,7 +1412,10 @@ do
 		-- // sliderIconSpacing
 		do
 			local minValue, maxValue = 0, 50;
-			local sliderIconSpacing = GUICreateSlider(GUIFrame, 345, -25, 155);
+			local sliderIconSpacing = VGUI.CreateSlider();
+			sliderIconSpacing:SetParent(GUIFrame);
+			sliderIconSpacing:SetWidth(155);
+			sliderIconSpacing:SetPoint("TOPLEFT", 345, -25);
 			sliderIconSpacing.label:SetText(L["Space between icons"]);
 			sliderIconSpacing.slider:SetValueStep(1);
 			sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
@@ -1808,7 +1454,10 @@ do
 		-- // sliderIconXOffset
 		do
 		
-			local sliderIconXOffset = GUICreateSlider(GUIFrame, 160, -85, 155);
+			local sliderIconXOffset = VGUI.CreateSlider();
+			sliderIconXOffset:SetParent(GUIFrame);
+			sliderIconXOffset:SetWidth(155);
+			sliderIconXOffset:SetPoint("TOPLEFT", 160, -85);
 			sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 			sliderIconXOffset.slider:SetValueStep(1);
 			sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -1847,7 +1496,10 @@ do
 		-- // sliderIconYOffset
 		do
 		
-			local sliderIconYOffset = GUICreateSlider(GUIFrame, 345, -85, 155);
+			local sliderIconYOffset = VGUI.CreateSlider();
+			sliderIconYOffset:SetParent(GUIFrame);
+			sliderIconYOffset:SetWidth(155);
+			sliderIconYOffset:SetPoint("TOPLEFT", 345, -85);
 			sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 			sliderIconYOffset.slider:SetValueStep(1);
 			sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -1884,7 +1536,9 @@ do
 		end
 		
 		
-		local checkBoxFullOpacityAlways = GUICreateCheckBoxEx(L["Always display icons at full opacity (ReloadUI is required)"], function(this)
+		local checkBoxFullOpacityAlways = VGUI.CreateCheckBox();
+		checkBoxFullOpacityAlways:SetText(L["Always display icons at full opacity (ReloadUI is required)"]);
+		checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
 			db.FullOpacityAlways = this:GetChecked();
 			PopupReloadUI();
 		end);
@@ -1899,7 +1553,9 @@ do
 			checkBoxFullOpacityAlways:SetChecked(db.FullOpacityAlways);
 		end);
 		
-		local checkBoxHideBlizzardFrames = GUICreateCheckBoxEx(L["Hide Blizzard's aura frames (Reload UI is required)"], function(this)
+		local checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
+		checkBoxHideBlizzardFrames:SetText(L["Hide Blizzard's aura frames (Reload UI is required)"]);
+		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 			db.HideBlizzardFrames = this:GetChecked();
 			PopupReloadUI();
 		end);
@@ -1917,7 +1573,9 @@ do
 		-- // checkBoxShowAurasOnPlayerNameplate
 		do
 		
-			local checkBoxShowAurasOnPlayerNameplate = GUICreateCheckBoxEx(L["Display auras on player's nameplate"], function(this)
+			local checkBoxShowAurasOnPlayerNameplate = VGUI.CreateCheckBox();
+			checkBoxShowAurasOnPlayerNameplate:SetText(L["Display auras on player's nameplate"]);
+			checkBoxShowAurasOnPlayerNameplate:SetOnClickHandler(function(this)
 				db.ShowAurasOnPlayerNameplate = this:GetChecked();
 			end);
 			checkBoxShowAurasOnPlayerNameplate:SetChecked(db.ShowAurasOnPlayerNameplate);
@@ -1931,7 +1589,9 @@ do
 		-- // checkBoxShowAboveFriendlyUnits
 		do
 		
-			local checkBoxShowAboveFriendlyUnits = GUICreateCheckBoxEx(L["Display auras on nameplates of friendly units"], function(this)
+			local checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
+			checkBoxShowAboveFriendlyUnits:SetText(L["Display auras on nameplates of friendly units"]);
+			checkBoxShowAboveFriendlyUnits:SetOnClickHandler(function(this)
 				db.ShowAboveFriendlyUnits = this:GetChecked();
 				UpdateAllNameplates(true);
 			end);
@@ -1946,14 +1606,16 @@ do
 		-- // checkBoxShowMyAuras
 		do
 		
-			local checkBoxShowMyAuras = GUICreateCheckBoxEx(L["Always show auras cast by myself"], function(this)
+			local checkBoxShowMyAuras = VGUI.CreateCheckBox();
+			checkBoxShowMyAuras:SetText(L["Always show auras cast by myself"]);
+			checkBoxShowMyAuras:SetOnClickHandler(function(this)
 				db.AlwaysShowMyAuras = this:GetChecked();
 				UpdateAllNameplates(false);
 			end);
 			checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras);
 			checkBoxShowMyAuras:SetParent(GUIFrame);
 			checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -220);
-			SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
+			VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 			table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(db.AlwaysShowMyAuras); end);
 		
@@ -1962,14 +1624,16 @@ do
 		-- // checkBoxUseDimGlow
 		do
 		
-			local checkBoxUseDimGlow = GUICreateCheckBoxEx(L["options:general:use-dim-glow"], function(this)
+			local checkBoxUseDimGlow = VGUI.CreateCheckBox();
+			checkBoxUseDimGlow:SetText(L["options:general:use-dim-glow"]);
+			checkBoxUseDimGlow:SetOnClickHandler(function(this)
 				db.UseDimGlow = this:GetChecked();
 				UpdateAllNameplates(true);
 			end);
 			checkBoxUseDimGlow:SetChecked(db.UseDimGlow);
 			checkBoxUseDimGlow:SetParent(GUIFrame);
 			checkBoxUseDimGlow:SetPoint("TOPLEFT", 160, -240);
-			SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
+			VGUI.SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
 			table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
 			table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(db.UseDimGlow); end);
 		
@@ -2127,7 +1791,9 @@ do
 	end
 	
 	function GUICategory_2(index, value)
-		local button = GUICreateButton(GUIFrame, L["Open profiles dialog"]);
+		local button = VGUI.CreateButton();
+		button:SetParent(GUIFrame);
+		button:SetText(L["Open profiles dialog"]);
 		button:SetWidth(170);
 		button:SetHeight(40);
 		button:SetPoint("CENTER", GUIFrame, "CENTER", 70, 0);
@@ -2139,7 +1805,7 @@ do
 	end
 	
 	function GUICategory_Fonts(index, value)
-		
+		local dropdownMenuFont = VGUI.CreateDropdownMenu();
 		local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 		local textAnchorsLocalization = {
 			[textAnchors[1]] = L["TOPRIGHT"],
@@ -2158,7 +1824,9 @@ do
 		do
 		
 			local fonts = { };
-			local button = GUICreateButton(GUIFrame, L["Font"] .. ": " .. db.Font);
+			local button = VGUI.CreateButton();
+			button:SetParent(GUIFrame);
+			button:SetText(L["Font"] .. ": " .. db.Font);
 			
 			for idx, font in next, SML:List("font") do
 				table_insert(fonts, {
@@ -2179,15 +1847,14 @@ do
 			button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
 			button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
 			button:SetScript("OnClick", function(self, ...)
-				local fontSelector = GetSelectorEx();
-				if (fontSelector:IsVisible()) then
-					fontSelector:Hide();
+				if (dropdownMenuFont:IsVisible()) then
+					dropdownMenuFont:Hide();
 				else
-					fontSelector.SetList(fonts);
-					fontSelector:SetParent(self);
-					fontSelector:ClearAllPoints();
-					fontSelector:SetPoint("TOP", self, "BOTTOM", 0, 0);
-					fontSelector:Show();
+					dropdownMenuFont:SetList(fonts);
+					dropdownMenuFont:SetParent(self);
+					dropdownMenuFont:ClearAllPoints();
+					dropdownMenuFont:SetPoint("TOP", self, "BOTTOM", 0, 0);
+					dropdownMenuFont:Show();
 				end
 			end);
 			table_insert(GUIFrame.Categories[index], button);
@@ -2198,7 +1865,10 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			sliderTimerFontScale = GUICreateSlider(GUIFrame, 300, -68, 200);
+			sliderTimerFontScale = VGUI.CreateSlider();
+			sliderTimerFontScale:SetParent(GUIFrame);
+			sliderTimerFontScale:SetWidth(200);
+			sliderTimerFontScale:SetPoint("TOPLEFT", 300, -68);
 			sliderTimerFontScale.label:SetText(L["Font scale"]);
 			sliderTimerFontScale.slider:SetValueStep(0.1);
 			sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -2238,7 +1908,10 @@ do
 		do
 			
 			local minValue, maxValue = 6, 96;
-			sliderTimerFontSize = GUICreateSlider(GUIFrame, 300, -68, 200);
+			sliderTimerFontSize = VGUI.CreateSlider();
+			sliderTimerFontSize:SetParent(GUIFrame);
+			sliderTimerFontSize:SetWidth(200);
+			sliderTimerFontSize:SetPoint("TOPLEFT", 300, -68);
 			sliderTimerFontSize.label:SetText(L["Font size"]);
 			sliderTimerFontSize.slider:SetValueStep(1);
 			sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
@@ -2277,7 +1950,9 @@ do
 		-- // checkBoxUseRelativeFontSize
 		do
 		
-			local checkBoxUseRelativeFontSize = GUICreateCheckBoxEx(L["options:timer-text:scale-font-size"], function(this)
+			local checkBoxUseRelativeFontSize = VGUI.CreateCheckBox();
+			checkBoxUseRelativeFontSize:SetText(L["options:timer-text:scale-font-size"]);
+			checkBoxUseRelativeFontSize:SetOnClickHandler(function(this)
 				db.TimerTextUseRelativeScale = this:GetChecked();
 				if (db.TimerTextUseRelativeScale) then
 					sliderTimerFontScale:Show();
@@ -2374,7 +2049,10 @@ do
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderTimerTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165);
+			local sliderTimerTextXOffset = VGUI.CreateSlider();
+			sliderTimerTextXOffset:SetParent(GUIFrame);
+			sliderTimerTextXOffset:SetWidth(165);
+			sliderTimerTextXOffset:SetPoint("TOPLEFT", 160, -170);
 			sliderTimerTextXOffset.label:SetText(L["X offset"]);
 			sliderTimerTextXOffset.slider:SetValueStep(1);
 			sliderTimerTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2415,7 +2093,10 @@ do
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderTimerTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165);
+			local sliderTimerTextYOffset = VGUI.CreateSlider();
+			sliderTimerTextYOffset:SetParent(GUIFrame);
+			sliderTimerTextYOffset:SetWidth(165);
+			sliderTimerTextYOffset:SetPoint("TOPLEFT", 335, -170);
 			sliderTimerTextYOffset.label:SetText(L["Y offset"]);
 			sliderTimerTextYOffset.slider:SetValueStep(1);
 			sliderTimerTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2485,7 +2166,10 @@ do
 		-- // colorPickerTimerTextFiveSeconds
 		do
 		
-			local colorPickerTimerTextFiveSeconds = GUICreateColorPicker(timerTextColorArea, 10, -40, L["< 5sec"]);
+			local colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
+			colorPickerTimerTextFiveSeconds:SetParent(timerTextColorArea);
+			colorPickerTimerTextFiveSeconds:SetPoint("TOPLEFT", 10, -40);
+			colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
 			colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(db.TimerTextSoonToExpireColor));
 			colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2513,7 +2197,10 @@ do
 		-- // colorPickerTimerTextMinute
 		do
 		
-			local colorPickerTimerTextMinute = GUICreateColorPicker(timerTextColorArea, 135, -40, L["< 1min"]);
+			local colorPickerTimerTextMinute = VGUI.CreateColorPicker();
+			colorPickerTimerTextMinute:SetParent(timerTextColorArea);
+			colorPickerTimerTextMinute:SetPoint("TOPLEFT", 135, -40);
+			colorPickerTimerTextMinute:SetText(L["< 1min"]);
 			colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(db.TimerTextUnderMinuteColor));
 			colorPickerTimerTextMinute:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2541,7 +2228,10 @@ do
 		-- // colorPickerTimerTextMore
 		do
 		
-			local colorPickerTimerTextMore = GUICreateColorPicker(timerTextColorArea, 260, -40, L["> 1min"]);
+			local colorPickerTimerTextMore = VGUI.CreateColorPicker();
+			colorPickerTimerTextMore:SetParent(timerTextColorArea);
+			colorPickerTimerTextMore:SetPoint("TOPLEFT", 260, -40);
+			colorPickerTimerTextMore:SetText(L["> 1min"]);
 			colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(db.TimerTextLongerColor));
 			colorPickerTimerTextMore:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2591,7 +2281,10 @@ do
 		do
 			
 			local minValue, maxValue = 0, 10;
-			local sliderDisplayTenthsOfSeconds = GUICreateSlider(tenthsOfSecondsArea, 10, -10, 340);
+			local sliderDisplayTenthsOfSeconds = VGUI.CreateSlider();
+			sliderDisplayTenthsOfSeconds:SetParent(tenthsOfSecondsArea);
+			sliderDisplayTenthsOfSeconds:SetWidth(340);
+			sliderDisplayTenthsOfSeconds:SetPoint("TOPLEFT", 10, -10);
 			sliderDisplayTenthsOfSeconds.label:SetText(L["options:timer-text:min-duration-to-display-tenths-of-seconds"]);
 			sliderDisplayTenthsOfSeconds.slider:SetValueStep(0.1);
 			sliderDisplayTenthsOfSeconds.slider:SetMinMaxValues(minValue, maxValue);
@@ -2633,7 +2326,7 @@ do
 	end
 	
 	function GUICategory_AuraStackFont(index, value)
-		
+		local dropdownMenuFont = VGUI.CreateDropdownMenu();
 		local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 		local textAnchorsLocalization = {
 			[textAnchors[1]] = L["TOPRIGHT"],
@@ -2651,7 +2344,9 @@ do
 		do
 		
 			local fonts = { };
-			local button = GUICreateButton(GUIFrame, L["Font"] .. ": " .. db.StacksFont);
+			local button = VGUI.CreateButton();
+			button:SetParent(GUIFrame);
+			button:SetText(L["Font"] .. ": " .. db.StacksFont);
 			
 			for idx, font in next, SML:List("font") do
 				table_insert(fonts, {
@@ -2672,15 +2367,14 @@ do
 			button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
 			button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
 			button:SetScript("OnClick", function(self, ...)
-				local fontSelector = GetSelectorEx();
-				if (fontSelector:IsVisible()) then
-					fontSelector:Hide();
+				if (dropdownMenuFont:IsVisible()) then
+					dropdownMenuFont:Hide();
 				else
-					fontSelector.SetList(fonts);
-					fontSelector:SetParent(self);
-					fontSelector:ClearAllPoints();
-					fontSelector:SetPoint("TOP", self, "BOTTOM", 0, 0);
-					fontSelector:Show();
+					dropdownMenuFont:SetList(fonts);
+					dropdownMenuFont:SetParent(self);
+					dropdownMenuFont:ClearAllPoints();
+					dropdownMenuFont:SetPoint("TOP", self, "BOTTOM", 0, 0);
+					dropdownMenuFont:Show();
 				end
 			end);
 			table_insert(GUIFrame.Categories[index], button);
@@ -2691,7 +2385,10 @@ do
 		do
 			
 			local minValue, maxValue = 0.3, 3;
-			local sliderStacksFontScale = GUICreateSlider(GUIFrame, 160, -68, 340);
+			local sliderStacksFontScale = VGUI.CreateSlider();
+			sliderStacksFontScale:SetParent(GUIFrame);
+			sliderStacksFontScale:SetWidth(340);
+			sliderStacksFontScale:SetPoint("TOPLEFT", 160, -68);
 			sliderStacksFontScale.label:SetText(L["Font scale"]);
 			sliderStacksFontScale.slider:SetValueStep(0.1);
 			sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -2792,7 +2489,10 @@ do
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderStacksTextXOffset = GUICreateSlider(GUIFrame, 160, -170, 165);
+			local sliderStacksTextXOffset = VGUI.CreateSlider();
+			sliderStacksTextXOffset:SetParent(GUIFrame);
+			sliderStacksTextXOffset:SetWidth(165);
+			sliderStacksTextXOffset:SetPoint("TOPLEFT", 160, -170);
 			sliderStacksTextXOffset.label:SetText(L["X offset"]);
 			sliderStacksTextXOffset.slider:SetValueStep(1);
 			sliderStacksTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2833,7 +2533,10 @@ do
 		do
 			
 			local minValue, maxValue = -100, 100;
-			local sliderStacksTextYOffset = GUICreateSlider(GUIFrame, 335, -170, 165);
+			local sliderStacksTextYOffset = VGUI.CreateSlider();
+			sliderStacksTextYOffset:SetParent(GUIFrame);
+			sliderStacksTextYOffset:SetWidth(165);
+			sliderStacksTextYOffset:SetPoint("TOPLEFT", 335, -170);
 			sliderStacksTextYOffset.label:SetText(L["Y offset"]);
 			sliderStacksTextYOffset.slider:SetValueStep(1);
 			sliderStacksTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -2873,7 +2576,10 @@ do
 		-- // colorPickerStacksTextColor
 		do
 		
-			local colorPickerStacksTextColor = GUICreateColorPicker(GUIFrame, 165, -240, L["Text color"]);
+			local colorPickerStacksTextColor = VGUI.CreateColorPicker();
+			colorPickerStacksTextColor:SetParent(GUIFrame);
+			colorPickerStacksTextColor:SetPoint("TOPLEFT", 165, -240);
+			colorPickerStacksTextColor:SetText(L["Text color"]);
 			colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(db.StacksTextColor));
 			colorPickerStacksTextColor:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -2915,7 +2621,10 @@ do
 		do
 		
 			local minValue, maxValue = 1, 5;
-			local sliderBorderThickness = GUICreateSlider(GUIFrame, 160, -30, 325);
+			local sliderBorderThickness = VGUI.CreateSlider();
+			sliderBorderThickness:SetParent(GUIFrame);
+			sliderBorderThickness:SetWidth(325);
+			sliderBorderThickness:SetPoint("TOPLEFT", 160, -30);
 			sliderBorderThickness.label:SetText(L["Border thickness"]);
 			sliderBorderThickness.slider:SetValueStep(1);
 			sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
@@ -2955,7 +2664,9 @@ do
 		-- // checkBoxBuffBorder
 		do
 		
-			local checkBoxBuffBorder = GUICreateCheckBoxWithColorPicker(160, -90, L["Show border around buff icons"], function(this)
+			local checkBoxBuffBorder = VGUI.CreateCheckBoxWithColorPicker();
+			checkBoxBuffBorder:SetText(L["Show border around buff icons"]);
+			checkBoxBuffBorder:SetOnClickHandler(function(this)
 				db.ShowBuffBorders = this:GetChecked();
 				UpdateAllNameplates();
 			end);
@@ -3011,7 +2722,9 @@ do
 		-- // checkBoxDebuffBorder
 		do
 		
-			local checkBoxDebuffBorder = GUICreateCheckBoxEx(L["Show border around debuff icons"], function(this)
+			local checkBoxDebuffBorder = VGUI.CreateCheckBox();
+			checkBoxDebuffBorder:SetText(L["Show border around debuff icons"]);
+			checkBoxDebuffBorder:SetOnClickHandler(function(this)
 				db.ShowDebuffBorders = this:GetChecked();
 				UpdateAllNameplates();
 			end);
@@ -3026,8 +2739,11 @@ do
 		-- // colorPickerDebuffMagic
 		do
 		
-			local colorPickerDebuffMagic = GUICreateColorPicker(debuffArea, 15, -45, L["Magic"]);
-			colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor));
+			local colorPickerDebuffMagic = VGUI.CreateColorPicker();
+			colorPickerDebuffMagic:SetParent(debuffArea);
+			colorPickerDebuffMagic:SetPoint("TOPLEFT", 15, -45);
+			colorPickerDebuffMagic:SetText(L["Magic"]);
+			colorPickerDebuffMagic:SetColor(unpack(db.DebuffBordersMagicColor));
 			colorPickerDebuffMagic:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
 				local function callback(restore)
@@ -3038,7 +2754,7 @@ do
 						r, g, b = ColorPickerFrame:GetColorRGB();
 					end
 					db.DebuffBordersMagicColor = {r, g, b};
-					colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor));
+					colorPickerDebuffMagic:SetColor(unpack(db.DebuffBordersMagicColor));
 					UpdateAllNameplates();
 				end
 				ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
@@ -3048,14 +2764,17 @@ do
 				ColorPickerFrame:Show();
 			end);
 			table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
-			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic.colorSwatch:SetVertexColor(unpack(db.DebuffBordersMagicColor)); end);
+			table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic:SetColor(unpack(db.DebuffBordersMagicColor)); end);
 		
 		end
 		
 		-- // colorPickerDebuffCurse
 		do
 		
-			local colorPickerDebuffCurse = GUICreateColorPicker(debuffArea, 135, -45, L["Curse"]);
+			local colorPickerDebuffCurse = VGUI.CreateColorPicker();
+			colorPickerDebuffCurse:SetParent(debuffArea);
+			colorPickerDebuffCurse:SetPoint("TOPLEFT", 135, -45);
+			colorPickerDebuffCurse:SetText(L["Curse"]);
 			colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(db.DebuffBordersCurseColor));
 			colorPickerDebuffCurse:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -3084,7 +2803,10 @@ do
 		-- // colorPickerDebuffDisease
 		do
 		
-			local colorPickerDebuffDisease = GUICreateColorPicker(debuffArea, 255, -45, L["Disease"]);
+			local colorPickerDebuffDisease = VGUI.CreateColorPicker();
+			colorPickerDebuffDisease:SetParent(debuffArea);
+			colorPickerDebuffDisease:SetPoint("TOPLEFT", 255, -45);
+			colorPickerDebuffDisease:SetText(L["Disease"]);
 			colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(db.DebuffBordersDiseaseColor));
 			colorPickerDebuffDisease:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -3113,7 +2835,10 @@ do
 		-- // colorPickerDebuffPoison
 		do
 		
-			local colorPickerDebuffPoison = GUICreateColorPicker(debuffArea, 15, -70, L["Poison"]);
+			local colorPickerDebuffPoison = VGUI.CreateColorPicker();
+			colorPickerDebuffPoison:SetParent(debuffArea);
+			colorPickerDebuffPoison:SetPoint("TOPLEFT", 15, -70);
+			colorPickerDebuffPoison:SetText(L["Poison"]);
 			colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(db.DebuffBordersPoisonColor));
 			colorPickerDebuffPoison:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -3142,7 +2867,10 @@ do
 		-- // colorPickerDebuffOther
 		do
 		
-			local colorPickerDebuffOther = GUICreateColorPicker(debuffArea, 135, -70, L["Other"]);
+			local colorPickerDebuffOther = VGUI.CreateColorPicker();
+			colorPickerDebuffOther:SetParent(debuffArea);
+			colorPickerDebuffOther:SetPoint("TOPLEFT", 135, -70);
+			colorPickerDebuffOther:SetText(L["Other"]);
 			colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(db.DebuffBordersOtherColor));
 			colorPickerDebuffOther:SetScript("OnClick", function()
 				ColorPickerFrame:Hide();
@@ -3173,6 +2901,7 @@ do
 	function GUICategory_4(index, value)
 		local controls = { };
 		local selectedSpell = 0;
+		local dropdownMenuSpells = VGUI.CreateDropdownMenu();
 		local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
 			checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
 			areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter;
@@ -3255,7 +2984,9 @@ do
 			end);
 			table_insert(GUIFrame.Categories[index], editboxAddSpell);
 			
-			buttonAddSpell = GUICreateButton(GUIFrame, L["Add spell"]);
+			buttonAddSpell = VGUI.CreateButton();
+			buttonAddSpell:SetParent(GUIFrame);
+			buttonAddSpell:SetText(L["Add spell"]);
 			buttonAddSpell:SetWidth(110);
 			buttonAddSpell:SetHeight(20);
 			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
@@ -3290,7 +3021,7 @@ do
 								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, db.DefaultIconSize, nil);
 								UpdateSpellCachesFromDB(spellID);
 								selectSpell:Click();
-								local btn = GetSelectorEx().GetButtonByText(spellName);
+								local btn = dropdownMenuSpells:GetButtonByText(spellName);
 								if (btn ~= nil) then btn:Click(); end
 								UpdateAllNameplates(false);
 							else
@@ -3311,7 +3042,9 @@ do
 		-- // buttonDeleteAllSpells
 		do
 		
-			local buttonDeleteAllSpells = GUICreateButton(GUIFrame, "X");
+			local buttonDeleteAllSpells = VGUI.CreateButton();
+			buttonDeleteAllSpells:SetParent(GUIFrame);
+			buttonDeleteAllSpells:SetText("X");
 			buttonDeleteAllSpells:SetWidth(24);
 			buttonDeleteAllSpells:SetHeight(24);
 			buttonDeleteAllSpells:SetPoint("LEFT", buttonAddSpell, "RIGHT", 5, 0);
@@ -3403,7 +3136,9 @@ do
 				selectSpell.icon:Hide();
 			end
 		
-			selectSpell = GUICreateButton(GUIFrame, L["Click to select spell"]);
+			selectSpell = VGUI.CreateButton();
+			selectSpell:SetParent(GUIFrame);
+			selectSpell:SetText(L["Click to select spell"]);
 			selectSpell:SetWidth(285);
 			selectSpell:SetHeight(24);
 			selectSpell.icon = selectSpell:CreateTexture(nil, "OVERLAY");
@@ -3439,20 +3174,19 @@ do
 					});
 				end
 				table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
-				local fontSelector = GetSelectorEx();
-				fontSelector.SetList(t);
-				fontSelector:SetParent(button);
-				fontSelector:ClearAllPoints();
-				fontSelector:SetPoint("TOP", button, "BOTTOM", 0, 0);
-				fontSelector:Show();
-				fontSelector.searchBox:SetFocus();
-				fontSelector.searchBox:SetText("");
+				dropdownMenuSpells:SetList(t);
+				dropdownMenuSpells:SetParent(button);
+				dropdownMenuSpells:ClearAllPoints();
+				dropdownMenuSpells:SetPoint("TOP", button, "BOTTOM", 0, 0);
+				dropdownMenuSpells:Show();
+				dropdownMenuSpells.searchBox:SetFocus();
+				dropdownMenuSpells.searchBox:SetText("");
 				ResetSelectSpell();
 				HideGameTooltip();
 			end);
 			selectSpell:SetScript("OnHide", function(self)
 				ResetSelectSpell();
-				GetSelectorEx():Hide();
+				dropdownMenuSpells:Hide();
 			end);
 			table_insert(GUIFrame.Categories[index], selectSpell);
 			
@@ -3460,12 +3194,13 @@ do
 			
 		-- // checkboxEnabled
 		do
-			checkboxEnabled = GUICreateCheckBoxTristate({
+			checkboxEnabled = VGUI.CreateCheckBoxTristate();
+			checkboxEnabled:SetTextEntries({
 				ColorizeText(L["Disabled"], 1, 1, 1),
 				ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
 				ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0),
 			});
-			checkboxEnabled:SetClickHandler(function(self)
+			checkboxEnabled:SetOnClickHandler(function(self)
 				if (self:GetTriState() == 0) then
 					db.CustomSpells2[selectedSpell].enabledState = CONST_SPELL_MODE_DISABLED;
 				elseif (self:GetTriState() == 1) then
@@ -3478,7 +3213,7 @@ do
 			end);
 			checkboxEnabled:SetParent(spellArea.controlsFrame);
 			checkboxEnabled:SetPoint("TOPLEFT", 15, -15);
-			SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
+			VGUI.SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
 				ColorizeText(L["Disabled"], 1, 1, 1),
 				ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
 				ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
@@ -3488,7 +3223,9 @@ do
 		
 		-- // checkboxShowOnFriends
 		do
-			checkboxShowOnFriends = GUICreateCheckBoxEx(L["Show this aura on nameplates of allies"], function(this)
+			checkboxShowOnFriends = VGUI.CreateCheckBox();
+			checkboxShowOnFriends:SetText(L["Show this aura on nameplates of allies"]);
+			checkboxShowOnFriends:SetOnClickHandler(function(this)
 				db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
 				if (this:GetChecked() and not db.ShowAboveFriendlyUnits) then
 					msg(L["options:spells:show-on-friends:warning0"]);
@@ -3503,7 +3240,9 @@ do
 		
 		-- // checkboxShowOnEnemies
 		do
-			checkboxShowOnEnemies = GUICreateCheckBoxEx(L["Show this aura on nameplates of enemies"], function(this)
+			checkboxShowOnEnemies = VGUI.CreateCheckBox();
+			checkboxShowOnEnemies:SetText(L["Show this aura on nameplates of enemies"]);
+			checkboxShowOnEnemies:SetOnClickHandler(function(this)
 				db.CustomSpells2[selectedSpell].showOnEnemies = this:GetChecked();
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
@@ -3515,25 +3254,28 @@ do
 		
 		-- // checkboxAllowMultipleInstances
 		do
-			checkboxAllowMultipleInstances = GUICreateCheckBoxEx(L["options:aura-options:allow-multiple-instances"], function(this)
+			checkboxAllowMultipleInstances = VGUI.CreateCheckBox();
+			checkboxAllowMultipleInstances:SetText(L["options:aura-options:allow-multiple-instances"]);
+			checkboxAllowMultipleInstances:SetOnClickHandler(function(this)
 				db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked() or nil;
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 			end);
 			checkboxAllowMultipleInstances:SetParent(spellArea.controlsFrame);
 			checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -75);
-			SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
+			VGUI.SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
 			table_insert(controls, checkboxAllowMultipleInstances);
 		end
 		
 		-- // checkboxPvPMode
 		do
-			checkboxPvPMode = GUICreateCheckBoxTristate({
+			checkboxPvPMode = VGUI.CreateCheckBoxTristate();
+			checkboxPvPMode:SetTextEntries({
 				L["options:auras:pvp-state-indefinite"],
 				ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
 				ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
 			});
-			checkboxPvPMode:SetClickHandler(function(self)
+			checkboxPvPMode:SetOnClickHandler(function(self)
 				if (self:GetTriState() == 0) then
 					db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
 				elseif (self:GetTriState() == 1) then
@@ -3573,12 +3315,13 @@ do
 		
 		-- // checkboxGlow
 		do
-			checkboxGlow = GUICreateCheckBoxTristate({
+			checkboxGlow = VGUI.CreateCheckBoxTristate();
+			checkboxGlow:SetTextEntries({
 				ColorizeText(L["options:spells:icon-glow"], 1, 1, 1),
 				ColorizeText(L["options:spells:icon-glow-threshold"], 0, 1, 1),
 				ColorizeText(L["options:spells:icon-glow-always"], 0, 1, 0),
 			});
-			checkboxGlow:SetClickHandler(function(self)
+			checkboxGlow:SetOnClickHandler(function(self)
 				if (self:GetTriState() == 0) then
 					db.CustomSpells2[selectedSpell].showGlow = nil; -- // making db smaller
 					sliderGlowThreshold:Hide();
@@ -3598,7 +3341,7 @@ do
 			end);
 			checkboxGlow:SetParent(areaGlow);
 			checkboxGlow:SetPoint("TOPLEFT", 10, -10);
-			-- SetTooltip(checkboxGlow, format(L["options:auras:enabled-state:tooltip"],
+			-- VGUI.SetTooltip(checkboxGlow, format(L["options:auras:enabled-state:tooltip"],
 				-- ColorizeText(L["Disabled"], 1, 1, 1),
 				-- ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
 				-- ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
@@ -3610,7 +3353,10 @@ do
 		do
 		
 			local minV, maxV = 1, 30;
-			sliderGlowThreshold = GUICreateSlider(areaGlow, 18, -23, 320);
+			sliderGlowThreshold = VGUI.CreateSlider();
+			sliderGlowThreshold:SetParent(areaGlow);
+			sliderGlowThreshold:SetWidth(320);
+			sliderGlowThreshold:SetPoint("TOPLEFT", 18, -23);
 			sliderGlowThreshold.label:ClearAllPoints();
 			sliderGlowThreshold.label:SetPoint("CENTER", sliderGlowThreshold, "CENTER", 0, 15);
 			sliderGlowThreshold.label:SetText();
@@ -3675,7 +3421,10 @@ do
 		-- // sliderSpellIconSize
 		do
 		
-			sliderSpellIconSize = GUICreateSlider(areaIconSize, 18, -23, 160);
+			sliderSpellIconSize = VGUI.CreateSlider();
+			sliderSpellIconSize:SetParent(areaIconSize);
+			sliderSpellIconSize:SetWidth(160);
+			sliderSpellIconSize:SetPoint("TOPLEFT", 18, -23);
 			sliderSpellIconSize.label:ClearAllPoints();
 			sliderSpellIconSize.label:SetPoint("CENTER", sliderSpellIconSize, "CENTER", 0, 15);
 			sliderSpellIconSize.label:SetText(L["Icon size"]);
@@ -3863,7 +3612,7 @@ do
 		do
 			
 			-- local minValue, maxValue = 0, 300;
-			-- sliderMaxAuraDurationFilter = GUICreateSlider(areaMaxAuraDurationFilter, 18, -23, areaMaxAuraDurationFilter:GetWidth() - 40);
+			-- sliderMaxAuraDurationFilter = VGUI.CreateSlider(areaMaxAuraDurationFilter, 18, -23, areaMaxAuraDurationFilter:GetWidth() - 40);
 			-- sliderMaxAuraDurationFilter.label:ClearAllPoints();
 			-- sliderMaxAuraDurationFilter.label:SetPoint("CENTER", sliderMaxAuraDurationFilter, "CENTER", 0, 30);
 			-- sliderMaxAuraDurationFilter.label:SetText(L["Show this aura if its remaining time is less than X sec\n(set to 0 to disable this feature)"]);
@@ -3889,7 +3638,9 @@ do
 		-- // buttonDeleteSpell
 		do
 		
-			buttonDeleteSpell = GUICreateButton(spellArea.controlsFrame, L["Delete spell"]);
+			buttonDeleteSpell = VGUI.CreateButton();
+			buttonDeleteSpell:SetParent(spellArea.controlsFrame);
+			buttonDeleteSpell:SetText(L["Delete spell"]);
 			buttonDeleteSpell:SetWidth(90);
 			buttonDeleteSpell:SetHeight(20);
 			buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
@@ -3916,7 +3667,9 @@ do
 		-- // checkBoxInterrupts
 		do
 		
-			checkBoxInterrupts = GUICreateCheckBoxEx(L["options:interrupts:enable-interrupts"], function(this)
+			checkBoxInterrupts = VGUI.CreateCheckBox();
+			checkBoxInterrupts:SetText(L["options:interrupts:enable-interrupts"]);
+			checkBoxInterrupts:SetOnClickHandler(function(this)
 				db.InterruptsEnabled = this:GetChecked();
 				if (db.InterruptsEnabled) then
 					EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
@@ -3958,7 +3711,9 @@ do
 		-- // checkBoxGlow
 		do
 		
-			local checkBoxGlow = GUICreateCheckBoxEx(L["options:interrupts:glow"], function(this)
+			local checkBoxGlow = VGUI.CreateCheckBox();
+			checkBoxGlow:SetText(L["options:interrupts:glow"]);
+			checkBoxGlow:SetOnClickHandler(function(this)
 				db.InterruptsGlow = this:GetChecked();
 				for spellID in pairs(addonTable.Interrupts) do
 					local spellName = SpellNameByID[spellID];
@@ -3984,7 +3739,9 @@ do
 		-- // checkBoxUseSharedIconTexture
 		do
 		
-			local checkBoxUseSharedIconTexture = GUICreateCheckBoxEx(L["options:interrupts:use-shared-icon-texture"], function(this)
+			local checkBoxUseSharedIconTexture = VGUI.CreateCheckBox();
+			checkBoxUseSharedIconTexture:SetText(L["options:interrupts:use-shared-icon-texture"]);
+			checkBoxUseSharedIconTexture:SetOnClickHandler(function(this)
 				db.InterruptsUseSharedIconTexture = this:GetChecked();
 				for spellID in pairs(addonTable.Interrupts) do
 					SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
@@ -4004,7 +3761,9 @@ do
 		-- // checkBoxEnableOnlyInPvPMode
 		do
 		
-			local checkBoxEnableOnlyInPvPMode = GUICreateCheckBoxEx(L["options:interrupts:enable-only-during-pvp-battles"], function(this)
+			local checkBoxEnableOnlyInPvPMode = VGUI.CreateCheckBox();
+			checkBoxEnableOnlyInPvPMode:SetText(L["options:interrupts:enable-only-during-pvp-battles"]);
+			checkBoxEnableOnlyInPvPMode:SetOnClickHandler(function(this)
 				db.InterruptsShowOnlyOnPlayers = this:GetChecked();
 				UpdateAllNameplates(false);
 			end);
@@ -4021,7 +3780,10 @@ do
 		-- // sliderInterruptIconSize
 		do
 		
-			sliderInterruptIconSize = GUICreateSlider(interruptOptionsArea, 20, -40, 175);
+			sliderInterruptIconSize = VGUI.CreateSlider();
+			sliderInterruptIconSize:SetParent(interruptOptionsArea);
+			sliderInterruptIconSize:SetWidth(175);
+			sliderInterruptIconSize:SetPoint("TOPLEFT", 20, -40);
 			sliderInterruptIconSize.label:ClearAllPoints();
 			sliderInterruptIconSize.label:SetPoint("TOPLEFT", interruptOptionsArea, "TOPLEFT", 25, -80);
 			sliderInterruptIconSize.label:SetText(L["options:interrupts:icon-size"]);
@@ -4083,7 +3845,9 @@ do
 		-- // checkBoxExplosiveOrbs
 		do
 		
-			checkBoxExplosiveOrbs = GUICreateCheckBoxEx(L["options:apps:explosive-orbs"], function(this)
+			local checkBoxExplosiveOrbs = VGUI.CreateCheckBox();
+			checkBoxExplosiveOrbs:SetText(L["options:apps:explosive-orbs"]);
+			checkBoxExplosiveOrbs:SetOnClickHandler(function(this)
 				db.Additions_ExplosiveOrbs = this:GetChecked();
 				if (not db.Additions_ExplosiveOrbs) then
 					UpdateAllNameplates(true);
@@ -4092,7 +3856,7 @@ do
 			checkBoxExplosiveOrbs:SetChecked(db.Additions_ExplosiveOrbs);
 			checkBoxExplosiveOrbs:SetParent(GUIFrame);
 			checkBoxExplosiveOrbs:SetPoint("TOPLEFT", 160, -20);
-			SetTooltip(checkBoxExplosiveOrbs, L["options:apps:explosive-orbs:tooltip"]);
+			VGUI.SetTooltip(checkBoxExplosiveOrbs, L["options:apps:explosive-orbs:tooltip"]);
 			table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
 			table_insert(GUIFrame.OnDBChangedHandlers, function()
 				checkBoxExplosiveOrbs:SetChecked(db.Additions_ExplosiveOrbs);
@@ -4100,81 +3864,6 @@ do
 			
 		end
 		
-	end
-	
-	function GetDebugPopup()
-		local popup;
-		if (not _G["NAuras_DebugPopup"]) then
-			popup = CreateFrame("EditBox", "NAuras_DebugPopup", UIParent);
-			popup:SetFrameStrata("DIALOG");
-			popup:SetMultiLine(true);
-			popup:SetAutoFocus(true);
-			popup:SetFontObject(ChatFontNormal);
-			popup:SetSize(450, 300);
-			popup:Hide();
-			popup.orig_Hide = popup.Hide;
-			popup.orig_Show = popup.Show;
-			
-			popup.Hide = function(self)
-				self:SetText("");
-				self.ScrollFrame:Hide();
-				self.Background:Hide();
-				self:orig_Hide();
-			end
-			
-			popup.Show = function(self)
-				self.ScrollFrame:Show();
-				self.Background:Show();
-				self:orig_Show();
-			end
-			
-			popup.AddText = function(self, v)
-				if not v then return end
-				local m = self:GetText();
-				if (m ~= "") then
-					m = m.."\n";
-				end
-				self:SetText(m..v);
-			end
-
-			popup:SetScript("OnEscapePressed", function(self)
-				self:ClearFocus();
-				self:Hide();
-				self.ScrollFrame:Hide();
-				self.Background:Hide();
-			end);
-
-			local s = CreateFrame("ScrollFrame", "NAuras_DebugPopupScrollFrame", UIParent, "UIPanelScrollFrameTemplate");
-			s:SetFrameStrata("DIALOG");
-			s:SetSize(450, 300);
-			s:SetPoint("CENTER");
-			s:SetScrollChild(popup);
-			s:Hide();
-
-			s:SetScript("OnMouseDown",function(self)
-				self:GetScrollChild():SetFocus();
-			end);
-
-			local bg = CreateFrame("Frame",nil,UIParent)
-			bg:SetFrameStrata("DIALOG")
-			bg:SetBackdrop({
-				bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-				edgeFile = "Interface\\Tooltips\\UI-Tooltip-border",
-				edgeSize = 16,
-				insets = { left = 4, right = 4, top = 4, bottom = 4 }
-			})
-			bg:SetBackdropColor(.05,.05,.05,.8)
-			bg:SetBackdropBorderColor(.5,.5,.5)
-			bg:SetPoint("TOPLEFT",s,-10,10)
-			bg:SetPoint("BOTTOMRIGHT",s,30,-10)
-			bg:Hide()
-
-			popup.ScrollFrame = s;
-			popup.Background = bg;
-			
-		end
-		popup = _G["NAuras_DebugPopup"];
-		return popup;
 	end
 	
 end
@@ -4384,19 +4073,20 @@ do
 	
 	function EventFrame.CHAT_MSG_ADDON(prefix, message, channel, sender)
 		if (prefix == "NAuras_prefix") then
-			if (string_find(message, "reporting")) then
-				local _, toWhom = strsplit(":", message, 2);
+			if (string_find(message, "reporting2")) then
+				local _, toWhom, build = strsplit("^", message, 3);
 				local myName = UnitName("player").."-"..string_gsub(GetRealmName(), " ", "");
 				if (toWhom == myName) then
-					Print(sender.." is using NAuras");
+					Print(format("%s is using NAuras (%s)", sender, build));
 				end
-			elseif (string_find(message, "requesting")) then
-				SendAddonMessage("NAuras_prefix", "reporting:"..sender, channel);
+			elseif (string_find(message, "requesting2")) then
+				C_ChatInfo.SendAddonMessage("NAuras_prefix", format("reporting2\^%s\^%s", sender, buildTimestamp or "DEVELOPER COPY"), channel);
 			end
 		end
 	end
 	
-	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED(_, event, _, sourceGUID, _, _, _, destGUID, _, destFlags, _, spellID, spellName)
+	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
+		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName = CombatLogGetCurrentEventInfo();
 		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
 		if (event == "SPELL_INTERRUPT") then
 			local spellDuration = InterruptSpells[spellID];

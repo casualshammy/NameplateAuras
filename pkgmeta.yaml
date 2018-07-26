@@ -36,3 +36,6 @@ externals:
     libs/LibRedDropdown-1.0:
         url: https://github.com/casualshammy/LibRedDropdown.git
         tag: latest
+
+ignore:
+    - libs/LibRedDropdown-1.0/docs

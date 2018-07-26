@@ -3547,7 +3547,7 @@ do
 				for key in gmatch(str, "%w+") do
 					local nmbr = tonumber(key);
 					if (nmbr ~= nil) then
-						t[key] = true;
+						t[nmbr] = true;
 					end
 				end
 				return t;
@@ -3650,6 +3650,7 @@ do
 				UpdateSpellCachesFromDB(selectedSpell);
 				UpdateAllNameplates(false);
 				selectSpell.Text:SetText(L["Click to select spell"]);
+				selectSpell.icon:SetTexture(nil);
 				for _, control in pairs(controls) do
 					control:Hide();
 				end

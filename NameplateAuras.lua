@@ -924,7 +924,7 @@ do
 			if (type(auraInfo.showGlow) == "boolean") then
 				error(auraInfo.showGlow, icon.spellID);
 			end
-			if (remainingAuraTime < auraInfo.showGlow) then
+			if (remainingAuraTime < auraInfo.showGlow or remainingAuraTime > GLOW_TIME_INFINITE) then
 				LBG_ShowOverlayGlow(icon, iconResized, dimGlow); -- // show glow immediatly
 			else
 				LBG_HideOverlayGlow(icon); -- // hide glow

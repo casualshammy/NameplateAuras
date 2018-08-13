@@ -1,5 +1,9 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "enUS", true);
 L = L or {}
+--[===[@non-debug@
+@localization(locale="enUS", format="lua_additive_table", handle-unlocalized="english", table-name="L")@
+--@end-non-debug@]===]
+--@debug@
 L["< 1min"] = "< 1min"
 L["< 5sec"] = "< 5sec"
 L["> 1min"] = "> 1min"
@@ -130,3 +134,4 @@ You will not see this aura on friendly nameplates until you enable this option: 
 L["options:category:apps"] = "Apps";
 L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
 This aura have a bright glow and default size]=]
+--@end-debug@

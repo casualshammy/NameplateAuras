@@ -1,5 +1,9 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "ruRU");
 L = L or {}
+--[===[@non-debug@
+@localization(locale="ruRU", format="lua_additive_table", handle-unlocalized="english", table-name="L")@
+--@end-non-debug@]===]
+--@debug@
 L["< 1min"] = "< 1мин"
 L["< 5sec"] = "< 5сек"
 L["> 1min"] = "> 1мин"
@@ -130,3 +134,4 @@ L["Value must be a number"] = "Значение должно быть число
 L["X offset"] = "Смещение по X"
 L["Y offset"] = "Смещение по Y"
 L["Yes"] = "Да"
+--@end-debug@

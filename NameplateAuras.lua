@@ -2992,10 +2992,14 @@ do
 			buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 			buttonAddSpell:SetScript("OnClick", function(self, ...)
 				local text = editboxAddSpell:GetText();
+				local customSpellID = nil;
 				if (tonumber(text) ~= nil) then
-					msg(format(L["options:auras:add-new-spell:error1"], L["Check spell ID"]));
-				else
-					local spellID;
+					-- // msg(format(L["options:auras:add-new-spell:error1"], L["Check spell ID"]));
+					customSpellID = tonumber(text);
+					text = SpellNameByID[tonumber(text)] or "";
+				end
+				local spellID;
+				if (customSpellID == nil) then
 					if (AllSpellIDsAndIconsByName[text]) then
 						spellID = next(AllSpellIDsAndIconsByName[text]);
 					else
@@ -3005,34 +3009,36 @@ do
 							end
 						end
 					end
-					if (spellID ~= nil) then
-						local spellName = SpellNameByID[spellID];
-						if (spellName == nil) then
-							Print(format(L["Unknown spell: %s"], text));
-						else
-							local alreadyExist = false;
-							for spellIDCustom in pairs(db.CustomSpells2) do
-								local spellNameCustom = SpellNameByID[spellIDCustom];
-								if (spellNameCustom == spellName) then
-									alreadyExist = true;
-								end
-							end
-							if (not alreadyExist) then
-								db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, db.DefaultIconSize, nil);
-								UpdateSpellCachesFromDB(spellID);
-								selectSpell:Click();
-								local btn = dropdownMenuSpells:GetButtonByText(spellName);
-								if (btn ~= nil) then btn:Click(); end
-								UpdateAllNameplates(false);
-							else
-								msg(format(L["Spell already exists (%s)"], spellName));
+				else
+					spellID = customSpellID;
+				end
+				if (spellID ~= nil) then
+					local spellName = SpellNameByID[spellID];
+					if (spellName == nil) then
+						Print(format(L["Unknown spell: %s"], text));
+					else
+						local alreadyExist = false;
+						for spellIDCustom in pairs(db.CustomSpells2) do
+							local spellNameCustom = SpellNameByID[spellIDCustom];
+							if (spellNameCustom == spellName) then
+								alreadyExist = true;
 							end
 						end
-						editboxAddSpell:SetText("");
-						editboxAddSpell:ClearFocus();
-					else
-						msg(L["Spell seems to be nonexistent"]);
+						if (not alreadyExist) then
+							db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, db.DefaultIconSize, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
+							UpdateSpellCachesFromDB(spellID);
+							selectSpell:Click();
+							local btn = dropdownMenuSpells:GetButtonByText(spellName);
+							if (btn ~= nil) then btn:Click(); end
+							UpdateAllNameplates(false);
+						else
+							msg(format(L["Spell already exists (%s)"], spellName));
+						end
 					end
+					editboxAddSpell:SetText("");
+					editboxAddSpell:ClearFocus();
+				else
+					msg(L["Spell seems to be nonexistent"]);
 				end
 			end);
 			table_insert(GUIFrame.Categories[index], buttonAddSpell);

@@ -2994,7 +2994,6 @@ do
 				local text = editboxAddSpell:GetText();
 				local customSpellID = nil;
 				if (tonumber(text) ~= nil) then
-					-- // msg(format(L["options:auras:add-new-spell:error1"], L["Check spell ID"]));
 					customSpellID = tonumber(text);
 					text = SpellNameByID[tonumber(text)] or "";
 				end

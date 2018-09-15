@@ -24,4 +24,4 @@ I'm looking for anyone who can help on translating NameplateAuras. If you are in
 ## Feedback
 
 All suggestions and bug reports are highly appeciated!  
-Ticket tracker (no registration required): [click](https://bitbucket.org/CasualShammy/nameplateauras/issues/new)  
+Ticket tracker: [click](https://github.com/casualshammy/NameplateAuras/issues)  

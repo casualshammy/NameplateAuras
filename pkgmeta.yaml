@@ -39,3 +39,4 @@ externals:
 
 ignore:
     - libs/LibRedDropdown-1.0/docs
+    - _curseforge

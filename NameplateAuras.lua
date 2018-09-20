@@ -60,8 +60,7 @@ local GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
 local EXPLOSIVE_ORB_SPELL_ID = 240446;
 
 local OnStartup, ReloadDB, GetDefaultDBSpellEntry, UpdateSpellCachesFromDB, DeleteAllSpellsFromDB;
-local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnFontChanged, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnSortModeChanged, Nameplates_OnTextPositionChanged,
-	Nameplates_OnIconAnchorChanged, Nameplates_OnFrameAnchorChanged, Nameplates_OnBorderThicknessChanged, OnUpdate;
+local AllocateIcon, UpdateAllNameplates, ProcessAurasForNameplate, UpdateNameplate, Nameplates_OnDefaultIconSizeOrOffsetChanged, Nameplates_OnTextPositionChanged, OnUpdate;
 local ShowGUI, GUICategory_1, GUICategory_2, GUICategory_4, GUICategory_Fonts, GUICategory_AuraStackFont, GUICategory_Borders, GUICategory_Interrupts, GUICategory_Additions;
 local Print, deepcopy, msg, msgWithQuestion, table_contains_value, table_count, ColorizeText;
 
@@ -472,10 +471,7 @@ do
 				func();
 			end
 		end
-		Nameplates_OnFontChanged();
-		Nameplates_OnFrameAnchorChanged();
 		Nameplates_OnTextPositionChanged();
-		Nameplates_OnIconAnchorChanged();
 		UpdateAllNameplates(true);
 	end
 	
@@ -657,7 +653,19 @@ do
 		if (force) then
 			for nameplate in pairs(Nameplates) do
 				if (nameplate.NAurasFrame) then
+					nameplate.NAurasFrame:ClearAllPoints();
+					nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.IconXOffset, db.IconYOffset);
 					for _, icon in pairs(nameplate.NAurasIcons) do
+						if (icon.shown) then
+							if (db.TimerTextUseRelativeScale) then
+								icon.cooldownText:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
+							else
+								icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
+							end
+							icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
+						end
+						icon:ClearAllPoints();
+						icon:SetPoint(db.IconAnchor, nameplate.NAurasFrame, 0, 0);
 						HideCDIcon(icon);
 					end
 				end
@@ -777,6 +785,37 @@ do
 		UpdateNameplate(frame);
 	end
 	
+	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC(item1, item2)
+		return item1.expires < item2.expires;
+	end
+	
+	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREDES(item1, item2)
+		return item1.expires > item2.expires;
+	end
+	
+	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC(item1, item2)
+		local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+		local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
+	end
+	
+	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES(item1, item2)
+		local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
+		local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
+	end
+	
+	local function SortAurasForNameplate_AURA_SORT_MODE_AURATYPE_EXPIRE(item1, item2)
+		if (item1.type ~= item2.type) then
+			return (item1.type == AURA_TYPE_DEBUFF) and true or false;
+		end
+		if (item1.type == AURA_TYPE_DEBUFF) then
+			return item1.expires < item2.expires;
+		else
+			return item1.expires > item2.expires;
+		end
+	end
+	
 	local function SortAurasForNameplate(auras)
 		local t = { };
 		for _, spellInfo in pairs(auras) do
@@ -787,32 +826,15 @@ do
 		if (db.SortMode == AURA_SORT_MODE_NONE) then
 			-- // do nothing
 		elseif (db.SortMode == AURA_SORT_MODE_EXPIREASC) then
-			table_sort(t, function(item1, item2) return item1.expires < item2.expires end);
+			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC);
 		elseif (db.SortMode == AURA_SORT_MODE_EXPIREDES) then
-			table_sort(t, function(item1, item2) return item1.expires > item2.expires end);
+			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_EXPIREDES);
 		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEASC) then
-			table_sort(t, function(item1, item2)
-				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
-				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
-			end);
+			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC);
 		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEDES) then
-			table_sort(t, function(item1, item2)
-				local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-				local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
-				return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize)
-			end);
+			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES);
 		elseif (db.SortMode == AURA_SORT_MODE_AURATYPE_EXPIRE) then
-			table_sort(t, function(item1, item2)
-				if (item1.type ~= item2.type) then
-					return (item1.type == AURA_TYPE_DEBUFF) and true or false;
-				end
-				if (item1.type == AURA_TYPE_DEBUFF) then
-					return item1.expires < item2.expires;
-				else
-					return item1.expires > item2.expires;
-				end
-			end);
+			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_AURATYPE_EXPIRE);
 		end
 		return t;
 	end
@@ -997,24 +1019,7 @@ do
 			frame.UnitFrame.BuffFrame:SetAlpha(0);
 		end
 	end
-	
-	function Nameplates_OnFontChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				for _, icon in pairs(nameplate.NAurasIcons) do
-					if (icon.shown) then
-						if (db.TimerTextUseRelativeScale) then
-							icon.cooldownText:SetFont(SML:Fetch("font", db.Font), math_ceil((icon.size - icon.size / 2) * db.FontScale), "OUTLINE");
-						else
-							icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
-						end
-						icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
-					end
-				end
-			end
-		end
-	end
-	
+		
 	function Nameplates_OnDefaultIconSizeOrOffsetChanged(oldDefaultIconSize)
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
@@ -1035,14 +1040,6 @@ do
 		end
 	end
 	
-	function Nameplates_OnSortModeChanged()
-		for nameplate in pairs(NameplatesVisible) do
-			if (nameplate.NAurasFrame and AurasPerNameplate[nameplate] ~= nil) then
-				UpdateNameplate(nameplate);
-			end
-		end
-	end
-	
 	function Nameplates_OnTextPositionChanged()
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame) then
@@ -1055,39 +1052,7 @@ do
 			end
 		end
 	end
-	
-	function Nameplates_OnIconAnchorChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon:ClearAllPoints();
-					icon:SetPoint(db.IconAnchor, nameplate.NAurasFrame, 0, 0);
-				end
-			end
-		end
-		UpdateAllNameplates(true);
-	end
-	
-	function Nameplates_OnFrameAnchorChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				nameplate.NAurasFrame:ClearAllPoints();
-				nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.IconXOffset, db.IconYOffset);
-			end
-		end
-		UpdateAllNameplates(true);
-	end
-	
-	function Nameplates_OnBorderThicknessChanged()
-		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame) then
-				for _, icon in pairs(nameplate.NAurasIcons) do
-					icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
-				end
-			end
-		end
-	end
-	
+		
 	function OnUpdate()
 		local currentTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
@@ -1107,48 +1072,6 @@ do
 			end
 		end
 	end
-	
-	--@debug@
-	
-	local function aaaaa()
-		local functions = {
-			["UpdateNameplate_SetCooldown"] = 	UpdateNameplate_SetCooldown,
-			["OnUpdate"] = 						OnUpdate,
-		};
-		local t = { };
-		for funcName, func in pairs(functions) do
-			local usage, calls = GetFunctionCPUUsage(func, true);
-			if (calls > 0) then
-				t[#t+1] = { ["name"] = funcName, ["usage"] = usage, ["calls"] = calls };
-			end
-		end
-		table_sort(t, function(item1, item2)
-			return item1.usage > item2.usage;
-		end);
-		print(GetTime(), "-------------------------- START");
-		for _, funcInfo in pairs(t) do
-			print(format("%s: usage/calls: %.5f, total calls: %d, total usage: %.5f", funcInfo.name, (funcInfo.usage/funcInfo.calls), funcInfo.calls, funcInfo.usage));
-		end
-		local tables = {
-			["SpellTextureByID"] = 			SpellTextureByID,
-			["SpellNameByID"] =				SpellNameByID,
-			["AurasPerNameplate"] = 		AurasPerNameplate,
-			["EnabledAurasInfo"] = 			EnabledAurasInfo,
-			["Nameplates"] = 				Nameplates,
-			["NameplatesVisible"] = 		NameplatesVisible,
-		};
-		for tName, tRef in pairs(tables) do
-			print(tName, table_count(tRef));
-		end
-		print(GetTime(), "-------------------------- END");
-		C_Timer.After(300, aaaaa);
-	end
-	
-	function NAuras_Bench()
-		aaaaa();
-	end
-	
-	--@end-debug@
 	
 end
 
@@ -1702,7 +1625,7 @@ do
 					info.func = function(self)
 						db.IconAnchor = self.value;
 						_G[dropdownIconAnchor:GetName().."Text"]:SetText(self:GetText());
-						Nameplates_OnIconAnchorChanged();
+						UpdateAllNameplates(true);
 					end
 					info.checked = (db.IconAnchor == info.value);
 					UIDropDownMenu_AddButton(info);
@@ -1734,7 +1657,7 @@ do
 					info.func = function(self)
 						db.FrameAnchor = self.value;
 						_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
-						Nameplates_OnFrameAnchorChanged();
+						UpdateAllNameplates(true);
 					end
 					info.checked = (db.FrameAnchor == info.value);
 					UIDropDownMenu_AddButton(info);
@@ -1773,7 +1696,11 @@ do
 					info.func = function(self)
 						db.SortMode = self.value;
 						_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
-						Nameplates_OnSortModeChanged();
+						for nameplate in pairs(NameplatesVisible) do
+							if (nameplate.NAurasFrame and AurasPerNameplate[nameplate] ~= nil) then
+								UpdateNameplate(nameplate);
+							end
+						end
 					end
 					info.checked = (db.SortMode == info.value);
 					UIDropDownMenu_AddButton(info);
@@ -1835,7 +1762,7 @@ do
 					["func"] = function(info)
 						button.Text:SetText(L["Font"] .. ": " .. info.text);
 						db.Font = info.text;
-						Nameplates_OnFontChanged();
+						UpdateAllNameplates(true);
 					end,
 					["font"] = SML:Fetch("font", font),
 				});
@@ -1877,7 +1804,7 @@ do
 				local actualValue = tonumber(string_format("%.1f", value));
 				sliderTimerFontScale.editbox:SetText(tostring(actualValue));
 				db.FontScale = actualValue;
-				Nameplates_OnFontChanged();
+				UpdateAllNameplates(true);
 			end);
 			sliderTimerFontScale.editbox:SetText(tostring(db.FontScale));
 			sliderTimerFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1920,7 +1847,7 @@ do
 				local actualValue = tonumber(string_format("%.0f", value));
 				sliderTimerFontSize.editbox:SetText(tostring(actualValue));
 				db.TimerTextSize = actualValue;
-				Nameplates_OnFontChanged();
+				UpdateAllNameplates(true);
 			end);
 			sliderTimerFontSize.editbox:SetText(tostring(db.TimerTextSize));
 			sliderTimerFontSize.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2355,7 +2282,7 @@ do
 					["func"] = function(info)
 						button.Text:SetText(L["Font"] .. ": " .. info.text);
 						db.StacksFont = info.text;
-						Nameplates_OnFontChanged();
+						UpdateAllNameplates(true);
 					end,
 					["font"] = SML:Fetch("font", font),
 				});
@@ -2397,7 +2324,7 @@ do
 				local actualValue = tonumber(string_format("%.1f", value));
 				sliderStacksFontScale.editbox:SetText(tostring(actualValue));
 				db.StacksFontScale = actualValue;
-				Nameplates_OnFontChanged();
+				UpdateAllNameplates(true);
 			end);
 			sliderStacksFontScale.editbox:SetText(tostring(db.StacksFontScale));
 			sliderStacksFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2633,7 +2560,13 @@ do
 				local actualValue = tonumber(string_format("%.0f", value));
 				sliderBorderThickness.editbox:SetText(tostring(actualValue));
 				db.BorderThickness = actualValue;
-				Nameplates_OnBorderThicknessChanged();
+				for nameplate in pairs(Nameplates) do
+					if (nameplate.NAurasFrame) then
+						for _, icon in pairs(nameplate.NAurasIcons) do
+							icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
+						end
+					end
+				end
 			end);
 			sliderBorderThickness.editbox:SetText(tostring(db.BorderThickness));
 			sliderBorderThickness.editbox:SetScript("OnEnterPressed", function(self, value)

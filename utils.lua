@@ -175,3 +175,19 @@ do
 	end);
 end
 
+-- // NPC ID
+do
+
+	local DatamineTooltip = CreateFrame("GameTooltip", "NameplateAurasDatamineTooltip", UIParent, "GameTooltipTemplate");
+	DatamineTooltip:SetOwner(WorldFrame, "ANCHOR_NONE");
+
+	addonTable.NPCNameByID = setmetatable({}, {
+		__index = function(t, key)
+			DatamineTooltip:SetHyperlink(("unit:Creature-0-0-0-0-%d"):format(key));
+			local npcName = _G["NameplateAurasDatamineTooltipTextLeft1"]:GetText();
+			if (npcName and npcName == "") then npcName = nil; end
+			rawset(t, key, npcName);
+			return npcName;
+		end
+	});
+end

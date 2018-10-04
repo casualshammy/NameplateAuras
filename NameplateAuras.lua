@@ -517,6 +517,8 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	
+	local EXPLOSIVE_ORB_NPC_ID_AS_STRING, ZUL_NPC1_ID_AS_STRING, ZUL_NPC2_ID_AS_STRING, ZUL_NPC1_SPELL_ID, ZUL_NPC2_SPELL_ID = 
+		addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING, addonTable.ZUL_NPC1_ID_AS_STRING, addonTable.ZUL_NPC2_ID_AS_STRING, addonTable.ZUL_NPC1_SPELL_ID, addonTable.ZUL_NPC2_SPELL_ID;
 	local glowInfo = { };
 	local symmetricAnchors = { 
 		["TOPLEFT"] = "TOPRIGHT", 
@@ -716,7 +718,50 @@ do
 		end
 		error("Fatal error in <ProcessAurasForNameplate_MultipleAuraInstances>");
 	end
-		
+	
+	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame)
+		if (unitGUID ~= nil) then
+			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 1,
+					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
+					["overrideDimGlow"] = false,
+					["infinite_duration"] = true,
+				});
+			end
+			if (db.Additions_Raid_Zul) then
+				if (npcID == ZUL_NPC1_ID_AS_STRING) then
+					table_insert(AurasPerNameplate[frame], {
+						["duration"] = 0,
+						["expires"] = 0,
+						["stacks"] = 1,
+						["spellID"] = ZUL_NPC1_SPELL_ID,
+						["type"] = AURA_TYPE_DEBUFF,
+						["spellName"] = SpellNameByID[ZUL_NPC1_SPELL_ID],
+						["overrideDimGlow"] = false,
+						["infinite_duration"] = true,
+					});
+				elseif (npcID == ZUL_NPC2_ID_AS_STRING) then
+					table_insert(AurasPerNameplate[frame], {
+						["duration"] = 0,
+						["expires"] = 0,
+						["stacks"] = 1,
+						["spellID"] = ZUL_NPC2_SPELL_ID,
+						["type"] = AURA_TYPE_DEBUFF,
+						["spellName"] = SpellNameByID[ZUL_NPC2_SPELL_ID],
+						["overrideDimGlow"] = false,
+						["infinite_duration"] = true,
+					});
+				end
+			end
+		end
+	end
+	
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
@@ -767,21 +812,7 @@ do
 				table_insert(AurasPerNameplate[frame], interrupt);
 			end
 		end
-		if (db.Additions_ExplosiveOrbs and unitGUID ~= nil) then
-            local _, _, _, _, _, npcID = strsplit("-", unitGUID);
-			if (npcID == "120651") then -- // or npcID == "87761"
-				table_insert(AurasPerNameplate[frame], {
-					["duration"] = 0,
-					["expires"] = 0,
-					["stacks"] = 1,
-					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
-					["type"] = AURA_TYPE_DEBUFF,
-					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
-					["overrideDimGlow"] = false,
-					["infinite_duration"] = true,
-				});
-			end
-		end
+		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame);
 		UpdateNameplate(frame);
 	end
 	

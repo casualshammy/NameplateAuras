@@ -2573,6 +2573,28 @@ local function GUICategory_Additions(index, value)
 		
 	end
 	
+	-- // checkBoxRaidZul
+	do
+		
+		local checkBoxRaidZul = VGUI.CreateCheckBox();
+		EJ_SelectInstance(1031);
+		local zulName = EJ_GetEncounterInfoByIndex(6);
+		checkBoxRaidZul:SetText(string_format(L["options:apps:raid-zul"], zulName));
+		checkBoxRaidZul:SetOnClickHandler(function(this)
+			addonTable.db.Additions_Raid_Zul = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkBoxRaidZul:SetChecked(addonTable.db.Additions_Raid_Zul);
+		checkBoxRaidZul:SetParent(GUIFrame);
+		checkBoxRaidZul:SetPoint("TOPLEFT", 160, -50);
+		VGUI.SetTooltip(checkBoxRaidZul, string_format(L["options:apps:raid-zul:tooltip"], addonTable.NPCNameByID[tonumber(addonTable.ZUL_NPC1_ID_AS_STRING)], addonTable.NPCNameByID[tonumber(addonTable.ZUL_NPC2_ID_AS_STRING)]));
+		table_insert(GUIFrame.Categories[index], checkBoxRaidZul);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxRaidZul:SetChecked(addonTable.db.Additions_Raid_Zul);
+		end);
+		
+	end
+	
 end
 
 local function InitializeGUI_CreateSpellInfoCaches()

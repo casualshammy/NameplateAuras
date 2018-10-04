@@ -4,6 +4,7 @@ L = L or {}
 @localization(locale="enUS", format="lua_additive_table", handle-unlocalized="english", table-name="L")@
 --@end-non-debug@]===]
 --@debug@
+L = L or {}
 L["< 1min"] = "< 1min"
 L["< 5sec"] = "< 5sec"
 L["> 1min"] = "> 1min"
@@ -27,7 +28,8 @@ L["By expire time, descending"] = "By expire time, descending"
 L["By icon size, ascending"] = "By icon size, ascending"
 L["By icon size, descending"] = "By icon size, descending"
 L["CENTER"] = "Center"
-L["Check spell ID"] = "Check spell IDs\n(comma-separated)"
+L["Check spell ID"] = [=[Check spell IDs
+(comma-separated)]=]
 L["Circular"] = "Circular"
 L["Circular with OmniCC support"] = "Circular with OmniCC support"
 L["Circular with timer"] = "Circular with timer"
@@ -62,6 +64,11 @@ L["None"] = "None"
 L["Only my auras"] = "Only my auras"
 L["Open profiles dialog"] = "Open profiles dialog"
 L["Options are not available in combat!"] = "Options are not available in combat!"
+L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
+This aura have a bright glow and default size]=]
+L["options:apps:raid-zul"] = [=[Highlight annoying mobs during '%s'
+raid encounter]=]
+L["options:apps:raid-zul:tooltip"] = "Special icon will be above nameplates of '%s' and '%s'"
 L["options:aura-options:allow-multiple-instances"] = "Allow multiple instances of this aura"
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.
 Otherwise you will see only one instance of this aura (the longest one)]=]
@@ -77,8 +84,26 @@ L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
 L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat"
 L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
+L["options:category:apps"] = "Apps"
+L["options:category:interrupts"] = "Interrupts"
 L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
 your auras will be shown regardless of other filters]=]
+L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
+L["options:general:use-dim-glow"] = "Weak glow of icons"
+L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
+(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
+L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
+L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
+L["options:interrupts:glow"] = "Icon glow"
+L["options:interrupts:icon-size"] = "Icon size"
+L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
+L["options:selector:search"] = "Search:"
+L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
+L["options:spells:icon-glow"] = "Show glow"
+L["options:spells:icon-glow-always"] = "Show glow all the time"
+L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
+L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
+You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
 L["options:timer-text:scale-font-size"] = [=[Scale font size
 according to
@@ -114,24 +139,5 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
-L["options:interrupts:icon-size"] = "Icon size"
-L["options:interrupts:glow"] = "Icon glow"
-L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
-L["options:category:interrupts"] = "Interrupts"
-L["options:selector:search"] = "Search:"
-L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
-L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
-L["options:spells:icon-glow"] = "Show glow"
-L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
-L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
-L["options:general:use-dim-glow"] = "Weak glow of icons"
-L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
-(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
-L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
-L["options:spells:icon-glow-always"] = "Show glow all the time"
-L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
-You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
-L["options:category:apps"] = "Apps";
-L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
-This aura have a bright glow and default size]=]
+
 --@end-debug@

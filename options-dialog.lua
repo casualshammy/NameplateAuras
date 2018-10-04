@@ -287,7 +287,7 @@ local function GUICategory_1(index, value)
 	checkBoxFullOpacityAlways:SetText(L["Always display icons at full opacity (ReloadUI is required)"]);
 	checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
 		addonTable.db.FullOpacityAlways = this:GetChecked();
-		PopupReloadUI();
+		addonTable.PopupReloadUI();
 	end);
 	checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
 	checkBoxFullOpacityAlways:SetParent(GUIFrame);
@@ -295,7 +295,7 @@ local function GUICategory_1(index, value)
 	table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 	table_insert(GUIFrame.OnDBChangedHandlers, function()
 		if (checkBoxFullOpacityAlways:GetChecked() ~= addonTable.db.FullOpacityAlways) then
-			PopupReloadUI();
+			addonTable.PopupReloadUI();
 		end
 		checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
 	end);
@@ -304,7 +304,7 @@ local function GUICategory_1(index, value)
 	checkBoxHideBlizzardFrames:SetText(L["Hide Blizzard's aura frames (Reload UI is required)"]);
 	checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 		addonTable.db.HideBlizzardFrames = this:GetChecked();
-		PopupReloadUI();
+		addonTable.PopupReloadUI();
 	end);
 	checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 	checkBoxHideBlizzardFrames:SetParent(GUIFrame);
@@ -312,7 +312,7 @@ local function GUICategory_1(index, value)
 	table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 	table_insert(GUIFrame.OnDBChangedHandlers, function()
 		if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
-			PopupReloadUI();
+			addonTable.PopupReloadUI();
 		end
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 	end);
@@ -411,7 +411,7 @@ local function GUICategory_1(index, value)
 					else
 						addonTable.db.TimerStyle = self.value;
 						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
-						PopupReloadUI();
+						addonTable.PopupReloadUI();
 					end
 				end
 				info.checked = (addonTable.db.TimerStyle == info.value);
@@ -425,7 +425,7 @@ local function GUICategory_1(index, value)
 		table_insert(GUIFrame.Categories[index], dropdownTimerStyle);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= TimerStylesLocalization[addonTable.db.TimerStyle]) then
-				PopupReloadUI();
+				addonTable.PopupReloadUI();
 			end
 			_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[addonTable.db.TimerStyle]);
 		end);
@@ -1954,9 +1954,9 @@ local function GUICategory_4(index, value)
 	do
 		checkboxEnabled = VGUI.CreateCheckBoxTristate();
 		checkboxEnabled:SetTextEntries({
-			ColorizeText(L["Disabled"], 1, 1, 1),
-			ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
-			ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0),
+			addonTable.ColorizeText(L["Disabled"], 1, 1, 1),
+			addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+			addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0),
 		});
 		checkboxEnabled:SetOnClickHandler(function(self)
 			if (self:GetTriState() == 0) then
@@ -1972,9 +1972,9 @@ local function GUICategory_4(index, value)
 		checkboxEnabled:SetParent(spellArea.controlsFrame);
 		checkboxEnabled:SetPoint("TOPLEFT", 15, -15);
 		VGUI.SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
-			ColorizeText(L["Disabled"], 1, 1, 1),
-			ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
-			ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
+			addonTable.ColorizeText(L["Disabled"], 1, 1, 1),
+			addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+			addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 		table_insert(controls, checkboxEnabled);
 		
 	end
@@ -2030,8 +2030,8 @@ local function GUICategory_4(index, value)
 		checkboxPvPMode = VGUI.CreateCheckBoxTristate();
 		checkboxPvPMode:SetTextEntries({
 			L["options:auras:pvp-state-indefinite"],
-			ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
-			ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
+			addonTable.ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
+			addonTable.ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
 		});
 		checkboxPvPMode:SetOnClickHandler(function(self)
 			if (self:GetTriState() == 0) then
@@ -2075,9 +2075,9 @@ local function GUICategory_4(index, value)
 	do
 		checkboxGlow = VGUI.CreateCheckBoxTristate();
 		checkboxGlow:SetTextEntries({
-			ColorizeText(L["options:spells:icon-glow"], 1, 1, 1),
-			ColorizeText(L["options:spells:icon-glow-threshold"], 0, 1, 1),
-			ColorizeText(L["options:spells:icon-glow-always"], 0, 1, 0),
+			addonTable.ColorizeText(L["options:spells:icon-glow"], 1, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-glow-threshold"], 0, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-glow-always"], 0, 1, 0),
 		});
 		checkboxGlow:SetOnClickHandler(function(self)
 			if (self:GetTriState() == 0) then
@@ -2100,9 +2100,9 @@ local function GUICategory_4(index, value)
 		checkboxGlow:SetParent(areaGlow);
 		checkboxGlow:SetPoint("TOPLEFT", 10, -10);
 		-- VGUI.SetTooltip(checkboxGlow, format(L["options:auras:enabled-state:tooltip"],
-			-- ColorizeText(L["Disabled"], 1, 1, 1),
-			-- ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
-			-- ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
+			-- addonTable.ColorizeText(L["Disabled"], 1, 1, 1),
+			-- addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
+			-- addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 		table_insert(controls, checkboxGlow);
 		
 	end

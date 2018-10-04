@@ -118,6 +118,7 @@ do
 
 	local function InitializeDB()
 		-- // set defaults
+		local defaultIconSize = 45;
 		local aceDBDefaults = {
 			profile = {
 				DefaultSpellsLastSetImported = 0,
@@ -127,7 +128,7 @@ do
 				FullOpacityAlways = false,
 				Font = "NAuras_TeenBold",
 				HideBlizzardFrames = true,
-				DefaultIconSize = 45,
+				DefaultIconSize = defaultIconSize,
 				SortMode = AURA_SORT_MODE_EXPIREASC,
 				FontScale = 1,
 				TimerTextUseRelativeScale = true,
@@ -164,7 +165,7 @@ do
 				FrameAnchor = "CENTER",
 				MinTimeToShowTenthsOfSeconds = 10,
 				InterruptsEnabled = true,
-				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
+				InterruptsIconSize = defaultIconSize,
 				InterruptsGlow = false,
 				InterruptsUseSharedIconTexture = false,
 				InterruptsShowOnlyOnPlayers = true,
@@ -793,6 +794,33 @@ do
 					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
 					["type"] = AURA_TYPE_DEBUFF,
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
+					["overrideDimGlow"] = false,
+					["infinite_duration"] = true,
+				});
+			end
+		end
+		if (unitGUID ~= nil) then
+			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+			if (npcID == "139185") then
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 1,
+					["spellID"] = 273432,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = SpellNameByID[273432],
+					["overrideDimGlow"] = false,
+					["infinite_duration"] = true,
+				});
+			end
+			if (npcID == "139195") then -- // Оживленный гной https://ru.wowhead.com/npc=139195/%D0%BE%D0%B6%D0%B8%D0%B2%D0%BB%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9-%D0%B3%D0%BD%D0%BE%D0%B9
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 1,
+					["spellID"] = 273556,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = SpellNameByID[273556],
 					["overrideDimGlow"] = false,
 					["infinite_duration"] = true,
 				});

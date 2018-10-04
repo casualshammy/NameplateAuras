@@ -5,10 +5,10 @@
 ## Version: @project-version@
 ## OptionalDeps: OmniCC
 
-consts.lua
+src\consts.lua
 embeds.xml
 locales\localizations.xml
-spells.lua
-utils.lua
-options-dialog.lua
-NameplateAuras.lua
+src\spells.lua
+src\utils.lua
+src\options-dialog.lua
+src\NameplateAuras.lua

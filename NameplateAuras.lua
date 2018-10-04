@@ -453,11 +453,7 @@ do
 		end
 	end
 	
-	function ReloadDB()
-		db = aceDB.profile;
-		addonTable.db = aceDB.profile;
-		-- // resetting all caches
-		wipe(EnabledAurasInfo);
+	local function ReloadDB_AddAppsToEnabledAurasInfo()
 		-- // set interrupt spells infos
 		for spellID in pairs(addonTable.Interrupts) do
 			local spellName = SpellNameByID[spellID];
@@ -469,14 +465,25 @@ do
 			};
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
-		-- // set explosive orb spell info
-		local explosiveOrbSpellName = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID];
-		EnabledAurasInfo[explosiveOrbSpellName] = {
-			["enabledState"] =				CONST_SPELL_MODE_DISABLED,
-			["auraType"] =					AURA_TYPE_DEBUFF,
-			["iconSize"] =					db.DefaultIconSize,
-			["showGlow"] =					GLOW_TIME_INFINITE,
-		};
+		-- // apps
+		local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID, addonTable.ZUL_NPC1_SPELL_ID, addonTable.ZUL_NPC2_SPELL_ID };
+		for _, spellID in pairs(spellIDs) do
+			local spellName = SpellNameByID[spellID];
+			EnabledAurasInfo[spellName] = {
+				["enabledState"] =	CONST_SPELL_MODE_DISABLED,
+				["auraType"] =		AURA_TYPE_DEBUFF,
+				["iconSize"] =		db.DefaultIconSize,
+				["showGlow"] =		GLOW_TIME_INFINITE,
+			};
+		end
+	end
+	
+	function ReloadDB()
+		db = aceDB.profile;
+		addonTable.db = aceDB.profile;
+		-- // resetting all caches
+		wipe(EnabledAurasInfo);
+		ReloadDB_AddAppsToEnabledAurasInfo();
 		-- // convert values
 		ReloadDB_ConvertInvalidValues();
 		-- // import default spells

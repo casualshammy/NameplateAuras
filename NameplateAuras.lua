@@ -183,6 +183,7 @@ do
 				InterruptsShowOnlyOnPlayers = true,
 				UseDimGlow = nil,
 				Additions_ExplosiveOrbs = true,
+				Additions_Raid_Zul = true,
 			},
 		};
 		

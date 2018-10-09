@@ -185,9 +185,9 @@ do
 		__index = function(t, key)
 			DatamineTooltip:SetHyperlink(("unit:Creature-0-0-0-0-%d"):format(key));
 			local npcName = _G["NameplateAurasDatamineTooltipTextLeft1"]:GetText();
-			if (npcName and npcName == "") then npcName = nil; end
+			if (npcName == "") then npcName = nil; end
 			rawset(t, key, npcName);
-			return npcName;
+			return npcName or UNKNOWN;
 		end
 	});
 end

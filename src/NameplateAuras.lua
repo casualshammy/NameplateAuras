@@ -677,7 +677,7 @@ do
 			end
 		end
 		for nameplate in pairs(Nameplates) do
-			if (nameplate.NAurasFrame and nameplate.UnitFrame.unit) then
+			if (nameplate.NAurasFrame and nameplate.UnitFrame ~= nil and nameplate.UnitFrame.unit ~= nil) then
 				ProcessAurasForNameplate(nameplate, nameplate.UnitFrame.unit);
 			end
 		end
@@ -1062,7 +1062,7 @@ do
 			end
 		end
 		-- // hide standart buff frame
-		if (db.HideBlizzardFrames and frame.UnitFrame.BuffFrame ~= nil) then
+		if (db.HideBlizzardFrames and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
 			frame.UnitFrame.BuffFrame:SetAlpha(0);
 		end
 	end

@@ -22,7 +22,6 @@ addonTable.Interrupts = {
 	[212619] = 6,	-- Call Felhunter (Warlock)
 	[231665] = 3,	-- Avengers Shield (Paladin)
 	[91802] = 2,	-- Shambling Rush
-	
 };
 
 addonTable.TalentsReducingInterruptTime = {

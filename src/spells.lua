@@ -2,7 +2,7 @@ local _, addonTable = ...;
 local L = addonTable.L;
 
 addonTable.Interrupts = {
-	[1766] = 5,		-- Kick (Rogue)
+	[1766] = 5,	-- Kick (Rogue)
 	[2139] = 6, 	-- Counterspell (Mage)
 	[6552] = 4, 	-- Pummel (Warrior)
 	[19647] = 6, 	-- Spell Lock (Warlock)
@@ -21,13 +21,13 @@ addonTable.Interrupts = {
 	[187707] = 3,	-- Muzzle (Hunter)
 	[212619] = 6,	-- Call Felhunter (Warlock)
 	[231665] = 3,	-- Avengers Shield (Paladin)
+	[91802] = 2,	-- Shambling Rush
 };
 
 addonTable.TalentsReducingInterruptTime = {
 	[GetSpellInfo(221404)] = true, -- // Burning Determination
 	[GetSpellInfo(221677)] = true, -- // Calming Waters
 	[GetSpellInfo(221660)] = true, -- // Holy Concentration
-	[GetSpellInfo(221703)] = true, -- // Casting Circle
 };
 
 addonTable.MarkerSpellsForRestorationShamansAndShadowPriests = {

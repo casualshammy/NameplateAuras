@@ -54,18 +54,18 @@ end
 local function Nameplates_OnDefaultIconSizeOrOffsetChanged(oldDefaultIconSize)
 	for nameplate in pairs(addonTable.Nameplates) do
 		if (nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.IconXOffset, db.IconYOffset);
+			nameplate.NAurasFrame:SetPoint(addonTable.db.FrameAnchor, nameplate, addonTable.db.IconXOffset, addonTable.db.IconYOffset);
 			local totalWidth = 0;
 			for _, icon in pairs(nameplate.NAurasIcons) do
 				if (icon.shown == true) then
 					if (icon.size == oldDefaultIconSize) then
-						icon.size = db.DefaultIconSize;
+						icon.size = addonTable.db.DefaultIconSize;
 					end
-					ResizeIcon(icon, icon.size);
+					addonTable.ResizeIcon(icon, icon.size);
 				end
-				totalWidth = totalWidth + icon.size + db.IconSpacing;
+				totalWidth = totalWidth + icon.size + addonTable.db.IconSpacing;
 			end
-			totalWidth = totalWidth - db.IconSpacing; -- // because we don't need last spacing
+			totalWidth = totalWidth - addonTable.db.IconSpacing; -- // because we don't need last spacing
 			nameplate.NAurasFrame:SetWidth(totalWidth);
 		end
 	end

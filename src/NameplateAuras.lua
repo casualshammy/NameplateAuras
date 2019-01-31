@@ -645,6 +645,7 @@ do
 		end
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
 	end
+	addonTable.ResizeIcon = ResizeIcon;
 	
 	local function UpdateAllNameplates(force)
 		if (force) then

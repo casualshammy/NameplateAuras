@@ -27,6 +27,7 @@ do
 	InPvPCombat								= false;
 	addonTable.EnabledAurasInfo 			= EnabledAurasInfo;
 	addonTable.Nameplates					= Nameplates;
+	addonTable.AllAuraIconFrames			= { };
 end
 
 -- // consts
@@ -184,6 +185,7 @@ do
 				UseDimGlow = nil,
 				Additions_ExplosiveOrbs = true,
 				Additions_Raid_Zul = true,
+				ShowAuraTooltip = false,
 			},
 		};
 		
@@ -538,6 +540,17 @@ do
 		"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",
 	};
 	
+	local function AllocateIcon_SetAuraTooltip(icon)
+		if (db.ShowAuraTooltip) then
+			icon:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_RIGHT"); GameTooltip:SetText(SpellNameByID[icon.spellID]); GameTooltip:Show(); end);
+			icon:SetScript("OnLeave", function() GameTooltip:Hide(); end);
+		else
+			icon:SetScript("OnEnter", nil);
+			icon:SetScript("OnLeave", nil);
+		end
+	end
+	addonTable.AllocateIcon_SetAuraTooltip = AllocateIcon_SetAuraTooltip;
+	
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -547,6 +560,7 @@ do
 			frame.NAurasFrame:Show();
 		end
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
+		AllocateIcon_SetAuraTooltip(icon);
 		if (frame.NAurasIconsCount == 0) then
 			icon:SetPoint(db.IconAnchor, frame.NAurasFrame, 0, 0);
 		else
@@ -611,6 +625,7 @@ do
 		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		icon.stackcount = 0;
+		tinsert(addonTable.AllAuraIconFrames, icon);
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
 		tinsert(frame.NAurasIcons, icon);

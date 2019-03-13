@@ -385,7 +385,28 @@ local function GUICategory_1(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow); end);
 	
 	end
-		
+	
+	-- // checkboxAuraTooltip
+	do
+	
+		local checkboxAuraTooltip = VGUI.CreateCheckBox();
+		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
+		checkboxAuraTooltip:SetOnClickHandler(function(this)
+			addonTable.db.ShowAuraTooltip = this:GetChecked();
+			for _, icon in pairs(addonTable.AllAuraIconFrames) do
+				addonTable.AllocateIcon_SetAuraTooltip(icon);
+			end
+			GameTooltip:Hide();
+		end);
+		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
+		checkboxAuraTooltip:SetParent(GUIFrame);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", 160, -260);
+		-- VGUI.SetTooltip(checkboxAuraTooltip, L["options:general:use-dim-glow:tooltip"]);
+		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
+	
+	end
+	
 	-- // dropdownTimerStyle
 	do
 		
@@ -398,7 +419,7 @@ local function GUICategory_1(index, value)
 	
 		local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -275);
+		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -295);
 		local info = {};
 		dropdownTimerStyle.initialize = function()
 			wipe(info);
@@ -439,7 +460,7 @@ local function GUICategory_1(index, value)
 		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 130);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -310);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -330);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -471,7 +492,7 @@ local function GUICategory_1(index, value)
 		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
-		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -310);
+		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -330);
 		local info = {};
 		dropdownFrameAnchor.initialize = function()
 			wipe(info);
@@ -510,7 +531,7 @@ local function GUICategory_1(index, value)
 	
 		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -345);
+		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -365);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);

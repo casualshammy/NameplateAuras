@@ -89,6 +89,7 @@ L["options:category:interrupts"] = "Interrupts"
 L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
 your auras will be shown regardless of other filters]=]
 L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
+L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
 L["options:general:use-dim-glow"] = "Weak glow of icons"
 L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
 (this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
@@ -139,5 +140,6 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
+
 
 --@end-debug@

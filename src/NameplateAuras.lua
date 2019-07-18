@@ -543,7 +543,7 @@ do
 	local function AllocateIcon_SetAuraTooltip(icon)
 		if (db.ShowAuraTooltip) then
 			icon:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_RIGHT"); GameTooltip:SetText(SpellNameByID[icon.spellID]); GameTooltip:Show(); end);
-			icon:SetScript("OnLeave", function() GameTooltip:Hide(); end);
+			icon:SetScript("OnLeave", function() GameTooltip:SetOwner(UIParent, "ANCHOR_NONE"); GameTooltip:Hide(); end);
 		else
 			icon:SetScript("OnEnter", nil);
 			icon:SetScript("OnLeave", nil);

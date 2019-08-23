@@ -65,7 +65,7 @@ L["Only my auras"] = "Только мои ауры"
 L["Open profiles dialog"] = "Открыть окно профилей"
 L["Options are not available in combat!"] = "Настройки недоступны в бою!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Показывать специальную иконку над неймлэйтами Взрывных Сфер (М+ Взрывной)
-Эта иконка будет иметь размер по умолчанию и будет подсвеченаю]=]
+Эта иконка будет иметь размер по умолчанию и будет подсвечена]=]
 L["options:apps:raid-zul"] = [=[Выделить надоедливых мобов на рейдовом боссе
 '%s']=]
 L["options:apps:raid-zul:tooltip"] = [=[Специальная иконка будет показана над нэймплэйтами мобов
@@ -91,6 +91,7 @@ L["options:category:interrupts"] = "Прерывания"
 L["options:general:always-show-my-auras:tooltip"] = [=[Это высший по приоритету фильтр. Если он включен, ваши ауры
 будут отображаться вне зависимости от других фильтров]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выбрать эту опцию, потому что OmniCC не загружен!"
+L["options:general:show-aura-tooltip"] = "Показывать имя ауры при наведении мышью на иконку"
 L["options:general:use-dim-glow"] = "Слабое свечение иконок"
 L["options:general:use-dim-glow:tooltip"] = [=[Если эта опция включена, вы не увидите постоянного внутреннего и внешнего свечения значков
 (эта опция работает только для тех заклинаний, для которых вы явно включили подсветку иконки)]=]
@@ -101,9 +102,11 @@ L["options:interrupts:icon-size"] = "Размер иконки"
 L["options:interrupts:use-shared-icon-texture"] = "Использовать одну текстуру для всех прерываний"
 L["options:selector:search"] = "Поиск:"
 L["options:spells:appropriate-spell-ids"] = "Соответствующие ID'ы заклинаний:"
+L["options:spells:disable-all-spells"] = "Отключить все ауры"
 L["options:spells:icon-glow"] = "Подсветка иконки"
 L["options:spells:icon-glow-always"] = "Показывать свечение постоянно"
 L["options:spells:icon-glow-threshold"] = "Показывать свечение если таймер меньше чем"
+L["options:spells:please-push-once-more"] = "Пожалуйста, нажмите еще раз"
 L["options:spells:show-on-friends:warning0"] = [=[Пожалуйста, обратите внимание:
 Вы не увидите эту ауру на нэймплэйтах союзников, пока не включите эту опцию: <Общее> --> <Отображать ауры на нэймплэйтах союзников>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Минимальная длительность для отображения десятых долей секунд"
@@ -142,5 +145,6 @@ L["Value must be a number"] = "Значение должно быть число
 L["X offset"] = "Смещение по X"
 L["Y offset"] = "Смещение по Y"
 L["Yes"] = "Да"
+
 
 --@end-debug@

@@ -100,9 +100,11 @@ L["options:interrupts:icon-size"] = "Icon size"
 L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
 L["options:selector:search"] = "Search:"
 L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
+L["options:spells:disable-all-spells"] = "Disable all spells"
 L["options:spells:icon-glow"] = "Show glow"
 L["options:spells:icon-glow-always"] = "Show glow all the time"
 L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
+L["options:spells:please-push-once-more"] = "Please push once more"
 L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
 You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
@@ -140,6 +142,7 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
+
 
 
 --@end-debug@

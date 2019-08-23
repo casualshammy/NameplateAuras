@@ -1,4 +1,4 @@
-## Interface: 80100
+## Interface: 80200
 ## Title: NameplateAuras
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB

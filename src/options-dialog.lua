@@ -1691,10 +1691,10 @@ local function GUICategory_4(index, value)
 		local disableAllSpellsButton = VGUI.CreateButton();
 		disableAllSpellsButton.clickedOnce = false;
 		disableAllSpellsButton:SetParent(dropdownMenuSpells);
-		disableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, 10);
-		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, 10);
-		disableAllSpellsButton:SetHeight(24);
-		disableAllSpellsButton:SetText(L["Disable all spells"]);
+		disableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
+		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
+		disableAllSpellsButton:SetHeight(18);
+		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
 				for spellID in pairs(addonTable.db.CustomSpells2) do
@@ -1704,15 +1704,42 @@ local function GUICategory_4(index, value)
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
 				self.clickedOnce = false;
-				self:SetText(L["Disable all spells"]);
+				self:SetText(L["options:spells:disable-all-spells"]);
 			else
 				self.clickedOnce = true;
-				self:SetText(L["Please push once more"]);
+				self:SetText(L["options:spells:please-push-once-more"]);
 			end
 		end);
 		disableAllSpellsButton:SetScript("OnHide", function(self)
 			self.clickedOnce = false;
-			self:SetText(L["Disable all spells"]);
+			self:SetText(L["options:spells:disable-all-spells"]);
+		end);
+
+	end
+	
+	-- // delete all spells button
+	do
+
+		local deleteAllSpellsButton = VGUI.CreateButton();
+		deleteAllSpellsButton.clickedOnce = false;
+		deleteAllSpellsButton:SetParent(dropdownMenuSpells);
+		deleteAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -28);
+		deleteAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -28);
+		deleteAllSpellsButton:SetHeight(18);
+		deleteAllSpellsButton:SetText(L["Delete all spells"]);
+		deleteAllSpellsButton:SetScript("OnClick", function(self)
+			if (self.clickedOnce) then
+				addonTable.DeleteAllSpellsFromDB();
+				self.clickedOnce = false;
+				self:SetText(L["Delete all spells"]);
+			else
+				self.clickedOnce = true;
+				self:SetText(L["options:spells:please-push-once-more"]);
+			end
+		end);
+		deleteAllSpellsButton:SetScript("OnHide", function(self)
+			self.clickedOnce = false;
+			self:SetText(L["Delete all spells"]);
 		end);
 
 	end

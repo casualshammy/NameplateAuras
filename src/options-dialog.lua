@@ -1685,6 +1685,38 @@ local function GUICategory_4(index, value)
 		[AURA_TYPE_ANY] =		L["Any"],
 	};
 	
+	-- // disable all spells button
+	do
+
+		local disableAllSpellsButton = VGUI.CreateButton();
+		disableAllSpellsButton.clickedOnce = false;
+		disableAllSpellsButton:SetParent(dropdownMenuSpells);
+		disableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, 10);
+		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, 10);
+		disableAllSpellsButton:SetHeight(24);
+		disableAllSpellsButton:SetText(L["Disable all spells"]);
+		disableAllSpellsButton:SetScript("OnClick", function(self)
+			if (self.clickedOnce) then
+				for spellID in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_DISABLED;
+					addonTable.UpdateSpellCachesFromDB(spellID);
+				end
+				addonTable.UpdateAllNameplates(false);
+				selectSpell:Click();
+				self.clickedOnce = false;
+				self:SetText(L["Disable all spells"]);
+			else
+				self.clickedOnce = true;
+				self:SetText(L["Please push once more"]);
+			end
+		end);
+		disableAllSpellsButton:SetScript("OnHide", function(self)
+			self.clickedOnce = false;
+			self:SetText(L["Disable all spells"]);
+		end);
+
+	end
+
 	-- // spellArea
 	do
 	
@@ -1950,6 +1982,17 @@ local function GUICategory_4(index, value)
 					end,
 					onLeave = HideGameTooltip,
 					func = OnSpellSelected,
+					checkBoxEnabled = true,
+					checkBoxState = addonTable.db.CustomSpells2[spellInfo.spellID].enabledState ~= CONST_SPELL_MODE_DISABLED,
+					onCheckBoxClick = function(checkbox)
+						if (checkbox:GetChecked()) then
+							addonTable.db.CustomSpells2[spellInfo.spellID].enabledState = CONST_SPELL_MODE_ALL;
+						else
+							addonTable.db.CustomSpells2[spellInfo.spellID].enabledState = CONST_SPELL_MODE_DISABLED;
+						end
+						addonTable.UpdateSpellCachesFromDB(spellInfo.spellID);
+						addonTable.UpdateAllNameplates(false);
+					end,
 				});
 			end
 			table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);

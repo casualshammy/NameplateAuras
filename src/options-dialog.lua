@@ -1685,13 +1685,44 @@ local function GUICategory_4(index, value)
 		[AURA_TYPE_ANY] =		L["Any"],
 	};
 	
-	-- // disable all spells button
+	-- // enable & disable all spells buttons
 	do
+
+		local enableAllSpellsButton = VGUI.CreateButton();
+		enableAllSpellsButton.clickedOnce = false;
+		enableAllSpellsButton:SetParent(dropdownMenuSpells);
+		enableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
+		enableAllSpellsButton:SetHeight(18);
+		enableAllSpellsButton:SetWidth(dropdownMenuSpells:GetWidth() / 2 - 10);
+		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
+		enableAllSpellsButton:SetScript("OnClick", function(self)
+			if (self.clickedOnce) then
+				for spellID in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_ALL;
+					addonTable.UpdateSpellCachesFromDB(spellID);
+				end
+				addonTable.UpdateAllNameplates(false);
+				selectSpell:Click();
+				self.clickedOnce = false;
+				self:SetText(L["options:spells:enable-all-spells"]);
+			else
+				self.clickedOnce = true;
+				self:SetText(L["options:spells:please-push-once-more"]);
+				CTimerAfter(3, function() 
+					self.clickedOnce = false;
+					self:SetText(L["options:spells:enable-all-spells"]);
+				end);
+			end
+		end);
+		enableAllSpellsButton:SetScript("OnHide", function(self)
+			self.clickedOnce = false;
+			self:SetText(L["options:spells:enable-all-spells"]);
+		end);
 
 		local disableAllSpellsButton = VGUI.CreateButton();
 		disableAllSpellsButton.clickedOnce = false;
 		disableAllSpellsButton:SetParent(dropdownMenuSpells);
-		disableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
+		disableAllSpellsButton:SetPoint("LEFT", enableAllSpellsButton, "RIGHT", 10, 0);
 		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
 		disableAllSpellsButton:SetHeight(18);
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
@@ -1708,6 +1739,10 @@ local function GUICategory_4(index, value)
 			else
 				self.clickedOnce = true;
 				self:SetText(L["options:spells:please-push-once-more"]);
+				CTimerAfter(3, function() 
+					self.clickedOnce = false;
+					self:SetText(L["options:spells:disable-all-spells"]);
+				end);
 			end
 		end);
 		disableAllSpellsButton:SetScript("OnHide", function(self)
@@ -1723,8 +1758,8 @@ local function GUICategory_4(index, value)
 		local deleteAllSpellsButton = VGUI.CreateButton();
 		deleteAllSpellsButton.clickedOnce = false;
 		deleteAllSpellsButton:SetParent(dropdownMenuSpells);
-		deleteAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -28);
-		deleteAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -28);
+		deleteAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -29);
+		deleteAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -29);
 		deleteAllSpellsButton:SetHeight(18);
 		deleteAllSpellsButton:SetText(L["Delete all spells"]);
 		deleteAllSpellsButton:SetScript("OnClick", function(self)
@@ -1735,6 +1770,10 @@ local function GUICategory_4(index, value)
 			else
 				self.clickedOnce = true;
 				self:SetText(L["options:spells:please-push-once-more"]);
+				CTimerAfter(3, function() 
+					self.clickedOnce = false;
+					self:SetText(L["Delete all spells"]);
+				end);
 			end
 		end);
 		deleteAllSpellsButton:SetScript("OnHide", function(self)
@@ -1797,7 +1836,7 @@ local function GUICategory_4(index, value)
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
 		editboxAddSpell:SetPoint("TOPLEFT", GUIFrame, 172, -30);
 		editboxAddSpell:SetHeight(20);
-		editboxAddSpell:SetWidth(175);
+		editboxAddSpell:SetWidth(200);
 		editboxAddSpell:SetJustifyH("LEFT");
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
@@ -1820,7 +1859,7 @@ local function GUICategory_4(index, value)
 		buttonAddSpell = VGUI.CreateButton();
 		buttonAddSpell:SetParent(GUIFrame);
 		buttonAddSpell:SetText(L["Add spell"]);
-		buttonAddSpell:SetWidth(110);
+		buttonAddSpell:SetWidth(115);
 		buttonAddSpell:SetHeight(20);
 		buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 		buttonAddSpell:SetScript("OnClick", function(self, ...)
@@ -1875,28 +1914,6 @@ local function GUICategory_4(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], buttonAddSpell);
 		
-	end
-
-	-- // buttonDeleteAllSpells
-	do
-	
-		local buttonDeleteAllSpells = VGUI.CreateButton();
-		buttonDeleteAllSpells:SetParent(GUIFrame);
-		buttonDeleteAllSpells:SetText("X");
-		buttonDeleteAllSpells:SetWidth(24);
-		buttonDeleteAllSpells:SetHeight(24);
-		buttonDeleteAllSpells:SetPoint("LEFT", buttonAddSpell, "RIGHT", 5, 0);
-		buttonDeleteAllSpells:SetScript("OnClick", addonTable.DeleteAllSpellsFromDB);
-		buttonDeleteAllSpells:SetScript("OnEnter", function(self, ...)
-			GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT");
-			GameTooltip:SetText(L["Delete all spells"]);
-			GameTooltip:Show();
-		end)
-		buttonDeleteAllSpells:SetScript("OnLeave", function(self, ...)
-			GameTooltip:Hide();
-		end)
-		table_insert(GUIFrame.Categories[index], buttonDeleteAllSpells);
-	
 	end
 
 	-- // selectSpell

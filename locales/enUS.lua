@@ -101,6 +101,7 @@ L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all 
 L["options:selector:search"] = "Search:"
 L["options:spells:appropriate-spell-ids"] = "Appropriate spell IDs:"
 L["options:spells:disable-all-spells"] = "Disable all spells"
+L["options:spells:enable-all-spells"] = "Enable all spells"
 L["options:spells:icon-glow"] = "Show glow"
 L["options:spells:icon-glow-always"] = "Show glow all the time"
 L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
@@ -142,7 +143,5 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
-
-
 
 --@end-debug@

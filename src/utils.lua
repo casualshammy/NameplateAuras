@@ -10,6 +10,7 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 
 addonTable.SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
+	[179057] = GetSpellTexture(183591),	-- // override for Chaos Nova
 }, {
 	__index = function(t, key)
 		local texture = GetSpellTexture(key);

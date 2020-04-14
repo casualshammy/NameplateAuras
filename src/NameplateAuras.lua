@@ -187,6 +187,7 @@ do
 				Additions_ExplosiveOrbs = true,
 				Additions_Raid_Zul = true,
 				ShowAuraTooltip = false,
+				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 			},
 		};
 		
@@ -453,6 +454,9 @@ do
 			if (spellInfo.allowMultipleInstances ~= nil and type(spellInfo.allowMultipleInstances) == "boolean" and spellInfo.allowMultipleInstances == false) then
 				spellInfo.allowMultipleInstances = nil;
 			end
+		end
+		if (db.HidePlayerBlizzardFrame == "undefined") then
+			db.HidePlayerBlizzardFrame = db.HideBlizzardFrames;
 		end
 	end
 	
@@ -832,7 +836,7 @@ do
 			end
 		end
 		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame);
-		UpdateNameplate(frame);
+		UpdateNameplate(frame, unitGUID);
 	end
 	
 	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC(item1, item2)
@@ -1016,7 +1020,7 @@ do
 		end
 	end
 	
-	function UpdateNameplate(frame)
+	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
 		local totalWidth = 0;
 		if (AurasPerNameplate[frame]) then
@@ -1074,7 +1078,10 @@ do
 			end
 		end
 		-- // hide standart buff frame
-		if (db.HideBlizzardFrames and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
+		if (db.HideBlizzardFrames and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil and unitGUID ~= LocalPlayerGUID) then
+			frame.UnitFrame.BuffFrame:SetAlpha(0);
+		end
+		if (db.HidePlayerBlizzardFrame and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil and unitGUID == LocalPlayerGUID) then
 			frame.UnitFrame.BuffFrame:SetAlpha(0);
 		end
 	end

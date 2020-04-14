@@ -50,7 +50,6 @@ L["Font scale"] = "Font scale"
 L["Font size"] = "Font size"
 L["Frame anchor:"] = "Frame anchor:"
 L["General"] = "General"
-L["Hide Blizzard's aura frames (Reload UI is required)"] = "Hide Blizzard's aura frames (Reload UI is required)"
 L["Icon anchor:"] = "Icon anchor:"
 L["Icon borders"] = "Icon borders"
 L["Icon size"] = "Icon size"
@@ -89,6 +88,8 @@ L["options:category:interrupts"] = "Interrupts"
 L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
 your auras will be shown regardless of other filters]=]
 L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option because OmniCC is not loaded!"
+L["options:general:hide-blizz-frames"] = "Hide Blizzard's aura frames (except player)"
+L["options:general:hide-player-blizz-frame"] = "Hide Blizzard's aura frames on player"
 L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
 L["options:general:use-dim-glow"] = "Weak glow of icons"
 L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
@@ -143,5 +144,6 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
+
 
 --@end-debug@

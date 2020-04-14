@@ -302,7 +302,7 @@ local function GUICategory_1(index, value)
 	end);
 	
 	local checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
-	checkBoxHideBlizzardFrames:SetText(L["Hide Blizzard's aura frames (Reload UI is required)"]);
+	checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
 	checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 		addonTable.db.HideBlizzardFrames = this:GetChecked();
 		addonTable.PopupReloadUI();
@@ -317,6 +317,23 @@ local function GUICategory_1(index, value)
 		end
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 	end);
+
+	local checkBoxHidePlayerBlizzardFrame = VGUI.CreateCheckBox();
+	checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
+	checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
+		addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
+		addonTable.PopupReloadUI();
+	end);
+	checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
+	checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
+	checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", 160, -180);
+	table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
+	table_insert(GUIFrame.OnDBChangedHandlers, function()
+		if (checkBoxHidePlayerBlizzardFrame:GetChecked() ~= addonTable.db.HidePlayerBlizzardFrame) then
+			addonTable.PopupReloadUI();
+		end
+		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
+	end);
 	
 	-- // checkBoxShowAurasOnPlayerNameplate
 	do
@@ -328,7 +345,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate);
 		checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
-		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -180);
+		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -200);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate); end);
 	
@@ -345,7 +362,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits);
 		checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
-		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -200);
+		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -220);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits); end);
 	
@@ -362,7 +379,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras);
 		checkBoxShowMyAuras:SetParent(GUIFrame);
-		checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -220);
+		checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -240);
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
@@ -380,7 +397,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow);
 		checkBoxUseDimGlow:SetParent(GUIFrame);
-		checkBoxUseDimGlow:SetPoint("TOPLEFT", 160, -240);
+		checkBoxUseDimGlow:SetPoint("TOPLEFT", 160, -260);
 		VGUI.SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow); end);
@@ -401,7 +418,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
 		checkboxAuraTooltip:SetParent(GUIFrame);
-		checkboxAuraTooltip:SetPoint("TOPLEFT", 160, -260);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", 160, -280);
 		-- VGUI.SetTooltip(checkboxAuraTooltip, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
@@ -420,7 +437,7 @@ local function GUICategory_1(index, value)
 	
 		local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -295);
+		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -315);
 		local info = {};
 		dropdownTimerStyle.initialize = function()
 			wipe(info);
@@ -461,7 +478,7 @@ local function GUICategory_1(index, value)
 		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 130);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -330);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -350);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -493,7 +510,7 @@ local function GUICategory_1(index, value)
 		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
-		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -330);
+		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -350);
 		local info = {};
 		dropdownFrameAnchor.initialize = function()
 			wipe(info);
@@ -532,7 +549,7 @@ local function GUICategory_1(index, value)
 	
 		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -365);
+		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -385);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);

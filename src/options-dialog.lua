@@ -786,7 +786,7 @@ local function GUICategory_Fonts(index, value)
 				info.func = function(self)
 					addonTable.db.TimerTextAnchor = self.value;
 					_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(false);
+					addonTable.UpdateAllNameplates(true);
 				end
 				info.checked = anchorPoint == addonTable.db.TimerTextAnchor;
 				UIDropDownMenu_AddButton(info);
@@ -816,7 +816,7 @@ local function GUICategory_Fonts(index, value)
 				info.func = function(self)
 					addonTable.db.TimerTextAnchorIcon = self.value;
 					_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(false);
+					addonTable.UpdateAllNameplates(true);
 				end
 				info.checked = anchorPoint == addonTable.db.TimerTextAnchorIcon;
 				UIDropDownMenu_AddButton(info);
@@ -847,7 +847,7 @@ local function GUICategory_Fonts(index, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextXOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.TimerTextXOffset = actualValue;
-			addonTable.UpdateAllNameplates(false);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset));
 		sliderTimerTextXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -891,7 +891,7 @@ local function GUICategory_Fonts(index, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextYOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.TimerTextYOffset = actualValue;
-			addonTable.UpdateAllNameplates(false);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset));
 		sliderTimerTextYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1226,7 +1226,7 @@ local function GUICategory_AuraStackFont(index, value)
 				info.func = function(self)
 					addonTable.db.StacksTextAnchor = self.value;
 					_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(false);
+					addonTable.UpdateAllNameplates(true);
 				end
 				info.checked = anchorPoint == addonTable.db.StacksTextAnchor;
 				UIDropDownMenu_AddButton(info);
@@ -1256,7 +1256,7 @@ local function GUICategory_AuraStackFont(index, value)
 				info.func = function(self)
 					addonTable.db.StacksTextAnchorIcon = self.value;
 					_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(false);
+					addonTable.UpdateAllNameplates(true);
 				end
 				info.checked = anchorPoint == addonTable.db.StacksTextAnchorIcon;
 				UIDropDownMenu_AddButton(info);
@@ -1287,7 +1287,7 @@ local function GUICategory_AuraStackFont(index, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextXOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.StacksTextXOffset = actualValue;
-			addonTable.UpdateAllNameplates(false);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset));
 		sliderStacksTextXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1331,7 +1331,7 @@ local function GUICategory_AuraStackFont(index, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextYOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.StacksTextYOffset = actualValue;
-			addonTable.UpdateAllNameplates(false);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset));
 		sliderStacksTextYOffset.editbox:SetScript("OnEnterPressed", function(self, value)

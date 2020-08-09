@@ -108,244 +108,93 @@ end
 
 local function GUICategory_1(index, value)
 	
-	-- // sliderIconSize
+	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate, 
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkBoxUseDimGlow, checkboxAuraTooltip;
+
+	-- buttonTestMode
 	do
-	
-		local sliderIconSize = VGUI.CreateSlider();
-		sliderIconSize:SetParent(GUIFrame);
-		sliderIconSize:SetWidth(155);
-		sliderIconSize:SetPoint("TOPLEFT", 160, -25);
-		sliderIconSize.label:SetText(L["Default icon size"]);
-		sliderIconSize.slider:SetValueStep(1);
-		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize);
-		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
-			for spellID, spellInfo in pairs(addonTable.db.CustomSpells2) do
-				if (spellInfo.iconSize == addonTable.db.DefaultIconSize) then
-					addonTable.db.CustomSpells2[spellID].iconSize = math_ceil(value);
-					addonTable.UpdateSpellCachesFromDB(spellID);
-				end
-			end
-			local oldSize = addonTable.db.DefaultIconSize;
-			addonTable.db.DefaultIconSize = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(oldSize);
+		buttonTestMode = VGUI.CreateButton();
+		buttonTestMode:SetParent(GUIFrame);
+		buttonTestMode:SetText(L["options:general:test-mode"]);
+		buttonTestMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
+		buttonTestMode:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
+		buttonTestMode:SetHeight(30);
+		buttonTestMode:SetScript("OnClick", function(self, ...)
+			addonTable.SwitchTestMode();
 		end);
-		sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize));
-		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (sliderIconSize.editbox:GetText() ~= "") then
-				local v = tonumber(sliderIconSize.editbox:GetText());
-				if (v == nil) then
-					sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize));
-					msg(L["Value must be a number"]);
-				else
-					if (v > addonTable.MAX_AURA_ICON_SIZE) then
-						v = addonTable.MAX_AURA_ICON_SIZE;
-					end
-					if (v < 1) then
-						v = 1;
-					end
-					sliderIconSize.slider:SetValue(v);
-				end
-				sliderIconSize.editbox:ClearFocus();
-			end
-		end);
-		sliderIconSize.lowtext:SetText("1");
-		sliderIconSize.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		table_insert(GUIFrame.Categories[index], sliderIconSize);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize)); end);
-	
-	end
-	
-	-- // sliderIconSpacing
-	do
-		local minValue, maxValue = 0, 50;
-		local sliderIconSpacing = VGUI.CreateSlider();
-		sliderIconSpacing:SetParent(GUIFrame);
-		sliderIconSpacing:SetWidth(155);
-		sliderIconSpacing:SetPoint("TOPLEFT", 345, -25);
-		sliderIconSpacing.label:SetText(L["Space between icons"]);
-		sliderIconSpacing.slider:SetValueStep(1);
-		sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
-		sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing);
-		sliderIconSpacing.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconSpacing.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconSpacing = math_ceil(value);
-			addonTable.UpdateAllNameplates(true);
-		end);
-		sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
-		sliderIconSpacing.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (sliderIconSpacing.editbox:GetText() ~= "") then
-				local v = tonumber(sliderIconSpacing.editbox:GetText());
-				if (v == nil) then
-					sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
-					msg(L["Value must be a number"]);
-				else
-					if (v > maxValue) then
-						v = maxValue;
-					end
-					if (v < minValue) then
-						v = minValue;
-					end
-					sliderIconSpacing.slider:SetValue(v);
-				end
-				sliderIconSpacing.editbox:ClearFocus();
-			end
-		end);
-		sliderIconSpacing.lowtext:SetText(tostring(minValue));
-		sliderIconSpacing.hightext:SetText(tostring(maxValue));
-		table_insert(GUIFrame.Categories[index], sliderIconSpacing);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing)); end);
-	
-	end
-	
-	-- // sliderIconXOffset
-	do
-	
-		local sliderIconXOffset = VGUI.CreateSlider();
-		sliderIconXOffset:SetParent(GUIFrame);
-		sliderIconXOffset:SetWidth(155);
-		sliderIconXOffset:SetPoint("TOPLEFT", 160, -85);
-		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
-		sliderIconXOffset.slider:SetValueStep(1);
-		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
-		sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset);
-		sliderIconXOffset.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconXOffset = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
-		end);
-		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
-		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (sliderIconXOffset.editbox:GetText() ~= "") then
-				local v = tonumber(sliderIconXOffset.editbox:GetText());
-				if (v == nil) then
-					sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
-					Print(L["Value must be a number"]);
-				else
-					if (v > 200) then
-						v = 200;
-					end
-					if (v < -200) then
-						v = -200;
-					end
-					sliderIconXOffset.slider:SetValue(v);
-				end
-				sliderIconXOffset.editbox:ClearFocus();
-			end
-		end);
-		sliderIconXOffset.lowtext:SetText("-200");
-		sliderIconXOffset.hightext:SetText("200");
-		table_insert(GUIFrame.Categories[index], sliderIconXOffset);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset)); end);
-	
+		table_insert(GUIFrame.Categories[index], buttonTestMode);
 	end
 
-	-- // sliderIconYOffset
+	-- checkBoxFullOpacityAlways
 	do
-	
-		local sliderIconYOffset = VGUI.CreateSlider();
-		sliderIconYOffset:SetParent(GUIFrame);
-		sliderIconYOffset:SetWidth(155);
-		sliderIconYOffset:SetPoint("TOPLEFT", 345, -85);
-		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
-		sliderIconYOffset.slider:SetValueStep(1);
-		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
-		sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset);
-		sliderIconYOffset.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconYOffset = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
-		end);
-		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
-		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (sliderIconYOffset.editbox:GetText() ~= "") then
-				local v = tonumber(sliderIconYOffset.editbox:GetText());
-				if (v == nil) then
-					sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
-					Print(L["Value must be a number"]);
-				else
-					if (v > 200) then
-						v = 200;
-					end
-					if (v < -200) then
-						v = -200;
-					end
-					sliderIconYOffset.slider:SetValue(v);
-				end
-				sliderIconYOffset.editbox:ClearFocus();
-			end
-		end);
-		sliderIconYOffset.lowtext:SetText("-200");
-		sliderIconYOffset.hightext:SetText("200");
-		table_insert(GUIFrame.Categories[index], sliderIconYOffset);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset)); end);
-	
-	end
-	
-	
-	local checkBoxFullOpacityAlways = VGUI.CreateCheckBox();
-	checkBoxFullOpacityAlways:SetText(L["Always display icons at full opacity (ReloadUI is required)"]);
-	checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
-		addonTable.db.FullOpacityAlways = this:GetChecked();
-		addonTable.PopupReloadUI();
-	end);
-	checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
-	checkBoxFullOpacityAlways:SetParent(GUIFrame);
-	checkBoxFullOpacityAlways:SetPoint("TOPLEFT", 160, -140);
-	table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
-	table_insert(GUIFrame.OnDBChangedHandlers, function()
-		if (checkBoxFullOpacityAlways:GetChecked() ~= addonTable.db.FullOpacityAlways) then
+		checkBoxFullOpacityAlways = VGUI.CreateCheckBox();
+		checkBoxFullOpacityAlways:SetText(L["Always display icons at full opacity (ReloadUI is required)"]);
+		checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
+			addonTable.db.FullOpacityAlways = this:GetChecked();
 			addonTable.PopupReloadUI();
-		end
+		end);
 		checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
-	end);
+		checkBoxFullOpacityAlways:SetParent(GUIFrame);
+		checkBoxFullOpacityAlways:SetPoint("TOPLEFT", buttonTestMode, "BOTTOMLEFT", 0, -10);
+		table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			if (checkBoxFullOpacityAlways:GetChecked() ~= addonTable.db.FullOpacityAlways) then
+				addonTable.PopupReloadUI();
+			end
+			checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
+		end);
+	end
 	
-	local checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
-	checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
-	checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
-		addonTable.db.HideBlizzardFrames = this:GetChecked();
-		addonTable.PopupReloadUI();
-	end);
-	checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
-	checkBoxHideBlizzardFrames:SetParent(GUIFrame);
-	checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", 160, -160);
-	table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
-	table_insert(GUIFrame.OnDBChangedHandlers, function()
-		if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
+	-- checkBoxHideBlizzardFrames
+	do
+		checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
+		checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
+		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
+			addonTable.db.HideBlizzardFrames = this:GetChecked();
 			addonTable.PopupReloadUI();
-		end
+		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
-	end);
+		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
+		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", checkBoxFullOpacityAlways, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
+				addonTable.PopupReloadUI();
+			end
+			checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
+		end);
+	end
 
-	local checkBoxHidePlayerBlizzardFrame = VGUI.CreateCheckBox();
-	checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
-	checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
-		addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
-		addonTable.PopupReloadUI();
-	end);
-	checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
-	checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
-	checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", 160, -180);
-	table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
-	table_insert(GUIFrame.OnDBChangedHandlers, function()
-		if (checkBoxHidePlayerBlizzardFrame:GetChecked() ~= addonTable.db.HidePlayerBlizzardFrame) then
+	-- checkBoxHidePlayerBlizzardFrame
+	do
+		checkBoxHidePlayerBlizzardFrame = VGUI.CreateCheckBox();
+		checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
+		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
+			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
 			addonTable.PopupReloadUI();
-		end
+		end);
 		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
-	end);
+		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
+		checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", checkBoxHideBlizzardFrames, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			if (checkBoxHidePlayerBlizzardFrame:GetChecked() ~= addonTable.db.HidePlayerBlizzardFrame) then
+				addonTable.PopupReloadUI();
+			end
+			checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
+		end);
+	end
 	
 	-- // checkBoxShowAurasOnPlayerNameplate
 	do
-	
-		local checkBoxShowAurasOnPlayerNameplate = VGUI.CreateCheckBox();
+		checkBoxShowAurasOnPlayerNameplate = VGUI.CreateCheckBox();
 		checkBoxShowAurasOnPlayerNameplate:SetText(L["Display auras on player's nameplate"]);
 		checkBoxShowAurasOnPlayerNameplate:SetOnClickHandler(function(this)
 			addonTable.db.ShowAurasOnPlayerNameplate = this:GetChecked();
 		end);
 		checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate);
 		checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
-		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", 160, -200);
+		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", checkBoxHidePlayerBlizzardFrame, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate); end);
 	
@@ -353,8 +202,7 @@ local function GUICategory_1(index, value)
 	
 	-- // checkBoxShowAboveFriendlyUnits
 	do
-	
-		local checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
+		checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
 		checkBoxShowAboveFriendlyUnits:SetText(L["Display auras on nameplates of friendly units"]);
 		checkBoxShowAboveFriendlyUnits:SetOnClickHandler(function(this)
 			addonTable.db.ShowAboveFriendlyUnits = this:GetChecked();
@@ -362,7 +210,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits);
 		checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
-		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", 160, -220);
+		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits); end);
 	
@@ -370,8 +218,7 @@ local function GUICategory_1(index, value)
 	
 	-- // checkBoxShowMyAuras
 	do
-	
-		local checkBoxShowMyAuras = VGUI.CreateCheckBox();
+		checkBoxShowMyAuras = VGUI.CreateCheckBox();
 		checkBoxShowMyAuras:SetText(L["Always show auras cast by myself"]);
 		checkBoxShowMyAuras:SetOnClickHandler(function(this)
 			addonTable.db.AlwaysShowMyAuras = this:GetChecked();
@@ -379,7 +226,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras);
 		checkBoxShowMyAuras:SetParent(GUIFrame);
-		checkBoxShowMyAuras:SetPoint("TOPLEFT", 160, -240);
+		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAboveFriendlyUnits, "BOTTOMLEFT", 0, 0);
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
@@ -388,8 +235,7 @@ local function GUICategory_1(index, value)
 	
 	-- // checkBoxUseDimGlow
 	do
-	
-		local checkBoxUseDimGlow = VGUI.CreateCheckBox();
+		checkBoxUseDimGlow = VGUI.CreateCheckBox();
 		checkBoxUseDimGlow:SetText(L["options:general:use-dim-glow"]);
 		checkBoxUseDimGlow:SetOnClickHandler(function(this)
 			addonTable.db.UseDimGlow = this:GetChecked();
@@ -397,7 +243,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow);
 		checkBoxUseDimGlow:SetParent(GUIFrame);
-		checkBoxUseDimGlow:SetPoint("TOPLEFT", 160, -260);
+		checkBoxUseDimGlow:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
 		VGUI.SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow); end);
@@ -406,8 +252,7 @@ local function GUICategory_1(index, value)
 	
 	-- // checkboxAuraTooltip
 	do
-	
-		local checkboxAuraTooltip = VGUI.CreateCheckBox();
+		checkboxAuraTooltip = VGUI.CreateCheckBox();
 		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
 		checkboxAuraTooltip:SetOnClickHandler(function(this)
 			addonTable.db.ShowAuraTooltip = this:GetChecked();
@@ -418,7 +263,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
 		checkboxAuraTooltip:SetParent(GUIFrame);
-		checkboxAuraTooltip:SetPoint("TOPLEFT", 160, -280);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", checkBoxUseDimGlow, "BOTTOMLEFT", 0, 0);
 		-- VGUI.SetTooltip(checkboxAuraTooltip, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
@@ -437,7 +282,7 @@ local function GUICategory_1(index, value)
 	
 		local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -315);
+		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -350);
 		local info = {};
 		dropdownTimerStyle.initialize = function()
 			wipe(info);
@@ -470,71 +315,7 @@ local function GUICategory_1(index, value)
 		end);
 		
 	end
-	
-	-- // dropdownIconAnchor
-	do
 		
-		local anchors = { "TOPLEFT", "LEFT", "BOTTOMLEFT" }; -- // if you change this, don't forget to change 'symmetricAnchors'
-		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
-		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownIconAnchor, 130);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -350);
-		local info = {};
-		dropdownIconAnchor.initialize = function()
-			wipe(info);
-			for _, anchor in pairs(anchors) do
-				info.text = anchorsLocalization[anchor];
-				info.value = anchor;
-				info.func = function(self)
-					addonTable.db.IconAnchor = self.value;
-					_G[dropdownIconAnchor:GetName().."Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-				end
-				info.checked = (addonTable.db.IconAnchor == info.value);
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		_G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]);
-		dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
-		dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
-		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]); end);
-	
-	end
-	
-	-- // dropdownFrameAnchor
-	do
-		
-		local anchors = { "CENTER", "LEFT", "RIGHT" };
-		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
-		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
-		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -350);
-		local info = {};
-		dropdownFrameAnchor.initialize = function()
-			wipe(info);
-			for _, anchor in pairs(anchors) do
-				info.text = anchorsLocalization[anchor];
-				info.value = anchor;
-				info.func = function(self)
-					addonTable.db.FrameAnchor = self.value;
-					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-				end
-				info.checked = (addonTable.db.FrameAnchor == info.value);
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]);
-		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
-		dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
-		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]); end);
-	
-	end
-	
 	-- // dropdownSortMode
 	do
 		local SortModesLocalization = { 
@@ -2698,29 +2479,250 @@ local function GUICategory_Additions(index, value)
 		end);
 		
 	end
-	
-	-- // checkBoxRaidZul
+		
+end
+
+local function GUICategory_SizeAndPosition(index, value)
+
+	-- // sliderIconSize
 	do
 		
-		local checkBoxRaidZul = VGUI.CreateCheckBox();
-		EJ_SelectInstance(1031);
-		local zulName = EJ_GetEncounterInfoByIndex(6);
-		checkBoxRaidZul:SetText(string_format(L["options:apps:raid-zul"], zulName));
-		checkBoxRaidZul:SetOnClickHandler(function(this)
-			addonTable.db.Additions_Raid_Zul = this:GetChecked();
-			addonTable.UpdateAllNameplates(false);
+		local sliderIconSize = VGUI.CreateSlider();
+		sliderIconSize:SetParent(GUIFrame);
+		sliderIconSize:SetWidth(155);
+		sliderIconSize:SetPoint("TOPLEFT", 160, -25);
+		sliderIconSize.label:SetText(L["Default icon size"]);
+		sliderIconSize.slider:SetValueStep(1);
+		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
+		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize);
+		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
+			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
+			for spellID, spellInfo in pairs(addonTable.db.CustomSpells2) do
+				if (spellInfo.iconSize == addonTable.db.DefaultIconSize) then
+					addonTable.db.CustomSpells2[spellID].iconSize = math_ceil(value);
+					addonTable.UpdateSpellCachesFromDB(spellID);
+				end
+			end
+			local oldSize = addonTable.db.DefaultIconSize;
+			addonTable.db.DefaultIconSize = math_ceil(value);
+			Nameplates_OnDefaultIconSizeOrOffsetChanged(oldSize);
 		end);
-		checkBoxRaidZul:SetChecked(addonTable.db.Additions_Raid_Zul);
-		checkBoxRaidZul:SetParent(GUIFrame);
-		checkBoxRaidZul:SetPoint("TOPLEFT", 160, -50);
-		VGUI.SetTooltip(checkBoxRaidZul, string_format(L["options:apps:raid-zul:tooltip"], addonTable.NPCNameByID[tonumber(addonTable.ZUL_NPC1_ID_AS_STRING)], addonTable.NPCNameByID[tonumber(addonTable.ZUL_NPC2_ID_AS_STRING)]));
-		table_insert(GUIFrame.Categories[index], checkBoxRaidZul);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxRaidZul:SetChecked(addonTable.db.Additions_Raid_Zul);
+		sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize));
+		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconSize.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconSize.editbox:GetText());
+				if (v == nil) then
+					sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize));
+					msg(L["Value must be a number"]);
+				else
+					if (v > addonTable.MAX_AURA_ICON_SIZE) then
+						v = addonTable.MAX_AURA_ICON_SIZE;
+					end
+					if (v < 1) then
+						v = 1;
+					end
+					sliderIconSize.slider:SetValue(v);
+				end
+				sliderIconSize.editbox:ClearFocus();
+			end
 		end);
+		sliderIconSize.lowtext:SetText("1");
+		sliderIconSize.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
+		table_insert(GUIFrame.Categories[index], sliderIconSize);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize); sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize)); end);
+
+	end
+
+	-- // sliderIconSpacing
+	do
+		local minValue, maxValue = 0, 50;
+		local sliderIconSpacing = VGUI.CreateSlider();
+		sliderIconSpacing:SetParent(GUIFrame);
+		sliderIconSpacing:SetWidth(155);
+		sliderIconSpacing:SetPoint("TOPLEFT", 345, -25);
+		sliderIconSpacing.label:SetText(L["Space between icons"]);
+		sliderIconSpacing.slider:SetValueStep(1);
+		sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
+		sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing);
+		sliderIconSpacing.slider:SetScript("OnValueChanged", function(self, value)
+			sliderIconSpacing.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.IconSpacing = math_ceil(value);
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
+		sliderIconSpacing.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconSpacing.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconSpacing.editbox:GetText());
+				if (v == nil) then
+					sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
+					msg(L["Value must be a number"]);
+				else
+					if (v > maxValue) then
+						v = maxValue;
+					end
+					if (v < minValue) then
+						v = minValue;
+					end
+					sliderIconSpacing.slider:SetValue(v);
+				end
+				sliderIconSpacing.editbox:ClearFocus();
+			end
+		end);
+		sliderIconSpacing.lowtext:SetText(tostring(minValue));
+		sliderIconSpacing.hightext:SetText(tostring(maxValue));
+		table_insert(GUIFrame.Categories[index], sliderIconSpacing);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing)); end);
+
+	end
+
+	-- // sliderIconXOffset
+	do
+
+		local sliderIconXOffset = VGUI.CreateSlider();
+		sliderIconXOffset:SetParent(GUIFrame);
+		sliderIconXOffset:SetWidth(155);
+		sliderIconXOffset:SetPoint("TOPLEFT", 160, -85);
+		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
+		sliderIconXOffset.slider:SetValueStep(1);
+		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
+		sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset);
+		sliderIconXOffset.slider:SetScript("OnValueChanged", function(self, value)
+			sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.IconXOffset = math_ceil(value);
+			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
+		end);
+		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
+		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconXOffset.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconXOffset.editbox:GetText());
+				if (v == nil) then
+					sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
+					Print(L["Value must be a number"]);
+				else
+					if (v > 200) then
+						v = 200;
+					end
+					if (v < -200) then
+						v = -200;
+					end
+					sliderIconXOffset.slider:SetValue(v);
+				end
+				sliderIconXOffset.editbox:ClearFocus();
+			end
+		end);
+		sliderIconXOffset.lowtext:SetText("-200");
+		sliderIconXOffset.hightext:SetText("200");
+		table_insert(GUIFrame.Categories[index], sliderIconXOffset);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset)); end);
+
+	end
+
+	-- // sliderIconYOffset
+	do
+
+		local sliderIconYOffset = VGUI.CreateSlider();
+		sliderIconYOffset:SetParent(GUIFrame);
+		sliderIconYOffset:SetWidth(155);
+		sliderIconYOffset:SetPoint("TOPLEFT", 345, -85);
+		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
+		sliderIconYOffset.slider:SetValueStep(1);
+		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
+		sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset);
+		sliderIconYOffset.slider:SetScript("OnValueChanged", function(self, value)
+			sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.IconYOffset = math_ceil(value);
+			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
+		end);
+		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
+		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconYOffset.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconYOffset.editbox:GetText());
+				if (v == nil) then
+					sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
+					Print(L["Value must be a number"]);
+				else
+					if (v > 200) then
+						v = 200;
+					end
+					if (v < -200) then
+						v = -200;
+					end
+					sliderIconYOffset.slider:SetValue(v);
+				end
+				sliderIconYOffset.editbox:ClearFocus();
+			end
+		end);
+		sliderIconYOffset.lowtext:SetText("-200");
+		sliderIconYOffset.hightext:SetText("200");
+		table_insert(GUIFrame.Categories[index], sliderIconYOffset);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset)); end);
+
+	end
+
+	-- // dropdownIconAnchor
+	do
 		
+		local anchors = { "TOPLEFT", "LEFT", "BOTTOMLEFT" }; -- // if you change this, don't forget to change 'symmetricAnchors'
+		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
+		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownIconAnchor, 130);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -150);
+		local info = {};
+		dropdownIconAnchor.initialize = function()
+			wipe(info);
+			for _, anchor in pairs(anchors) do
+				info.text = anchorsLocalization[anchor];
+				info.value = anchor;
+				info.func = function(self)
+					addonTable.db.IconAnchor = self.value;
+					_G[dropdownIconAnchor:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.IconAnchor == info.value);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]);
+		dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
+		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]); end);
+	
 	end
 	
+	-- // dropdownFrameAnchor
+	do
+		
+		local anchors = { "CENTER", "LEFT", "RIGHT" };
+		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
+		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
+		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -150);
+		local info = {};
+		dropdownFrameAnchor.initialize = function()
+			wipe(info);
+			for _, anchor in pairs(anchors) do
+				info.text = anchorsLocalization[anchor];
+				info.value = anchor;
+				info.func = function(self)
+					addonTable.db.FrameAnchor = self.value;
+					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.FrameAnchor == info.value);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]);
+		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
+		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]); end);
+	
+	end
+
 end
 
 local function InitializeGUI_CreateSpellInfoCaches()
@@ -2823,7 +2825,7 @@ local function InitializeGUI()
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 	
-	local categories = { L["General"], L["Profiles"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:apps"] };
+	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:apps"] };
 	for index, value in pairs(categories) do
 		local b = CreateGUICategory();
 		b.index = index;
@@ -2840,22 +2842,24 @@ local function InitializeGUI()
 		
 		GUIFrame.Categories[index] = {};
 		
-		if (index == 1) then
+		if (value == L["General"]) then
 			GUICategory_1(index, value);
-		elseif (index == 2) then
+		elseif (value == L["Profiles"]) then
 			GUICategory_2(index, value);
-		elseif (index == 3) then
+		elseif (value == L["Timer text"]) then
 			GUICategory_Fonts(index, value);
-		elseif (index == 4) then
+		elseif (value == L["Stack text"]) then
 			GUICategory_AuraStackFont(index, value);
-		elseif (index == 5) then
+		elseif (value == L["Icon borders"]) then
 			GUICategory_Borders(index, value);
-		elseif (index == 6) then
+		elseif (value == L["Spells"]) then
 			GUICategory_4(index, value);
-		elseif (index == 7) then
+		elseif (value == L["options:category:interrupts"]) then
 			GUICategory_Interrupts(index, value);
 		elseif (value == L["options:category:apps"]) then
 			GUICategory_Additions(index, value);
+		elseif (value == L["options:category:size-and-position"]) then
+			GUICategory_SizeAndPosition(index, value);
 		end
 	end
 	InitializeGUI_CreateSpellInfoCaches();

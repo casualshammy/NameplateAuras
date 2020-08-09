@@ -65,9 +65,6 @@ L["Open profiles dialog"] = "Open profiles dialog"
 L["Options are not available in combat!"] = "Options are not available in combat!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
 This aura have a bright glow and default size]=]
-L["options:apps:raid-zul"] = [=[Highlight annoying mobs during '%s'
-raid encounter]=]
-L["options:apps:raid-zul:tooltip"] = "Special icon will be above nameplates of '%s' and '%s'"
 L["options:aura-options:allow-multiple-instances"] = "Allow multiple instances of this aura"
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.
 Otherwise you will see only one instance of this aura (the longest one)]=]
@@ -144,6 +141,8 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
+L["options:general:test-mode"] = "Test mode on/off";
+L["options:category:size-and-position"] = "Size & position";
 
 
 --@end-debug@

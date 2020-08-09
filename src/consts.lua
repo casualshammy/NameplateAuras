@@ -10,10 +10,6 @@ addonTable.EXPLOSIVE_ORB_SPELL_ID = 240446;
 addonTable.VERY_LONG_COOLDOWN_DURATION = 30*24*60*60; -- // 30 days
 addonTable.MAX_AURA_ICON_SIZE = 75;
 addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING = "120651";
-addonTable.ZUL_NPC1_ID_AS_STRING = "139185"; -- // Прислужник Зула https://ru.wowhead.com/npc=139185
-addonTable.ZUL_NPC2_ID_AS_STRING = "139195"; -- // Оживленный гной https://ru.wowhead.com/npc=139195
-addonTable.ZUL_NPC1_SPELL_ID = 273432;
-addonTable.ZUL_NPC2_SPELL_ID = 273556;
 addonTable.BORDER_TEXTURES = {
 	"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-2px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-3px.tga",
 	"Interface\\AddOns\\NameplateAuras\\media\\icon-border-4px.tga", "Interface\\AddOns\\NameplateAuras\\media\\icon-border-5px.tga",

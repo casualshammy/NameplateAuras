@@ -185,7 +185,6 @@ do
 				InterruptsShowOnlyOnPlayers = true,
 				UseDimGlow = nil,
 				Additions_ExplosiveOrbs = true,
-				Additions_Raid_Zul = true,
 				ShowAuraTooltip = false,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 			},
@@ -261,6 +260,8 @@ do
 				DeleteAllSpellsFromDB();
 			elseif (msg == "debug") then
 				ChatCommand_Debug();
+			elseif (msg == "test") then
+				addonTable.SwitchTestMode();
 			else
 				addonTable.ShowGUI();
 			end
@@ -473,7 +474,7 @@ do
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- // apps
-		local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID, addonTable.ZUL_NPC1_SPELL_ID, addonTable.ZUL_NPC2_SPELL_ID };
+		local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID };
 		for _, spellID in pairs(spellIDs) do
 			local spellName = SpellNameByID[spellID];
 			EnabledAurasInfo[spellName] = {
@@ -531,8 +532,7 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	
-	local EXPLOSIVE_ORB_NPC_ID_AS_STRING, ZUL_NPC1_ID_AS_STRING, ZUL_NPC2_ID_AS_STRING, ZUL_NPC1_SPELL_ID, ZUL_NPC2_SPELL_ID = 
-		addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING, addonTable.ZUL_NPC1_ID_AS_STRING, addonTable.ZUL_NPC2_ID_AS_STRING, addonTable.ZUL_NPC1_SPELL_ID, addonTable.ZUL_NPC2_SPELL_ID;
+	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
 	local glowInfo = { };
 	local symmetricAnchors = { 
 		["TOPLEFT"] = "TOPRIGHT", 
@@ -542,8 +542,12 @@ do
 	
 	local function AllocateIcon_SetAuraTooltip(icon)
 		if (db.ShowAuraTooltip) then
-			icon:SetScript("OnEnter", function(self) GameTooltip:SetOwner(self, "ANCHOR_RIGHT"); GameTooltip:SetText(SpellNameByID[icon.spellID]); GameTooltip:Show(); end);
-			icon:SetScript("OnLeave", function() GameTooltip:SetOwner(UIParent, "ANCHOR_NONE"); GameTooltip:Hide(); end);
+			icon:SetScript("OnEnter", function(self)
+				GameTooltip:SetOwner(self, "ANCHOR_CURSOR");
+				GameTooltip:SetHyperlink(GetSpellLink(icon.spellID));
+				GameTooltip:Show();
+			end);
+			icon:SetScript("OnLeave", function() GameTooltip:Hide(); end);
 		else
 			icon:SetScript("OnEnter", nil);
 			icon:SetScript("OnLeave", nil);
@@ -756,31 +760,6 @@ do
 					["overrideDimGlow"] = false,
 					["infinite_duration"] = true,
 				});
-			end
-			if (db.Additions_Raid_Zul) then
-				if (npcID == ZUL_NPC1_ID_AS_STRING) then
-					table_insert(AurasPerNameplate[frame], {
-						["duration"] = 0,
-						["expires"] = 0,
-						["stacks"] = 1,
-						["spellID"] = ZUL_NPC1_SPELL_ID,
-						["type"] = AURA_TYPE_DEBUFF,
-						["spellName"] = SpellNameByID[ZUL_NPC1_SPELL_ID],
-						["overrideDimGlow"] = false,
-						["infinite_duration"] = true,
-					});
-				elseif (npcID == ZUL_NPC2_ID_AS_STRING) then
-					table_insert(AurasPerNameplate[frame], {
-						["duration"] = 0,
-						["expires"] = 0,
-						["stacks"] = 1,
-						["spellID"] = ZUL_NPC2_SPELL_ID,
-						["type"] = AURA_TYPE_DEBUFF,
-						["spellName"] = SpellNameByID[ZUL_NPC2_SPELL_ID],
-						["overrideDimGlow"] = false,
-						["infinite_duration"] = true,
-					});
-				end
 			end
 		end
 	end
@@ -1258,4 +1237,89 @@ do
 	end
 	CTimerAfter(1, UpdatePvPState);
 	
+end
+
+--------------------------------------------------------------------------------------------------
+----- Test mode
+--------------------------------------------------------------------------------------------------
+do
+	local TestModeIsActive = false;
+	local intervalBetweenRefreshes = 10;
+	local ticker = nil;
+	local spellsLastTimeUpdated = GetTime() - intervalBetweenRefreshes;
+
+	local function GetSpells()
+		if (GetTime() - spellsLastTimeUpdated >= intervalBetweenRefreshes) then
+			spellsLastTimeUpdated = GetTime();
+		end
+		return {
+			{
+				["duration"] = intervalBetweenRefreshes,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
+				["stacks"] = 1,
+				["spellID"] = 139,
+				["type"] = AURA_TYPE_BUFF,
+				["spellName"] = SpellNameByID[139],
+				["infinite_duration"] = false,
+			},
+			{
+				["duration"] = intervalBetweenRefreshes*2,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
+				["stacks"] = 1,
+				["spellID"] = 215336,
+				["type"] = AURA_TYPE_BUFF,
+				["spellName"] = SpellNameByID[215336],
+				["infinite_duration"] = false,
+			},
+			{
+				["duration"] = intervalBetweenRefreshes*20,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
+				["stacks"] = 3,
+				["spellID"] = 188389,
+				["type"] = AURA_TYPE_DEBUFF,
+				["dispelType"] = "Magic",
+				["spellName"] = SpellNameByID[188389],
+				["infinite_duration"] = false,
+			},
+			{
+				["duration"] = 0,
+				["expires"] = 0,
+				["stacks"] = 10,
+				["spellID"] = 100407,
+				["type"] = AURA_TYPE_DEBUFF,
+				["dispelType"] = "Curse",
+				["spellName"] = SpellNameByID[100407],
+				["infinite_duration"] = true,
+			},
+	
+		};
+	end
+
+	local function Ticker_OnTick()
+		for nameplate, auras in pairs(AurasPerNameplate) do
+			wipe(auras);
+			for _, spellInfo in pairs(GetSpells()) do
+				table_insert(auras, spellInfo);
+			end
+			UpdateNameplate(nameplate, nil);
+			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
+				nameplate.NAurasFrame:Show();
+			end
+		end
+
+	end
+
+	addonTable.SwitchTestMode = function()
+		if (TestModeIsActive) then
+			ticker:Cancel();
+			EventFrame:SetScript("OnEvent", function(self, event, ...) self[event](...); end);
+			addonTable.UpdateAllNameplates();
+		else
+			EventFrame:SetScript("OnEvent", function(self, event, ...) self[event](...); Ticker_OnTick(); end);
+			Ticker_OnTick();
+			ticker = C_Timer.NewTicker(0.1, Ticker_OnTick);
+		end
+		TestModeIsActive = not TestModeIsActive;
+	end
+
 end

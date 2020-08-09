@@ -67,12 +67,6 @@ L["Options are not available in combat!"] = "选项在战斗中不可用!"
 L["options:apps:explosive-orbs:tooltip"] = [=[在邪能爆炸球的姓名版上方显示一个特殊光环（大秘境易爆词缀）
 
 这个光环将会发亮并且是默认大小]=]
-L["options:apps:raid-zul"] = [=[Highlight shadow mobs during '%s' 
-raid encounter]=]
-L["options:apps:raid-zul:tooltip"] = [=[在活化脓液和祖尔的爪牙的姓名版上显示特殊的图标
-
-活化脓液=139195
-祖尔的爪牙=139185]=]
 L["options:aura-options:allow-multiple-instances"] = "允许该光环的多情况设定"
 --[[Translation missing --]]
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[If this option is checked, you will see all instances of this aura, even on the same nameplate.

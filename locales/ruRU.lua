@@ -67,10 +67,6 @@ L["Open profiles dialog"] = "Открыть окно профилей"
 L["Options are not available in combat!"] = "Настройки недоступны в бою!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Показывать специальную иконку над неймлэйтами Взрывных Сфер (М+ Взрывной)
 Эта иконка будет иметь размер по умолчанию и будет подсвечена]=]
-L["options:apps:raid-zul"] = [=[Выделить надоедливых мобов на рейдовом боссе
-'%s']=]
-L["options:apps:raid-zul:tooltip"] = [=[Специальная иконка будет показана над нэймплэйтами мобов
-'%s' и '%s']=]
 L["options:aura-options:allow-multiple-instances"] = "Отображать все экземпляры этой ауры"
 L["options:aura-options:allow-multiple-instances:tooltip"] = [=[Если эта опция включена, вы будете видеть все экземпляры этой ауры,
 даже на одной полоске здоровья. В другом случае вы будете видеть
@@ -146,6 +142,7 @@ L["Value must be a number"] = "Значение должно быть число
 L["X offset"] = "Смещение по X"
 L["Y offset"] = "Смещение по Y"
 L["Yes"] = "Да"
-
+L["options:general:test-mode"] = "Тестовый режим вкл/выкл";
+L["options:category:size-and-position"] = "Размер и место";
 
 --@end-debug@

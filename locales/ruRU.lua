@@ -144,5 +144,8 @@ L["Y offset"] = "Смещение по Y"
 L["Yes"] = "Да"
 L["options:general:test-mode"] = "Тестовый режим вкл/выкл";
 L["options:category:size-and-position"] = "Размер и место";
+L["options:apps:dispellable-spells"] = "Показывать ауры, которые можно развеять/украсть";
+L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры, которые можно развеять/украсть, на неймплейтах врагов
+Эти ауры будут иметь тусклое свечение и размер по умолчанию]=]
 
 --@end-debug@

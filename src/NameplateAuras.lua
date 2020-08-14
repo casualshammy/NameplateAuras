@@ -33,7 +33,7 @@ end
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, 
 	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES, APPS_ENABLED_AURA_INFOS;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
@@ -45,6 +45,9 @@ do
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
 	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
 	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
+	APPS_ENABLED_AURA_INFOS = {
+
+	};
 end
 
 -- // utilities
@@ -187,6 +190,7 @@ do
 				Additions_ExplosiveOrbs = true,
 				ShowAuraTooltip = false,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
+				Additions_DispellableSpells = false,
 			},
 		};
 		
@@ -474,16 +478,16 @@ do
 			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- // apps
-		local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID };
-		for _, spellID in pairs(spellIDs) do
-			local spellName = SpellNameByID[spellID];
-			EnabledAurasInfo[spellName] = {
-				["enabledState"] =	CONST_SPELL_MODE_DISABLED,
-				["auraType"] =		AURA_TYPE_DEBUFF,
-				["iconSize"] =		db.DefaultIconSize,
-				["showGlow"] =		GLOW_TIME_INFINITE,
-			};
-		end
+		-- local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID };
+		-- for _, spellID in pairs(spellIDs) do
+		-- 	local spellName = SpellNameByID[spellID];
+		-- 	EnabledAurasInfo[spellName] = {
+		-- 		["enabledState"] =	CONST_SPELL_MODE_DISABLED,
+		-- 		["auraType"] =		AURA_TYPE_DEBUFF,
+		-- 		["iconSize"] =		db.DefaultIconSize,
+		-- 		["showGlow"] =		GLOW_TIME_INFINITE,
+		-- 	};
+		-- end
 	end
 	
 	function ReloadDB()
@@ -746,7 +750,7 @@ do
 		error("Fatal error in <ProcessAurasForNameplate_MultipleAuraInstances>");
 	end
 	
-	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame)
+	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend)
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
 			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
@@ -759,7 +763,26 @@ do
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
 					["overrideDimGlow"] = false,
 					["infinite_duration"] = true,
+					["overrideShowGlow"] = true,
 				});
+			end
+		end
+		if (db.Additions_DispellableSpells and not unitIsFriend) then
+			for i = 1, 40 do
+				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, isStealable, _, buffSpellID = UnitBuff(unitID, i);
+				if (buffName == nil) then break; end
+				if (isStealable) then
+					table_insert(AurasPerNameplate[frame], {
+						["duration"] = buffDuration,
+						["expires"] = buffExpires,
+						["stacks"] = buffStack,
+						["spellID"] = buffSpellID,
+						["type"] = AURA_TYPE_BUFF,
+						["spellName"] = SpellNameByID[buffSpellID],
+						["overrideDimGlow"] = true,
+						["overrideShowGlow"] = true,
+					});
+				end
 			end
 		end
 	end
@@ -814,7 +837,7 @@ do
 				table_insert(AurasPerNameplate[frame], interrupt);
 			end
 		end
-		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame);
+		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
 		UpdateNameplate(frame, unitGUID);
 	end
 	
@@ -994,10 +1017,13 @@ do
 				LBG_HideOverlayGlow(icon); -- // hide glow
 				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end); -- // queue delayed glow
 			end
+		elseif (spellInfo and spellInfo.overrideShowGlow) then
+			LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
 		else
 			LBG_HideOverlayGlow(icon); -- // this aura doesn't require glow
 		end
 	end
+	addonTable.UpdateNameplate_SetGlow = UpdateNameplate_SetGlow;
 	
 	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
@@ -1305,8 +1331,8 @@ do
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 				nameplate.NAurasFrame:Show();
 			end
+			addonTable.UpdateNameplate_SetGlow(nameplate.NAurasIcons[1], { ["showGlow"] = GLOW_TIME_INFINITE }, true, db.UseDimGlow);
 		end
-
 	end
 
 	addonTable.SwitchTestMode = function()

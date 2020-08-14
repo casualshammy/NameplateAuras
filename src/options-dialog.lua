@@ -2457,11 +2457,11 @@ local function GUICategory_Interrupts(index, value)
 end
 
 local function GUICategory_Additions(index, value)
-	
+	local checkBoxExplosiveOrbs, checkBoxDispellableSpells;
+
 	-- // checkBoxExplosiveOrbs
 	do
-	
-		local checkBoxExplosiveOrbs = VGUI.CreateCheckBox();
+		checkBoxExplosiveOrbs = VGUI.CreateCheckBox();
 		checkBoxExplosiveOrbs:SetText(L["options:apps:explosive-orbs"]);
 		checkBoxExplosiveOrbs:SetOnClickHandler(function(this)
 			addonTable.db.Additions_ExplosiveOrbs = this:GetChecked();
@@ -2476,6 +2476,27 @@ local function GUICategory_Additions(index, value)
 		table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxExplosiveOrbs:SetChecked(addonTable.db.Additions_ExplosiveOrbs);
+		end);
+	end
+
+	-- // checkBoxDispellableSpells
+	do
+	
+		checkBoxDispellableSpells = VGUI.CreateCheckBox();
+		checkBoxDispellableSpells:SetText(L["options:apps:dispellable-spells"]);
+		checkBoxDispellableSpells:SetOnClickHandler(function(this)
+			addonTable.db.Additions_DispellableSpells = this:GetChecked();
+			if (not addonTable.db.Additions_DispellableSpells) then
+				addonTable.UpdateAllNameplates(true);
+			end
+		end);
+		checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
+		checkBoxDispellableSpells:SetParent(GUIFrame);
+		checkBoxDispellableSpells:SetPoint("TOPLEFT", checkBoxExplosiveOrbs, "BOTTOMLEFT",  0, 0);
+		VGUI.SetTooltip(checkBoxDispellableSpells, L["options:apps:dispellable-spells:tooltip"]);
+		table_insert(GUIFrame.Categories[index], checkBoxDispellableSpells);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
 		end);
 		
 	end

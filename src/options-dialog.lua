@@ -2778,7 +2778,7 @@ local function GUICategory_Dispel(index, value)
 				dispellableSpellsBlacklistMenu:SetList(t);
 				dispellableSpellsBlacklistMenu:SetParent(button);
 				dispellableSpellsBlacklistMenu:ClearAllPoints();
-				dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, 0);
+				dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -5);
 				dispellableSpellsBlacklistMenu:Show();
 				dispellableSpellsBlacklistMenu.searchBox:SetFocus();
 				dispellableSpellsBlacklistMenu.searchBox:SetText("");
@@ -2795,11 +2795,12 @@ local function GUICategory_Dispel(index, value)
 		addButton:SetText(L["Add spell"]);
 		addButton:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() / 3);
 		addButton:SetHeight(24);
-		addButton:SetPoint("TOPRIGHT", dispellableSpellsBlacklistMenu, "BOTTOMRIGHT", 0, 0);
+		addButton:SetPoint("TOPRIGHT", dispellableSpellsBlacklistMenu, "BOTTOMRIGHT", 0, -8);
 		addButton:SetScript("OnClick", function(button)
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
 				addonTable.db.Additions_DispellableSpells_Blacklist[text] = true;
+				addonTable.UpdateAllNameplates(false);
 				-- close and then open list again
 				dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
 			end
@@ -2811,14 +2812,16 @@ local function GUICategory_Dispel(index, value)
 		editboxAddSpell = CreateFrame("EditBox", nil, dispellableSpellsBlacklistMenu, "InputBoxTemplate");
 		editboxAddSpell:SetAutoFocus(false);
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
-		editboxAddSpell:SetHeight(1);
-		editboxAddSpell:SetWidth(1);
-		editboxAddSpell:SetPoint("TOPLEFT", dispellableSpellsBlacklistMenu, "BOTTOMLEFT", 0, 0);
-		editboxAddSpell:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMLEFT", 0, 0);
+		editboxAddSpell:SetHeight(20);
+		editboxAddSpell:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() - addButton:GetWidth() - 10);
+		editboxAddSpell:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMLEFT", -5, 1);
 		editboxAddSpell:SetJustifyH("LEFT");
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 		editboxAddSpell:SetScript("OnEnterPressed", function() addButton:Click(); end);
+		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("LEFT", 0, 15);
+		text:SetText(L["Add new spell: "]);
 		hooksecurefunc("ChatEdit_InsertLink", function(link)
 			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
 				local spellName = string.match(link, "%[\"?(.-)\"?%]");

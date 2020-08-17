@@ -146,7 +146,6 @@ L["options:category:size-and-position"] = "Size & position";
 L["options:apps:dispellable-spells"] = "Show dispellable/stealable auras on enemy nameplates";
 L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies
 These auras have a dim glow and default size]=]
-
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
 L["options:category:dispel"] = "Purge/steal";
 

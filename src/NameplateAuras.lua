@@ -790,7 +790,7 @@ do
 	
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
-		local unitIsFriend = UnitIsFriend("player", unitID);
+		local unitIsFriend = not UnitIsEnemy("player", unitID);
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do

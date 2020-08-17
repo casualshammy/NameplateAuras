@@ -147,7 +147,6 @@ L["options:category:size-and-position"] = "Размер и место";
 L["options:apps:dispellable-spells"] = "Показывать ауры, которые можно развеять/украсть";
 L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры, которые можно развеять/украсть, на неймплейтах врагов
 Эти ауры будут иметь тусклое свечение и размер по умолчанию]=]
-
 L["options:apps:dispellable-spells:black-list-button"] = "Открыть чёрный список";
 L["options:category:dispel"] = "Purge/steal";
 

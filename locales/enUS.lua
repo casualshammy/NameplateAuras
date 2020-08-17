@@ -147,5 +147,7 @@ L["options:apps:dispellable-spells"] = "Show dispellable/stealable auras on enem
 L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies
 These auras have a dim glow and default size]=]
 
+L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
+L["options:category:dispel"] = "Purge/steal";
 
 --@end-debug@

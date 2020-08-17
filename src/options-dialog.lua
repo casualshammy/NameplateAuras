@@ -1836,6 +1836,7 @@ local function GUICategory_4(index, value)
 						addonTable.UpdateSpellCachesFromDB(spellInfo.spellID);
 						addonTable.UpdateAllNameplates(false);
 					end,
+					onCloseButtonClick = function(buttonInfo) OnSpellSelected(buttonInfo); buttonDeleteSpell:Click(); selectSpell:Click(); end,
 				});
 			end
 			table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
@@ -2457,7 +2458,7 @@ local function GUICategory_Interrupts(index, value)
 end
 
 local function GUICategory_Additions(index, value)
-	local checkBoxExplosiveOrbs, checkBoxDispellableSpells;
+	local checkBoxExplosiveOrbs;
 
 	-- // checkBoxExplosiveOrbs
 	do
@@ -2479,28 +2480,6 @@ local function GUICategory_Additions(index, value)
 		end);
 	end
 
-	-- // checkBoxDispellableSpells
-	do
-	
-		checkBoxDispellableSpells = VGUI.CreateCheckBox();
-		checkBoxDispellableSpells:SetText(L["options:apps:dispellable-spells"]);
-		checkBoxDispellableSpells:SetOnClickHandler(function(this)
-			addonTable.db.Additions_DispellableSpells = this:GetChecked();
-			if (not addonTable.db.Additions_DispellableSpells) then
-				addonTable.UpdateAllNameplates(true);
-			end
-		end);
-		checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
-		checkBoxDispellableSpells:SetParent(GUIFrame);
-		checkBoxDispellableSpells:SetPoint("TOPLEFT", checkBoxExplosiveOrbs, "BOTTOMLEFT",  0, 0);
-		VGUI.SetTooltip(checkBoxDispellableSpells, L["options:apps:dispellable-spells:tooltip"]);
-		table_insert(GUIFrame.Categories[index], checkBoxDispellableSpells);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
-		end);
-		
-	end
-		
 end
 
 local function GUICategory_SizeAndPosition(index, value)
@@ -2746,6 +2725,114 @@ local function GUICategory_SizeAndPosition(index, value)
 
 end
 
+local function GUICategory_Dispel(index, value)
+	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell;
+	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
+
+	-- // checkBoxDispellableSpells
+	do
+	
+		checkBoxDispellableSpells = VGUI.CreateCheckBox();
+		checkBoxDispellableSpells:SetText(L["options:apps:dispellable-spells"]);
+		checkBoxDispellableSpells:SetOnClickHandler(function(this)
+			addonTable.db.Additions_DispellableSpells = this:GetChecked();
+			if (not addonTable.db.Additions_DispellableSpells) then
+				addonTable.UpdateAllNameplates(true);
+			end
+		end);
+		checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
+		checkBoxDispellableSpells:SetParent(GUIFrame);
+		checkBoxDispellableSpells:SetPoint("TOPLEFT", 160, -20);
+		VGUI.SetTooltip(checkBoxDispellableSpells, L["options:apps:dispellable-spells:tooltip"]);
+		table_insert(GUIFrame.Categories[index], checkBoxDispellableSpells);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
+		end);
+		
+	end
+
+	-- // dispellableSpellsBlacklist
+	do
+		dispellableSpellsBlacklist = VGUI.CreateButton();
+		dispellableSpellsBlacklist:SetParent(GUIFrame);
+		dispellableSpellsBlacklist:SetText(L["options:apps:dispellable-spells:black-list-button"]);
+		dispellableSpellsBlacklist:SetWidth(300);
+		dispellableSpellsBlacklist:SetHeight(24);
+		dispellableSpellsBlacklist:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", 0, 0);
+		dispellableSpellsBlacklist:SetScript("OnClick", function(button)
+			if (dispellableSpellsBlacklistMenu:IsShown()) then
+				dispellableSpellsBlacklistMenu:Hide();
+			else
+				local t = { };
+				for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
+					table_insert(t, {
+						text = spellName,
+						onCloseButtonClick = function(buttonInfo)
+							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
+							-- close and then open list again
+							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click(); 
+						end,
+					});
+				end
+				table_sort(t, function(item1, item2) return item1.text < item2.text end);
+				dispellableSpellsBlacklistMenu:SetList(t);
+				dispellableSpellsBlacklistMenu:SetParent(button);
+				dispellableSpellsBlacklistMenu:ClearAllPoints();
+				dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, 0);
+				dispellableSpellsBlacklistMenu:Show();
+				dispellableSpellsBlacklistMenu.searchBox:SetFocus();
+				dispellableSpellsBlacklistMenu.searchBox:SetText("");
+			end
+		end);
+		dispellableSpellsBlacklist:SetScript("OnHide", function(self) dispellableSpellsBlacklistMenu:Hide(); end);
+		table_insert(GUIFrame.Categories[index], dispellableSpellsBlacklist);
+	end
+
+	-- addButton
+	do
+		addButton = VGUI.CreateButton();
+		addButton:SetParent(dispellableSpellsBlacklistMenu);
+		addButton:SetText(L["Add spell"]);
+		addButton:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() / 3);
+		addButton:SetHeight(24);
+		addButton:SetPoint("TOPRIGHT", dispellableSpellsBlacklistMenu, "BOTTOMRIGHT", 0, 0);
+		addButton:SetScript("OnClick", function(button)
+			local text = editboxAddSpell:GetText();
+			if (text ~= nil and text ~= "") then
+				addonTable.db.Additions_DispellableSpells_Blacklist[text] = true;
+				-- close and then open list again
+				dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
+			end
+		end);
+	end
+
+	-- editboxAddSpell
+	do
+		editboxAddSpell = CreateFrame("EditBox", nil, dispellableSpellsBlacklistMenu, "InputBoxTemplate");
+		editboxAddSpell:SetAutoFocus(false);
+		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
+		editboxAddSpell:SetHeight(1);
+		editboxAddSpell:SetWidth(1);
+		editboxAddSpell:SetPoint("TOPLEFT", dispellableSpellsBlacklistMenu, "BOTTOMLEFT", 0, 0);
+		editboxAddSpell:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMLEFT", 0, 0);
+		editboxAddSpell:SetJustifyH("LEFT");
+		editboxAddSpell:EnableMouse(true);
+		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
+		editboxAddSpell:SetScript("OnEnterPressed", function() addButton:Click(); end);
+		hooksecurefunc("ChatEdit_InsertLink", function(link)
+			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
+				local spellName = string.match(link, "%[\"?(.-)\"?%]");
+				if (spellName ~= nil) then
+					editboxAddSpell:SetText(spellName);
+					editboxAddSpell:ClearFocus();
+					return true;
+				end
+			end
+		end);
+	end
+
+end
+
 local function InitializeGUI_CreateSpellInfoCaches()
 	GUIFrame:HookScript("OnShow", function()
 		local scanAllSpells = coroutine.create(function()
@@ -2846,7 +2933,8 @@ local function InitializeGUI()
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 	
-	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:apps"] };
+	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"], 
+		L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"] };
 	for index, value in pairs(categories) do
 		local b = CreateGUICategory();
 		b.index = index;
@@ -2855,7 +2943,7 @@ local function InitializeGUI()
 			b:LockHighlight();
 			b.text:SetTextColor(1, 1, 1);
 			b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
-		elseif (index >= #categories - 2) then
+		elseif (index >= #categories - 3) then
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 		else
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
@@ -2881,6 +2969,8 @@ local function InitializeGUI()
 			GUICategory_Additions(index, value);
 		elseif (value == L["options:category:size-and-position"]) then
 			GUICategory_SizeAndPosition(index, value);
+		elseif (value == L["options:category:dispel"]) then
+			GUICategory_Dispel(index, value);
 		end
 	end
 	InitializeGUI_CreateSpellInfoCaches();

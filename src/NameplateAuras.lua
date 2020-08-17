@@ -188,6 +188,7 @@ do
 				ShowAuraTooltip = false,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 				Additions_DispellableSpells = false,
+				Additions_DispellableSpells_Blacklist = {},
 			},
 		};
 		
@@ -769,16 +770,19 @@ do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, isStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName == nil) then break; end
 				if (isStealable) then
-					table_insert(AurasPerNameplate[frame], {
-						["duration"] = buffDuration,
-						["expires"] = buffExpires,
-						["stacks"] = buffStack,
-						["spellID"] = buffSpellID,
-						["type"] = AURA_TYPE_BUFF,
-						["spellName"] = SpellNameByID[buffSpellID],
-						["overrideDimGlow"] = true,
-						["overrideShowGlow"] = true,
-					});
+					local text = SpellNameByID[buffSpellID];
+					if (db.Additions_DispellableSpells_Blacklist[text] == nil) then
+						table_insert(AurasPerNameplate[frame], {
+							["duration"] = buffDuration,
+							["expires"] = buffExpires,
+							["stacks"] = buffStack,
+							["spellID"] = buffSpellID,
+							["type"] = AURA_TYPE_BUFF,
+							["spellName"] = text,
+							["overrideDimGlow"] = true,
+							["overrideShowGlow"] = true,
+						});
+					end
 				end
 			end
 		end

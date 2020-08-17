@@ -175,6 +175,7 @@ do
 				IconAnchor = "LEFT",
 				AlwaysShowMyAuras = false,
 				BorderThickness = 2,
+				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
 				MinTimeToShowTenthsOfSeconds = 10,
 				InterruptsEnabled = true,
@@ -791,7 +792,7 @@ do
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitIsFriend("player", unitID);
 		local unitGUID = UnitGUID(unitID);
-		if (LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) then
+		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then

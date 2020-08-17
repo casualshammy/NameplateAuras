@@ -109,7 +109,7 @@ end
 local function GUICategory_1(index, value)
 	
 	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate, 
-		checkBoxShowMyAuras, checkBoxUseDimGlow, checkboxAuraTooltip;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkBoxUseDimGlow, checkboxAuraTooltip;
 
 	-- buttonTestMode
 	do
@@ -200,6 +200,22 @@ local function GUICategory_1(index, value)
 	
 	end
 	
+	-- // checkBoxShowAboveFriendlyUnits
+	do
+		checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
+		checkBoxShowAboveFriendlyUnits:SetText(L["Display auras on nameplates of friendly units"]);
+		checkBoxShowAboveFriendlyUnits:SetOnClickHandler(function(this)
+			addonTable.db.ShowAboveFriendlyUnits = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits);
+		checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
+		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits); end);
+	
+	end
+	
 	-- // checkBoxShowMyAuras
 	do
 		checkBoxShowMyAuras = VGUI.CreateCheckBox();
@@ -210,7 +226,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras);
 		checkBoxShowMyAuras:SetParent(GUIFrame);
-		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
+		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAboveFriendlyUnits, "BOTTOMLEFT", 0, 0);
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
@@ -1877,6 +1893,9 @@ local function GUICategory_4(index, value)
 		checkboxShowOnFriends:SetText(L["Show this aura on nameplates of allies"]);
 		checkboxShowOnFriends:SetOnClickHandler(function(this)
 			addonTable.db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
+			if (this:GetChecked() and not addonTable.db.ShowAboveFriendlyUnits) then
+				msg(L["options:spells:show-on-friends:warning0"]);
+			end
 			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);

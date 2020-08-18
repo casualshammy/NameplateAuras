@@ -2777,8 +2777,6 @@ local function GUICategory_Dispel(index, value)
 				table_sort(t, function(item1, item2) return item1.text < item2.text end);
 				dispellableSpellsBlacklistMenu:SetList(t);
 				dispellableSpellsBlacklistMenu:SetParent(button);
-				dispellableSpellsBlacklistMenu:ClearAllPoints();
-				dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -5);
 				dispellableSpellsBlacklistMenu:Show();
 				dispellableSpellsBlacklistMenu.searchBox:SetFocus();
 				dispellableSpellsBlacklistMenu.searchBox:SetText("");
@@ -2799,11 +2797,28 @@ local function GUICategory_Dispel(index, value)
 		addButton:SetScript("OnClick", function(button)
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
-				addonTable.db.Additions_DispellableSpells_Blacklist[text] = true;
-				addonTable.UpdateAllNameplates(false);
-				-- close and then open list again
-				dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
+				local spellExist = false;
+				if (AllSpellIDsAndIconsByName[text]) then
+					spellExist = true;
+				else
+					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+						if (string_lower(_spellName) == string_lower(text)) then
+							text = _spellName;
+							spellExist = true;
+							break;
+						end
+					end
+				end
+				if (not spellExist) then
+					msg(L["Spell seems to be nonexistent"]);
+				else
+					addonTable.db.Additions_DispellableSpells_Blacklist[text] = true;
+					addonTable.UpdateAllNameplates(false);
+					-- close and then open list again
+					dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
+				end
 			end
+			editboxAddSpell:SetText("");
 		end);
 	end
 
@@ -2814,14 +2829,16 @@ local function GUICategory_Dispel(index, value)
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
 		editboxAddSpell:SetHeight(20);
 		editboxAddSpell:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() - addButton:GetWidth() - 10);
-		editboxAddSpell:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMLEFT", -5, 1);
+		editboxAddSpell:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMLEFT", -5, 2);
 		editboxAddSpell:SetJustifyH("LEFT");
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 		editboxAddSpell:SetScript("OnEnterPressed", function() addButton:Click(); end);
-		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		text:SetPoint("LEFT", 0, 15);
+		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		text:SetPoint("LEFT", 0, 0);
 		text:SetText(L["Add new spell: "]);
+		editboxAddSpell:SetScript("OnEditFocusGained", function() text:Hide(); end);
+		editboxAddSpell:SetScript("OnEditFocusLost", function() text:Show(); end);
 		hooksecurefunc("ChatEdit_InsertLink", function(link)
 			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
 				local spellName = string.match(link, "%[\"?(.-)\"?%]");
@@ -2832,6 +2849,20 @@ local function GUICategory_Dispel(index, value)
 				end
 			end
 		end);
+	end
+
+	-- dispellableSpellsBlacklistMenu
+	do
+		dispellableSpellsBlacklistMenu.Background = dispellableSpellsBlacklistMenu:CreateTexture(nil, "BORDER");
+		dispellableSpellsBlacklistMenu.Background:SetPoint("TOPLEFT", dispellableSpellsBlacklistMenu, "TOPLEFT", -2, 2);
+		dispellableSpellsBlacklistMenu.Background:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMRIGHT",  2, -2);
+		dispellableSpellsBlacklistMenu.Background:SetColorTexture(1, 0.3, 0.3, 1);
+		dispellableSpellsBlacklistMenu.Border = dispellableSpellsBlacklistMenu:CreateTexture(nil, "BACKGROUND");
+		dispellableSpellsBlacklistMenu.Border:SetPoint("TOPLEFT", dispellableSpellsBlacklistMenu, "TOPLEFT", -3, 3);
+		dispellableSpellsBlacklistMenu.Border:SetPoint("BOTTOMRIGHT", addButton, "BOTTOMRIGHT",  3, -3);
+		dispellableSpellsBlacklistMenu.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
+		dispellableSpellsBlacklistMenu:ClearAllPoints();
+		dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", dispellableSpellsBlacklist, "TOPRIGHT", 5, 0);
 	end
 
 end

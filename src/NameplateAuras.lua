@@ -121,7 +121,6 @@ do
 				tostring(spellInfo.checkSpellID),
 				tostring(spellInfo.showOnFriends),
 				tostring(spellInfo.showOnEnemies),
-				tostring(spellInfo.allowMultipleInstances),
 				tostring(spellInfo.pvpCombat),
 				tostring(spellInfo.showGlow)));
 		end
@@ -324,19 +323,32 @@ do
 	};
 	
 	local function GetAuraInfoFromDBByName(auraName, auraID)
-		if (auraName == nil) then
-			error("GetAuraInfoFromDBByName: auraName is nil!");
-		end
-		local bestCandidate = nil;
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			if (auraID ~= nil and spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
-				return spellInfo;
+		local bestCandidate, bestIndex = nil, nil;
+		for index, spellInfo in pairs(db.CustomSpells2) do
+			if (spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
+				return spellInfo, index;
 			end
 			if (spellInfo.spellName == auraName) then
-				bestCandidate = spellInfo;
+				if (bestCandidate ~= nil) then
+					if (spellInfo.checkSpellID == nil) then
+						bestCandidate = spellInfo;
+						bestIndex = index;
+					end
+				else
+					bestCandidate = spellInfo;
+					bestIndex = index;
+				end
 			end
 		end
-		return bestCandidate;
+		return bestCandidate, bestIndex;
+	end
+
+	a1 = function(auraName, auraID)
+		local beginTime = debugprofilestop();
+		local result = GetAuraInfoFromDBByName(auraName, auraID);
+		local timeUsed = debugprofilestop() - beginTime;
+		print("I used "..timeUsed.." milliseconds!");
+		return result;
 	end
 
 	local function AllocateIcon_SetAuraTooltip(icon)
@@ -526,22 +538,7 @@ do
 	end
 	
 	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack, dbEntry)
-		if (dbEntry ~= nil and dbEntry.allowMultipleInstances) then
-			return true;
-		else
-			for index, value in pairs(AurasPerNameplate[frame]) do
-				if (value.spellName == auraName) then
-					if (value.expires < auraExpires or value.stacks ~= auraStack) then
-						AurasPerNameplate[frame][index] = nil;
-						return true;
-					else
-						return false;
-					end
-				end
-			end
-			return true;
-		end
-		error("Fatal error in <ProcessAurasForNameplate_MultipleAuraInstances>");
+		return true;
 	end
 	
 	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend)
@@ -586,7 +583,7 @@ do
 	
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
-		local unitIsFriend = not UnitIsEnemy("player", unitID);
+		local unitIsFriend = UnitReaction("player", unitID) > 4; -- 4 = neutral
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
@@ -610,9 +607,9 @@ do
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
-					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
-						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
+					local dbEntry, index = GetAuraInfoFromDBByName(debuffName, debuffSpellID);
+					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend, dbEntry)) then
+						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack, dbEntry)) then
 							table_insert(AurasPerNameplate[frame], {
 								["duration"] = debuffDuration,
 								["expires"] = debuffExpires,
@@ -1156,28 +1153,4 @@ do
 		TestModeIsActive = not TestModeIsActive;
 	end
 
-end
-
-local function GetAuraInfoFromDBByName(auraName, auraID)
-	if (auraName == nil) then
-		error("GetAuraInfoFromDBByName: auraName is nil!");
-	end
-	local bestCandidate = nil;
-	for spellID, spellInfo in pairs(db.CustomSpells2) do
-		if (auraID ~= nil and spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
-			return spellInfo;
-		end
-		if (SpellNameByID[spellID] == auraName) then
-			bestCandidate = spellInfo;
-		end
-	end
-	return bestCandidate;
-end
-
-a1 = function(auraName, auraID)
-	local beginTime = debugprofilestop();
-	local result = GetAuraInfoFromDBByName(auraName, auraID);
-	local timeUsed = debugprofilestop() - beginTime;
-	print("I used "..timeUsed.." milliseconds!");
-	return result;
 end

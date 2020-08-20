@@ -37,16 +37,19 @@ do
 end
 
 
-local function GetDefaultDBSpellEntry(enabledState, spellID, iconSize, checkSpellID)
+function addonTable.OnSpellInfoCachesReady()
+
+end
+
+local function GetDefaultDBSpellEntry(enabledState, spellName, iconSize, checkSpellID)
 	return {
 		["enabledState"] =				enabledState,
 		["auraType"] =					AURA_TYPE_ANY,
 		["iconSize"] =					(iconSize ~= nil) and iconSize or addonTable.db.DefaultIconSize,
-		["spellID"] =					spellID,
+		["spellName"] =					spellName,
 		["checkSpellID"] =				checkSpellID,
 		["showOnFriends"] =				true,
 		["showOnEnemies"] =				true,
-		["allowMultipleInstances"] =	nil,
 		["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
 		["showGlow"] =					nil,
 	};
@@ -1476,13 +1479,37 @@ local function GUICategory_4(index, value)
 	local selectedSpell = 0;
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
 	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-		checkboxShowOnEnemies, checkboxAllowMultipleInstances, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
+		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
 		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
 		[AURA_TYPE_ANY] =		L["Any"],
 	};
+
+	local function GetButtonNameForSpell(spellInfo)
+		local text = spellInfo.spellName;
+		if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
+			local t = { };
+			for spellID in pairs(spellInfo.checkSpellID) do
+				table_insert(t, spellID);
+			end
+			text = text .. " (" .. table.concat(t, ",") .. ")";
+		end
+		return text;
+	end
+
+	local function GetIDAndTextureForSpell(spellInfo)
+		local spellID, textureID;
+		if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
+			spellID = next(spellInfo.checkSpellID);
+			textureID = SpellTextureByID[spellID];
+		else
+			spellID = next(AllSpellIDsAndIconsByName[spellInfo.spellName]);
+			textureID = SpellTextureByID[spellID];
+		end
+		return spellID, textureID;
+	end
 	
 	-- // enable & disable all spells buttons
 	do
@@ -1496,8 +1523,8 @@ local function GUICategory_4(index, value)
 		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
 		enableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for spellID in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_ALL;
+				for index in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_ALL;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1526,8 +1553,8 @@ local function GUICategory_4(index, value)
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for spellID in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_DISABLED;
+				for index in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_DISABLED;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1667,47 +1694,34 @@ local function GUICategory_4(index, value)
 				text = SpellNameByID[tonumber(text)] or "";
 			end
 			local spellID;
+			-- if user entered name of spell
 			if (customSpellID == nil) then
-				if (AllSpellIDsAndIconsByName[text]) then
-					spellID = next(AllSpellIDsAndIconsByName[text]);
-				else
+				if (AllSpellIDsAndIconsByName[text] == nil) then
 					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
 						if (string_lower(_spellName) == string_lower(text)) then
-							spellID = next(_spellInfo);
+							text = _spellName;
 						end
 					end
 				end
-			else
-				spellID = customSpellID;
 			end
-			if (spellID ~= nil) then
-				local spellName = SpellNameByID[spellID];
-				if (spellName == nil) then
-					Print(format(L["Unknown spell: %s"], text));
-				else
-					local alreadyExist = false;
-					for spellIDCustom in pairs(addonTable.db.CustomSpells2) do
-						local spellNameCustom = SpellNameByID[spellIDCustom];
-						if (spellNameCustom == spellName) then
-							alreadyExist = true;
-						end
-					end
-					if (not alreadyExist) then
-						addonTable.db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, addonTable.db.DefaultIconSize, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
-						selectSpell:Click();
-						local btn = dropdownMenuSpells:GetButtonByText(spellName);
-						if (btn ~= nil) then btn:Click(); end
-						addonTable.UpdateAllNameplates(false);
-					else
-						msg(format(L["Spell already exists (%s)"], spellName));
-					end
-				end
+			if (text ~= nil and AllSpellIDsAndIconsByName[text] ~= nil) then
+				local spellName = text;
+				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, addonTable.db.DefaultIconSize, 
+					(customSpellID ~= nil) and { [customSpellID] = true } or nil);
+				table_insert(addonTable.db.CustomSpells2, newSpellInfo);
+				selectSpell:Click();
+				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(newSpellInfo));
+				if (btn ~= nil) then btn:Click(); end
+				addonTable.UpdateAllNameplates(false);
 				editboxAddSpell:SetText("");
 				editboxAddSpell:ClearFocus();
 			else
 				msg(L["Spell seems to be nonexistent"]);
 			end
 		end);
+		buttonAddSpell:Disable();
+		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() buttonAddSpell:Enable(); end);
+		GUIFrame:HookScript("OnHide", function() buttonAddSpell:Disable(); end);
 		table_insert(GUIFrame.Categories[index], buttonAddSpell);
 		
 	end
@@ -1716,59 +1730,59 @@ local function GUICategory_4(index, value)
 	do
 	
 		local function OnSpellSelected(buttonInfo)
+			local spellInfo = buttonInfo.info;
 			for _, control in pairs(controls) do
 				control:Show();
 			end
-			selectedSpell = buttonInfo.info.spellID;
+			selectedSpell = buttonInfo.indexInDB;
 			selectSpell.Text:SetText(buttonInfo.text);
 			selectSpell:SetScript("OnEnter", function(self, ...)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
-				GameTooltip:SetSpellByID(buttonInfo.info.spellID);
+				GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
 				GameTooltip:Show();
 			end);
-			selectSpell:HookScript("OnLeave", function(self, ...) GameTooltip:Hide(); end);
-			selectSpell.icon:SetTexture(SpellTextureByID[buttonInfo.info.spellID]);
+			selectSpell:SetScript("OnLeave", function(self, ...) GameTooltip:Hide(); end);
+			selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
 			selectSpell.icon:Show();
-			sliderSpellIconSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].iconSize);
-			sliderSpellIconSize.editbox:SetText(tostring(addonTable.db.CustomSpells2[selectedSpell].iconSize));
-			_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[addonTable.db.CustomSpells2[selectedSpell].auraType]);
-			if (addonTable.db.CustomSpells2[selectedSpell].checkSpellID) then
+			sliderSpellIconSize.slider:SetValue(spellInfo.iconSize);
+			sliderSpellIconSize.editbox:SetText(tostring(spellInfo.iconSize));
+			_G[dropdownSpellShowType:GetName().."Text"]:SetText(AuraTypesLocalization[spellInfo.auraType]);
+			if (spellInfo.checkSpellID) then
 				local t = { };
-				for key in pairs(addonTable.db.CustomSpells2[selectedSpell].checkSpellID) do
+				for key in pairs(spellInfo.checkSpellID) do
 					table_insert(t, key);
 				end
 				editboxSpellID:SetText(table.concat(t, ","));
 			else
 				editboxSpellID:SetText("");
 			end
-			checkboxShowOnFriends:SetChecked(addonTable.db.CustomSpells2[selectedSpell].showOnFriends);
-			checkboxShowOnEnemies:SetChecked(addonTable.db.CustomSpells2[selectedSpell].showOnEnemies);
-			checkboxAllowMultipleInstances:SetChecked(addonTable.db.CustomSpells2[selectedSpell].allowMultipleInstances);
-			if (addonTable.db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_DISABLED) then
+			checkboxShowOnFriends:SetChecked(spellInfo.showOnFriends);
+			checkboxShowOnEnemies:SetChecked(spellInfo.showOnEnemies);
+			if (spellInfo.enabledState == CONST_SPELL_MODE_DISABLED) then
 				checkboxEnabled:SetTriState(0);
-			elseif (addonTable.db.CustomSpells2[selectedSpell].enabledState == CONST_SPELL_MODE_ALL) then
+			elseif (spellInfo.enabledState == CONST_SPELL_MODE_ALL) then
 				checkboxEnabled:SetTriState(2);
 			else
 				checkboxEnabled:SetTriState(1);
 			end
-			if (addonTable.db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
+			if (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
 				checkboxPvPMode:SetTriState(0);
-			elseif (addonTable.db.CustomSpells2[selectedSpell].pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
+			elseif (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
 				checkboxPvPMode:SetTriState(1);
 			else
 				checkboxPvPMode:SetTriState(2);
 			end
-			if (addonTable.db.CustomSpells2[selectedSpell].showGlow == nil) then
+			if (spellInfo.showGlow == nil) then
 				checkboxGlow:SetTriState(0);
 				sliderGlowThreshold:Hide();
 				areaGlow:SetHeight(40);
-			elseif (addonTable.db.CustomSpells2[selectedSpell].showGlow == GLOW_TIME_INFINITE) then
+			elseif (spellInfo.showGlow == GLOW_TIME_INFINITE) then
 				checkboxGlow:SetTriState(2);
 				sliderGlowThreshold:Hide();
 				areaGlow:SetHeight(40);
 			else
 				checkboxGlow:SetTriState(1);
-				sliderGlowThreshold.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].showGlow);
+				sliderGlowThreshold.slider:SetValue(spellInfo.showGlow);
 				areaGlow:SetHeight(80);
 			end
 		end
@@ -1802,15 +1816,16 @@ local function GUICategory_4(index, value)
 		selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
 		selectSpell:SetScript("OnClick", function(button)
 			local t = { };
-			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
+			for index, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				table_insert(t, {
-					icon = SpellTextureByID[spellInfo.spellID],
-					text = SpellNameByID[spellInfo.spellID],
+					icon = select(2, GetIDAndTextureForSpell(spellInfo)),
+					text = GetButtonNameForSpell(spellInfo),
 					info = spellInfo,
+					indexInDB = index,
 					onEnter = function(self)
 						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-						GameTooltip:SetSpellByID(spellInfo.spellID);
-						local allSpellIDs = AllSpellIDsAndIconsByName[SpellNameByID[spellInfo.spellID]];
+						GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
+						local allSpellIDs = AllSpellIDsAndIconsByName[spellInfo.spellName];
 						if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
 							local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
 							for id, icon in pairs(allSpellIDs) do
@@ -1823,19 +1838,19 @@ local function GUICategory_4(index, value)
 					onLeave = HideGameTooltip,
 					func = OnSpellSelected,
 					checkBoxEnabled = true,
-					checkBoxState = addonTable.db.CustomSpells2[spellInfo.spellID].enabledState ~= CONST_SPELL_MODE_DISABLED,
+					checkBoxState = spellInfo.enabledState ~= CONST_SPELL_MODE_DISABLED,
 					onCheckBoxClick = function(checkbox)
 						if (checkbox:GetChecked()) then
-							addonTable.db.CustomSpells2[spellInfo.spellID].enabledState = CONST_SPELL_MODE_ALL;
+							spellInfo.enabledState = CONST_SPELL_MODE_ALL;
 						else
-							addonTable.db.CustomSpells2[spellInfo.spellID].enabledState = CONST_SPELL_MODE_DISABLED;
+							spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
 						end
 						addonTable.UpdateAllNameplates(false);
 					end,
 					onCloseButtonClick = function(buttonInfo) OnSpellSelected(buttonInfo); buttonDeleteSpell:Click(); selectSpell:Click(); end,
 				});
 			end
-			table_sort(t, function(item1, item2) return SpellNameByID[item1.info.spellID] < SpellNameByID[item2.info.spellID] end);
+			table_sort(t, function(item1, item2) return item1.text < item2.text end);
 			dropdownMenuSpells:SetList(t);
 			dropdownMenuSpells:SetParent(button);
 			dropdownMenuSpells:ClearAllPoints();
@@ -1850,6 +1865,9 @@ local function GUICategory_4(index, value)
 			ResetSelectSpell();
 			dropdownMenuSpells:Hide();
 		end);
+		selectSpell:Disable();
+		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() selectSpell:Enable(); end);
+		GUIFrame:HookScript("OnHide", function() selectSpell:Disable(); end);
 		table_insert(GUIFrame.Categories[index], selectSpell);
 		
 	end
@@ -1911,20 +1929,6 @@ local function GUICategory_4(index, value)
 		table_insert(controls, checkboxShowOnEnemies);
 	end
 	
-	-- // checkboxAllowMultipleInstances
-	do
-		checkboxAllowMultipleInstances = VGUI.CreateCheckBox();
-		checkboxAllowMultipleInstances:SetText(L["options:aura-options:allow-multiple-instances"]);
-		checkboxAllowMultipleInstances:SetOnClickHandler(function(this)
-			addonTable.db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked() or nil;
-			addonTable.UpdateAllNameplates(false);
-		end);
-		checkboxAllowMultipleInstances:SetParent(spellArea.controlsFrame);
-		checkboxAllowMultipleInstances:SetPoint("TOPLEFT", 15, -75);
-		VGUI.SetTooltip(checkboxAllowMultipleInstances, L["options:aura-options:allow-multiple-instances:tooltip"]);
-		table_insert(controls, checkboxAllowMultipleInstances);
-	end
-	
 	-- // checkboxPvPMode
 	do
 		checkboxPvPMode = VGUI.CreateCheckBoxTristate();
@@ -1944,7 +1948,7 @@ local function GUICategory_4(index, value)
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxPvPMode:SetParent(spellArea.controlsFrame);
-		checkboxPvPMode:SetPoint("TOPLEFT", 15, -95);
+		checkboxPvPMode:SetPoint("TOPLEFT", 15, -75);
 		table_insert(controls, checkboxPvPMode);
 		
 	end
@@ -1963,7 +1967,7 @@ local function GUICategory_4(index, value)
 		});
 		areaGlow:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaGlow:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaGlow:SetPoint("TOPLEFT", spellArea.controlsFrame, "TOPLEFT", 10, -115);
+		areaGlow:SetPoint("TOPLEFT", spellArea.controlsFrame, "TOPLEFT", 10, -95);
 		areaGlow:SetWidth(340);
 		areaGlow:SetHeight(80);
 		table_insert(controls, areaGlow);
@@ -2464,9 +2468,9 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize);
 		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
 			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
-			for spellID, spellInfo in pairs(addonTable.db.CustomSpells2) do
+			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				if (spellInfo.iconSize == addonTable.db.DefaultIconSize) then
-					addonTable.db.CustomSpells2[spellID].iconSize = math_ceil(value);
+					spellInfo.iconSize = math_ceil(value);
 				end
 			end
 			local oldSize = addonTable.db.DefaultIconSize;
@@ -2852,6 +2856,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 				end
 				coroutine.yield();
 			end
+			addonTable.OnSpellInfoCachesReady();
 		end);
 		CoroutineProcessor:Queue("scanAllSpells", scanAllSpells);
 	end);

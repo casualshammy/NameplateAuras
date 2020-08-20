@@ -127,6 +127,14 @@ local function MigrateDB_1()
     end
 end
 
+local function MigrateDB_2()
+    local db = addonTable.db;
+    db.CustomSpells3 = nil;
+    for _, spellInfo in pairs(db.CustomSpells2) do
+        spellInfo.allowMultipleInstances = nil;
+    end
+end
+
 function addonTable.MigrateDB()
     if (addonTable.db.DBVersion == 0) then
         MigrateDB_0();
@@ -136,6 +144,11 @@ function addonTable.MigrateDB()
         MigrateDB_1();
         addonTable.db.DBVersion = 2;
     end
+    if (addonTable.db.DBVersion == 2) then
+        MigrateDB_2();
+        addonTable.db.DBVersion = 3;
+    end
+
 end
 
 local function ImportNewSpells_FillInMissingEntries()
@@ -195,25 +208,16 @@ function addonTable.ImportNewSpells()
             end
         else
             if (table_count(allNewSpells) > 0) then
-                msgWithQuestion("NameplateAuras\n\nNew and changed spells (total " .. table_count(allNewSpells) .. ") are available for import. Do you want to print their names in chat window?\n(If you click \"Yes\", you will be able to import new spells. If you click \"No\", this prompt will not appear again)",
+                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
                     function()
                         for _, spellInfo in pairs(allNewSpells) do
-                            local link = GetSpellLink(spellInfo.spellName);
-                            if (link ~= nil) then Print(link); end
+                            table.insert(db.CustomSpells2, spellInfo);
                         end
-                        C_Timer.After(0.5, function()
-                            msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
-                                function()
-                                    for _, spellInfo in pairs(allNewSpells) do
-                                        table.insert(db.CustomSpells2, spellInfo);
-                                    end
-                                    ImportNewSpells_FillInMissingEntries();
-                                    Print("Imported successfully");
-                                end,
-                                function() end);
-                        end);
+                        ImportNewSpells_FillInMissingEntries();
+                        Print("Imported successfully");
                     end,
-                    function() end);
+                    function() end
+                );
             end
         end
         db.DefaultSpellsLastSetImported = #addonTable.DefaultSpells2;

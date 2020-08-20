@@ -8,7 +8,8 @@
 src\consts.lua
 embeds.xml
 locales\localizations.xml
-src\spells.lua
 src\utils.lua
+src\spells.lua
 src\options-dialog.lua
+src\database.lua
 src\NameplateAuras.lua

@@ -14,18 +14,16 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, EnabledAurasInfo, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame, 
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame, 
 	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, OnUpdate;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
 	UnitGUIDHasInterruptReduction			= { };
 	UnitGUIDHasAdditionalInterruptReduction	= { };
-	EnabledAurasInfo						= { };
 	ElapsedTimer 							= 0;
 	Nameplates, NameplatesVisible 			= { }, { };
 	InPvPCombat								= false;
-	addonTable.EnabledAurasInfo 			= EnabledAurasInfo;
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
 end
@@ -70,8 +68,8 @@ do
 				button1 = YES,
 				button2 = NO,
 				OnAccept = function()
-					for spellID in pairs(db.CustomSpells2) do
-						db.CustomSpells2[spellID] = nil;
+					for index in pairs(db.CustomSpells2) do
+						db.CustomSpells2[index] = nil;
 					end
 					ReloadDB();
 				end,
@@ -95,7 +93,6 @@ do
 		DebugWindow:AddText("InPvPCombat: " .. tostring(InPvPCombat));
 		DebugWindow:AddText("Number of nameplates: " .. table_count(Nameplates));
 		DebugWindow:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
-		DebugWindow:AddText("EnabledAurasInfo count: " .. table_count(EnabledAurasInfo));
 		DebugWindow:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
 		DebugWindow:AddText("");
 		DebugWindow:AddText("LIST OF ENABLED ADDONS----------");
@@ -116,8 +113,8 @@ do
 		DebugWindow:AddText("LIST OF SPELLS----------");
 		local enabledStateTokens = { [CONST_SPELL_MODE_DISABLED] = "DISABLED", [CONST_SPELL_MODE_ALL] = "ALL", [CONST_SPELL_MODE_MYAURAS] = "MYAURAS" };
 		local auraTypeTokens = { [AURA_TYPE_BUFF] = "BUFF", [AURA_TYPE_DEBUFF] = "DEBUFF", [AURA_TYPE_ANY] = "ANY" };
-		for spellName, spellInfo in pairs(EnabledAurasInfo) do
-			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellName,
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellInfo.spellName,
 				tostring(enabledStateTokens[spellInfo.enabledState]),
 				tostring(auraTypeTokens[spellInfo.auraType]),
 				tostring(spellInfo.iconSize),
@@ -135,6 +132,7 @@ do
 		-- // set defaults
 		local aceDBDefaults = {
 			profile = {
+				DBVersion = 0,
 				DefaultSpellsLastSetImported = 0,
 				CustomSpells2 = { },
 				IconXOffset = 0,
@@ -217,7 +215,7 @@ do
 		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
-		-- // processing old and invalid entries
+		-- // set default values
 		if (aceDB.profile.TimerTextAnchorIcon == aceDBDefaults.profile.TimerTextAnchorIcon) then
 			aceDB.profile.TimerTextAnchorIcon = aceDB.profile.TimerTextAnchor;
 		end
@@ -271,235 +269,18 @@ do
 		C_ChatInfo.RegisterAddonMessagePrefix("NAuras_prefix");
 		addonTable.OnStartup = nil;
 	end
-
-	local function UpdateSpellCachesFromDB(spellID)
-		local spellName = SpellNameByID[spellID];
-		if (db.CustomSpells2[spellID] ~= nil and db.CustomSpells2[spellID].enabledState ~= CONST_SPELL_MODE_DISABLED) then
-			EnabledAurasInfo[spellName] = {
-				["enabledState"] =				db.CustomSpells2[spellID].enabledState,
-				["auraType"] =					db.CustomSpells2[spellID].auraType,
-				["iconSize"] =					db.CustomSpells2[spellID].iconSize,
-				["checkSpellID"] =				db.CustomSpells2[spellID].checkSpellID,
-				["showOnFriends"] =				db.CustomSpells2[spellID].showOnFriends,
-				["showOnEnemies"] =				db.CustomSpells2[spellID].showOnEnemies,
-				["allowMultipleInstances"] =	db.CustomSpells2[spellID].allowMultipleInstances,
-				["pvpCombat"] =					db.CustomSpells2[spellID].pvpCombat,
-				["showGlow"] =					db.CustomSpells2[spellID].showGlow,
-			};
-		else
-			EnabledAurasInfo[spellName] = nil;
-		end
-	end
-	addonTable.UpdateSpellCachesFromDB = UpdateSpellCachesFromDB;
-	
-	local function ReloadDB_SetSpellCache()
-		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			local spellName = SpellNameByID[spellID];
-			if (spellName == nil) then
-				Print("<spellid:"..spellID.."> isn't exist. Removing from database...");
-				db.CustomSpells2[spellID] = nil;
-			else
-				if (spellInfo.showOnFriends == nil) then
-					spellInfo.showOnFriends = true;
-				end
-				if (spellInfo.showOnEnemies == nil) then
-					spellInfo.showOnEnemies = true;
-				end
-				if (spellInfo.pvpCombat == nil) then
-					spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
-				end
-				if (spellInfo.spellID == nil) then
-					db.CustomSpells2[spellID].spellID = spellID;
-				end
-				if (spellInfo.enabledState == "disabled") then
-					spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
-				elseif (spellInfo.enabledState == "all") then
-					spellInfo.enabledState = CONST_SPELL_MODE_ALL;
-				elseif (spellInfo.enabledState == "my") then
-					spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
-				end
-				if (spellInfo.auraType == "buff") then
-					spellInfo.auraType = AURA_TYPE_BUFF;
-				elseif (spellInfo.auraType == "debuff") then
-					spellInfo.auraType = AURA_TYPE_DEBUFF;
-				elseif (spellInfo.auraType == "buff/debuff") then
-					spellInfo.auraType = AURA_TYPE_ANY;
-				end
-				UpdateSpellCachesFromDB(spellID);
-			end
-		end
-	end
-	
-	local function ReloadDB_ImportNewSpells()
-		if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
-			local spellNamesAlreadyInUsersDB = { };
-			for _, spellInfo in pairs(db.CustomSpells2) do
-				local spellName = SpellNameByID[spellInfo.spellID];
-				if (spellName ~= nil) then
-					spellNamesAlreadyInUsersDB[spellName] = true;
-				end
-			end
-			local allNewSpells = { };
-			for i = db.DefaultSpellsLastSetImported + 1, #addonTable.DefaultSpells2 do
-				local set = addonTable.DefaultSpells2[i];
-				for spellID, spellInfo in pairs(set) do
-					if (SpellNameByID[spellID] ~= nil and not spellNamesAlreadyInUsersDB[SpellNameByID[spellID]]) then
-						allNewSpells[spellID] = spellInfo;
-					end
-				end
-			end
-			if (db.DefaultSpellsLastSetImported == 0) then
-				for spellID, spellInfo in pairs(allNewSpells) do
-					db.CustomSpells2[spellID] = spellInfo;
-				end
-			else
-				if (table_count(allNewSpells) > 0) then
-					msgWithQuestion("NameplateAuras\n\nNew and changed spells (total " .. table_count(allNewSpells) .. ") are available for import. Do you want to print their names in chat window?\n(If you click \"Yes\", you will be able to import new spells. If you click \"No\", this prompt will not appear again)",
-						function()
-							for spellID in pairs(allNewSpells) do
-								local link = GetSpellLink(spellID);
-								if (link ~= nil) then Print(link); end
-							end
-							C_Timer.After(0.5, function()
-								msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
-									function()
-										for spellID, spellInfo in pairs(allNewSpells) do
-											db.CustomSpells2[spellID] = spellInfo;
-										end
-										ReloadDB_SetSpellCache();
-										Print("Imported successfully");
-									end,
-									function() end);
-							end);
-						end,
-						function() end);
-				end
-			end
-			db.DefaultSpellsLastSetImported = #addonTable.DefaultSpells2;
-		end
-	end
-	
-	local function ReloadDB_ConvertInvalidValues()
-		for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells", "InterruptsEnableOnlyInPvP" }) do
-			if (db[entry] ~= nil) then
-				db[entry] = nil;
-				Print("Old db record is deleted: " .. entry);
-			end
-		end
-		if (db.TimerTextSizeMode ~= nil) then
-			db.TimerTextUseRelativeScale = (db.TimerTextSizeMode == "relative");
-			db.TimerTextSizeMode = nil;
-		end
-		if (db.SortMode ~= nil and type(db.SortMode) == "string") then
-			local replacements = { ["none"] = AURA_SORT_MODE_NONE, ["by-expire-time-asc"] = AURA_SORT_MODE_EXPIREASC, ["by-expire-time-des"] = AURA_SORT_MODE_EXPIREDES,
-				["by-icon-size-asc"] = AURA_SORT_MODE_ICONSIZEASC, ["by-icon-size-des"] = AURA_SORT_MODE_ICONSIZEDES, ["by-aura-type-expire-time"] = AURA_SORT_MODE_AURATYPE_EXPIRE };
-			db.SortMode = replacements[db.SortMode];
-		end
-		if (db.TimerStyle ~= nil and type(db.TimerStyle) == "string") then
-			local replacements = { [TIMER_STYLE_TEXTURETEXT] = "texture-with-text", [TIMER_STYLE_CIRCULAR] = "cooldown-frame-no-text", [TIMER_STYLE_CIRCULAROMNICC] = "cooldown-frame", [TIMER_STYLE_CIRCULARTEXT] = "circular-noomnicc-text" };
-			for newValue, oldValue in pairs(replacements) do
-				if (db.TimerStyle == oldValue) then
-					db.TimerStyle = newValue;
-					break;
-				end
-			end
-		end
-		if (db.DisplayTenthsOfSeconds ~= nil) then
-			db.MinTimeToShowTenthsOfSeconds = db.DisplayTenthsOfSeconds and 10 or 0;
-			db.DisplayTenthsOfSeconds = nil;
-		end
-		if (db.DefaultSpellsAreImported ~= nil) then
-			db.DefaultSpellsLastSetImported = 1;
-			db.DefaultSpellsAreImported = nil;
-		end
-		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			if (type(spellInfo.checkSpellID) == "number") then
-				spellInfo.checkSpellID = { [spellInfo.checkSpellID] = true };
-			end
-		end
-		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			if (spellInfo.checkSpellID ~= nil) then
-				local toAdd = { };
-				for key in pairs(spellInfo.checkSpellID) do
-					if (type(key) == "string") then
-						spellInfo.checkSpellID[key] = nil;
-						local nmbr = tonumber(key);
-						if (nmbr ~= nil) then
-							table_insert(toAdd, nmbr);
-						end
-					end
-				end
-				for _, value in pairs(toAdd) do
-					spellInfo.checkSpellID[value] = true;
-				end
-			end
-		end
-		for spellID, spellInfo in pairs(db.CustomSpells2) do
-			if (spellInfo.checkSpellID ~= nil) then
-				local toAdd = { };
-				for key, value in pairs(spellInfo.checkSpellID) do
-					if (type(value) == "number") then
-						table_insert(toAdd, value);
-						spellInfo.checkSpellID[key] = nil;
-					end
-				end
-				for _, value in pairs(toAdd) do
-					spellInfo.checkSpellID[value] = true;
-				end
-			end
-		end
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			if (spellInfo.showGlow ~= nil and type(spellInfo.showGlow) == "boolean") then
-				spellInfo.showGlow = GLOW_TIME_INFINITE;
-			end
-		end
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			if (spellInfo.allowMultipleInstances ~= nil and type(spellInfo.allowMultipleInstances) == "boolean" and spellInfo.allowMultipleInstances == false) then
-				spellInfo.allowMultipleInstances = nil;
-			end
-		end
-		if (db.HidePlayerBlizzardFrame == "undefined") then
-			db.HidePlayerBlizzardFrame = db.HideBlizzardFrames;
-		end
-	end
-	
-	local function ReloadDB_AddAppsToEnabledAurasInfo()
-		-- // set interrupt spells infos
-		for spellID in pairs(addonTable.Interrupts) do
-			local spellName = SpellNameByID[spellID];
-			EnabledAurasInfo[spellName] = {
-				["enabledState"] =				CONST_SPELL_MODE_DISABLED,
-				["auraType"] =					AURA_TYPE_DEBUFF,
-				["iconSize"] =					db.InterruptsIconSize,
-				["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
-			};
-			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
-		end
-		-- // apps
-		-- local spellIDs = { addonTable.EXPLOSIVE_ORB_SPELL_ID };
-		-- for _, spellID in pairs(spellIDs) do
-		-- 	local spellName = SpellNameByID[spellID];
-		-- 	EnabledAurasInfo[spellName] = {
-		-- 		["enabledState"] =	CONST_SPELL_MODE_DISABLED,
-		-- 		["auraType"] =		AURA_TYPE_DEBUFF,
-		-- 		["iconSize"] =		db.DefaultIconSize,
-		-- 		["showGlow"] =		GLOW_TIME_INFINITE,
-		-- 	};
-		-- end
-	end
 	
 	function ReloadDB()
 		db = aceDB.profile;
 		addonTable.db = aceDB.profile;
-		-- // resetting all caches
-		wipe(EnabledAurasInfo);
-		ReloadDB_AddAppsToEnabledAurasInfo();
+		-- set texture for interrupt spells
+		for spellID in pairs(addonTable.Interrupts) do
+			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+		end
 		-- // convert values
-		ReloadDB_ConvertInvalidValues();
+		addonTable.MigrateDB();
 		-- // import default spells
-		ReloadDB_ImportNewSpells();
-		-- // setting caches...
-		ReloadDB_SetSpellCache();
+		addonTable.ImportNewSpells();
 		-- // starting OnUpdate()
 		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -542,6 +323,22 @@ do
 		["BOTTOMLEFT"] = "BOTTOMRIGHT",
 	};
 	
+	local function GetAuraInfoFromDBByName(auraName, auraID)
+		if (auraName == nil) then
+			error("GetAuraInfoFromDBByName: auraName is nil!");
+		end
+		local bestCandidate = nil;
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			if (auraID ~= nil and spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
+				return spellInfo;
+			end
+			if (spellInfo.spellName == auraName) then
+				bestCandidate = spellInfo;
+			end
+		end
+		return bestCandidate;
+	end
+
 	local function AllocateIcon_SetAuraTooltip(icon)
 		if (db.ShowAuraTooltip) then
 			icon:SetScript("OnEnter", function(self)
@@ -706,18 +503,17 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 		
-	local function ProcessAurasForNameplate_Filter(isBuff, auraName, auraCaster, auraSpellID, unitIsFriend)
+	local function ProcessAurasForNameplate_Filter(isBuff, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
 		if (db.AlwaysShowMyAuras and auraCaster == "player") then
 			return true;
 		else
-			local spellInfo = EnabledAurasInfo[auraName];
-			if (spellInfo ~= nil) then
-				if (spellInfo.enabledState == CONST_SPELL_MODE_ALL or (spellInfo.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
-					if ((not unitIsFriend and spellInfo.showOnEnemies) or (unitIsFriend and spellInfo.showOnFriends)) then
-						if (spellInfo.auraType == AURA_TYPE_ANY or (isBuff and spellInfo.auraType == AURA_TYPE_BUFF or spellInfo.auraType == AURA_TYPE_DEBUFF)) then
-							local showInPvPCombat = spellInfo.pvpCombat;
+			if (dbEntry ~= nil) then
+				if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
+					if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
+						if (dbEntry.auraType == AURA_TYPE_ANY or (isBuff and dbEntry.auraType == AURA_TYPE_BUFF or dbEntry.auraType == AURA_TYPE_DEBUFF)) then
+							local showInPvPCombat = dbEntry.pvpCombat;
 							if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
-								if (spellInfo.checkSpellID == nil or spellInfo.checkSpellID[auraSpellID]) then
+								if (dbEntry.checkSpellID == nil or dbEntry.checkSpellID[auraSpellID]) then
 									return true;
 								end
 							end
@@ -729,8 +525,8 @@ do
 		return false;
 	end
 	
-	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack)
-		if (EnabledAurasInfo[auraName] ~= nil and EnabledAurasInfo[auraName].allowMultipleInstances) then
+	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack, dbEntry)
+		if (dbEntry ~= nil and dbEntry.allowMultipleInstances) then
 			return true;
 		else
 			for index, value in pairs(AurasPerNameplate[frame]) do
@@ -796,8 +592,9 @@ do
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend)) then
-						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack)) then
+					local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
+					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend, dbEntry)) then
+						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack, dbEntry)) then
 							table_insert(AurasPerNameplate[frame], {
 								["duration"] = buffDuration,
 								["expires"] = buffExpires,
@@ -806,12 +603,14 @@ do
 								["type"] = AURA_TYPE_BUFF,
 								["spellName"] = buffName,
 								["infinite_duration"] = buffDuration == 0,
+								["dbEntry"] = dbEntry,
 							});
 						end
 					end
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
+					local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
 					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend)) then
 						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack)) then
 							table_insert(AurasPerNameplate[frame], {
@@ -823,6 +622,7 @@ do
 								["dispelType"] = debuffDispelType,
 								["spellName"] = debuffName,
 								["infinite_duration"] = debuffDuration == 0,
+								["dbEntry"] = dbEntry,
 							});
 						end
 					end
@@ -851,14 +651,14 @@ do
 	end
 	
 	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC(item1, item2)
-		local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-		local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+		local enabledAuraInfo1 = item1.dbEntry;
+		local enabledAuraInfo2 = item2.dbEntry;
 		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
 	end
 	
 	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES(item1, item2)
-		local enabledAuraInfo1 = EnabledAurasInfo[item1.spellName];
-		local enabledAuraInfo2 = EnabledAurasInfo[item2.spellName];
+		local enabledAuraInfo1 = item1.dbEntry;
+		local enabledAuraInfo2 = item2.dbEntry;
 		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
 	end
 	
@@ -874,6 +674,7 @@ do
 	end
 	
 	local function SortAurasForNameplate(auras)
+		-- todo: is it neccessary to create new table?
 		local t = { };
 		for _, spellInfo in pairs(auras) do
 			if (spellInfo.spellID ~= nil) then
@@ -1051,7 +852,7 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					local enabledAuraInfo = EnabledAurasInfo[spellName];
+					local enabledAuraInfo = spellInfo.dbEntry;
 					local normalSize = enabledAuraInfo and enabledAuraInfo.iconSize or db.DefaultIconSize;
 					local iconResized = false;
 					if (normalSize ~= icon.size) then
@@ -1225,6 +1026,12 @@ do
 						["type"] = AURA_TYPE_DEBUFF,
 						["spellName"] = spellName,
 						["infinite_duration"] = false,
+						["dbEntry"] = {
+							["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+							["auraType"] =					AURA_TYPE_DEBUFF,
+							["iconSize"] =					db.InterruptsIconSize,
+							["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
+						},
 					};
 					for frame, unitID in pairs(NameplatesVisible) do
 						if (destGUID == UnitGUID(unitID)) then
@@ -1349,4 +1156,28 @@ do
 		TestModeIsActive = not TestModeIsActive;
 	end
 
+end
+
+local function GetAuraInfoFromDBByName(auraName, auraID)
+	if (auraName == nil) then
+		error("GetAuraInfoFromDBByName: auraName is nil!");
+	end
+	local bestCandidate = nil;
+	for spellID, spellInfo in pairs(db.CustomSpells2) do
+		if (auraID ~= nil and spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
+			return spellInfo;
+		end
+		if (SpellNameByID[spellID] == auraName) then
+			bestCandidate = spellInfo;
+		end
+	end
+	return bestCandidate;
+end
+
+a1 = function(auraName, auraID)
+	local beginTime = debugprofilestop();
+	local result = GetAuraInfoFromDBByName(auraName, auraID);
+	local timeUsed = debugprofilestop() - beginTime;
+	print("I used "..timeUsed.." milliseconds!");
+	return result;
 end

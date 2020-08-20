@@ -1498,7 +1498,6 @@ local function GUICategory_4(index, value)
 			if (self.clickedOnce) then
 				for spellID in pairs(addonTable.db.CustomSpells2) do
 					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_ALL;
-					addonTable.UpdateSpellCachesFromDB(spellID);
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1529,7 +1528,6 @@ local function GUICategory_4(index, value)
 			if (self.clickedOnce) then
 				for spellID in pairs(addonTable.db.CustomSpells2) do
 					addonTable.db.CustomSpells2[spellID].enabledState = CONST_SPELL_MODE_DISABLED;
-					addonTable.UpdateSpellCachesFromDB(spellID);
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1696,7 +1694,6 @@ local function GUICategory_4(index, value)
 					end
 					if (not alreadyExist) then
 						addonTable.db.CustomSpells2[spellID] = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellID, addonTable.db.DefaultIconSize, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
-						addonTable.UpdateSpellCachesFromDB(spellID);
 						selectSpell:Click();
 						local btn = dropdownMenuSpells:GetButtonByText(spellName);
 						if (btn ~= nil) then btn:Click(); end
@@ -1833,7 +1830,6 @@ local function GUICategory_4(index, value)
 						else
 							addonTable.db.CustomSpells2[spellInfo.spellID].enabledState = CONST_SPELL_MODE_DISABLED;
 						end
-						addonTable.UpdateSpellCachesFromDB(spellInfo.spellID);
 						addonTable.UpdateAllNameplates(false);
 					end,
 					onCloseButtonClick = function(buttonInfo) OnSpellSelected(buttonInfo); buttonDeleteSpell:Click(); selectSpell:Click(); end,
@@ -1874,7 +1870,6 @@ local function GUICategory_4(index, value)
 			else
 				addonTable.db.CustomSpells2[selectedSpell].enabledState = CONST_SPELL_MODE_ALL;
 			end
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxEnabled:SetParent(spellArea.controlsFrame);
@@ -1896,7 +1891,6 @@ local function GUICategory_4(index, value)
 			if (this:GetChecked() and not addonTable.db.ShowAboveFriendlyUnits) then
 				msg(L["options:spells:show-on-friends:warning0"]);
 			end
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxShowOnFriends:SetParent(spellArea.controlsFrame);
@@ -1910,7 +1904,6 @@ local function GUICategory_4(index, value)
 		checkboxShowOnEnemies:SetText(L["Show this aura on nameplates of enemies"]);
 		checkboxShowOnEnemies:SetOnClickHandler(function(this)
 			addonTable.db.CustomSpells2[selectedSpell].showOnEnemies = this:GetChecked();
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxShowOnEnemies:SetParent(spellArea.controlsFrame);
@@ -1924,7 +1917,6 @@ local function GUICategory_4(index, value)
 		checkboxAllowMultipleInstances:SetText(L["options:aura-options:allow-multiple-instances"]);
 		checkboxAllowMultipleInstances:SetOnClickHandler(function(this)
 			addonTable.db.CustomSpells2[selectedSpell].allowMultipleInstances = this:GetChecked() or nil;
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxAllowMultipleInstances:SetParent(spellArea.controlsFrame);
@@ -1949,7 +1941,6 @@ local function GUICategory_4(index, value)
 			else
 				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 			end
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxPvPMode:SetParent(spellArea.controlsFrame);
@@ -2002,7 +1993,6 @@ local function GUICategory_4(index, value)
 				sliderGlowThreshold:Hide();
 				areaGlow:SetHeight(40);
 			end
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxGlow:SetParent(areaGlow);
@@ -2036,7 +2026,6 @@ local function GUICategory_4(index, value)
 		sliderGlowThreshold.slider:SetScript("OnValueChanged", function(self, value)
 			sliderGlowThreshold.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].showGlow = math_ceil(value);
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderGlowThreshold.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2104,7 +2093,6 @@ local function GUICategory_4(index, value)
 		sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
 			sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].iconSize = math_ceil(value);
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2170,7 +2158,6 @@ local function GUICategory_4(index, value)
 				info.value = auraType;
 				info.func = function(self)
 					addonTable.db.CustomSpells2[selectedSpell].auraType = self.value;
-					addonTable.UpdateSpellCachesFromDB(selectedSpell);
 					_G[dropdownSpellShowType:GetName().."Text"]:SetText(self:GetText());
 				end
 				info.checked = (info.value == addonTable.db.CustomSpells2[selectedSpell].auraType);
@@ -2240,7 +2227,6 @@ local function GUICategory_4(index, value)
 			local text = self:GetText();
 			local t = StringToTableKeys(text);
 			addonTable.db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(true);
 			if (table_count(t) == 0) then
 				self:SetText("");
@@ -2263,7 +2249,6 @@ local function GUICategory_4(index, value)
 		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
 		buttonDeleteSpell:SetScript("OnClick", function(self, ...)
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
-			addonTable.UpdateSpellCachesFromDB(selectedSpell);
 			addonTable.UpdateAllNameplates(false);
 			selectSpell.Text:SetText(L["Click to select spell"]);
 			selectSpell.icon:SetTexture(nil);
@@ -2332,15 +2317,6 @@ local function GUICategory_Interrupts(index, value)
 		checkBoxGlow:SetText(L["options:interrupts:glow"]);
 		checkBoxGlow:SetOnClickHandler(function(this)
 			addonTable.db.InterruptsGlow = this:GetChecked();
-			for spellID in pairs(addonTable.Interrupts) do
-				local spellName = SpellNameByID[spellID];
-				addonTable.EnabledAurasInfo[spellName] = {
-					["enabledState"] =				CONST_SPELL_MODE_DISABLED,
-					["auraType"] =					AURA_TYPE_DEBUFF,
-					["iconSize"] =					addonTable.db.InterruptsIconSize,
-					["showGlow"] =					addonTable.db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
-				};
-			end
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkBoxGlow:SetChecked(addonTable.db.InterruptsGlow);
@@ -2414,15 +2390,6 @@ local function GUICategory_Interrupts(index, value)
 		sliderInterruptIconSize.slider:SetScript("OnValueChanged", function(self, value)
 			sliderInterruptIconSize.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.InterruptsIconSize = math_ceil(value);
-			for spellID in pairs(addonTable.Interrupts) do
-				local spellName = SpellNameByID[spellID];
-				addonTable.EnabledAurasInfo[spellName] = {
-					["enabledState"] =				CONST_SPELL_MODE_DISABLED,
-					["auraType"] =					AURA_TYPE_DEBUFF,
-					["iconSize"] =					addonTable.db.InterruptsIconSize,
-					["showGlow"] =					addonTable.db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
-				};
-			end
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderInterruptIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2500,7 +2467,6 @@ local function GUICategory_SizeAndPosition(index, value)
 			for spellID, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				if (spellInfo.iconSize == addonTable.db.DefaultIconSize) then
 					addonTable.db.CustomSpells2[spellID].iconSize = math_ceil(value);
-					addonTable.UpdateSpellCachesFromDB(spellID);
 				end
 			end
 			local oldSize = addonTable.db.DefaultIconSize;
@@ -3008,6 +2974,7 @@ local function InitializeGUI()
 		end
 	end
 	InitializeGUI_CreateSpellInfoCaches();
+	addonTable.GUIFrame = GUIFrame;
 end
 
 function addonTable.ShowGUI()

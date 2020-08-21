@@ -164,7 +164,7 @@ do
 				ShowAurasOnPlayerNameplate = false,
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
-				AlwaysShowMyAuras = false,
+				AlwaysShowMyAuras = true,
 				BorderThickness = 2,
 				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
@@ -313,49 +313,6 @@ do
 		["LEFT"] = "RIGHT",
 		["BOTTOMLEFT"] = "BOTTOMRIGHT",
 	};
-
-	local function GetAuraInfoFromDBByName(auraName, auraID)
-		local bestCandidate, bestIndex = nil, nil;
-		for index, spellInfo in pairs(db.CustomSpells2) do
-			if (spellInfo.checkSpellID ~= nil and spellInfo.checkSpellID[auraID] == true) then
-				return spellInfo, index;
-			end
-			if (spellInfo.spellName == auraName) then
-				if (bestCandidate ~= nil) then
-					if (spellInfo.checkSpellID == nil) then
-						bestCandidate = spellInfo;
-						bestIndex = index;
-					end
-				else
-					bestCandidate = spellInfo;
-					bestIndex = index;
-				end
-			end
-		end
-		return bestCandidate, bestIndex;
-	end
-
-	local function GetAuraInfoFromDBByNameExt(auraName, auraID)
-		local result = { };
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			if (auraName == spellInfo.spellName) then
-				result[#result+1] = spellInfo;
-			end
-		end
-		return result;
-	end
-
-	a1 = function(auraName, auraID)
-		local beginTime = debugprofilestop();
-		local result = GetAuraInfoFromDBByName(auraName, auraID);
-		local timeUsed = debugprofilestop() - beginTime;
-		print("GetAuraInfoFromDBByName: "..timeUsed.." milliseconds");
-		beginTime = debugprofilestop();
-		result = GetAuraInfoFromDBByNameExt(auraName, auraID);
-		timeUsed = debugprofilestop() - beginTime;
-		print("GetAuraInfoFromDBByNameExt: "..timeUsed.." milliseconds");
-		return result;
-	end
 
 	local function AllocateIcon_SetAuraTooltip(icon)
 		if (db.ShowAuraTooltip) then
@@ -521,19 +478,15 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcessAurasForNameplate_Filter(isBuff, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
-		if (db.AlwaysShowMyAuras and auraCaster == "player") then
-			return true;
-		else
-			if (dbEntry ~= nil) then
-				if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
-					if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
-						if (dbEntry.auraType == AURA_TYPE_ANY or (isBuff and dbEntry.auraType == AURA_TYPE_BUFF or dbEntry.auraType == AURA_TYPE_DEBUFF)) then
-							local showInPvPCombat = dbEntry.pvpCombat;
-							if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
-								if (dbEntry.checkSpellID == nil or dbEntry.checkSpellID[auraSpellID]) then
-									return true;
-								end
+	local function ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
+		if (dbEntry ~= nil) then
+			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
+				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
+					if (dbEntry.auraType == AURA_TYPE_ANY or dbEntry.auraType == auraType) then
+						local showInPvPCombat = dbEntry.pvpCombat;
+						if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
+							if (dbEntry.checkSpellID == nil or dbEntry.checkSpellID[auraSpellID]) then
+								return true;
 							end
 						end
 					end
@@ -560,24 +513,61 @@ do
 				});
 			end
 		end
-		if (db.Additions_DispellableSpells and not unitIsFriend) then
-			for i = 1, 40 do
-				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, isStealable, _, buffSpellID = UnitBuff(unitID, i);
-				if (buffName == nil) then break; end
-				if (isStealable) then
-					local text = SpellNameByID[buffSpellID];
-					if (db.Additions_DispellableSpells_Blacklist[text] == nil) then
-						table_insert(AurasPerNameplate[frame], {
-							["duration"] = buffDuration,
-							["expires"] = buffExpires,
-							["stacks"] = buffStack,
-							["spellID"] = buffSpellID,
-							["type"] = AURA_TYPE_BUFF,
-							["spellName"] = text,
-							["overrideDimGlow"] = true,
-							["overrideShowGlow"] = true,
-						});
-					end
+	end
+
+	local function GetAuraInfoFromDBByNameExt(auraName)
+		local result = { };
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			if (auraName == spellInfo.spellName) then
+				result[#result+1] = spellInfo;
+			end
+		end
+		return result;
+	end
+	
+	local function ProcessAurasForNameplate_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
+		local foundInDB = false;
+		for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(auraName)) do
+			if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = auraDuration,
+					["expires"] = auraExpires,
+					["stacks"] = auraStack,
+					["spellID"] = auraSpellID,
+					["type"] = auraType,
+					["dispelType"] = auraDispelType,
+					["spellName"] = auraName,
+					["infinite_duration"] = auraDuration == 0,
+					["dbEntry"] = dbEntry,
+				});
+				foundInDB = true;
+			end
+		end
+		if (not foundInDB) then
+			if (db.AlwaysShowMyAuras and auraCaster == "player") then
+				table_insert(AurasPerNameplate[frame], {
+					["duration"] = auraDuration,
+					["expires"] = auraExpires,
+					["stacks"] = auraStack,
+					["spellID"] = auraSpellID,
+					["type"] = auraType,
+					["dispelType"] = auraDispelType,
+					["spellName"] = auraName,
+					["infinite_duration"] = auraDuration == 0,
+				});
+			end
+			if (db.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
+				if (db.Additions_DispellableSpells_Blacklist[auraName] == nil) then
+					table_insert(AurasPerNameplate[frame], {
+						["duration"] = auraDuration,
+						["expires"] = auraExpires,
+						["stacks"] = auraStack,
+						["spellID"] = auraSpellID,
+						["type"] = auraType,
+						["spellName"] = auraName,
+						["overrideDimGlow"] = true,
+						["overrideShowGlow"] = true,
+					});
 				end
 			end
 		end
@@ -589,42 +579,13 @@ do
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
-				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
+				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					--local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
-					for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(buffName, buffSpellID)) do
-						if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend, dbEntry)) then
-							table_insert(AurasPerNameplate[frame], {
-								["duration"] = buffDuration,
-								["expires"] = buffExpires,
-								["stacks"] = buffStack,
-								["spellID"] = buffSpellID,
-								["type"] = AURA_TYPE_BUFF,
-								["spellName"] = buffName,
-								["infinite_duration"] = buffDuration == 0,
-								["dbEntry"] = dbEntry,
-							});
-						end
-					end
+					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					--local dbEntry, index = GetAuraInfoFromDBByName(debuffName, debuffSpellID);
-					for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(debuffName, debuffSpellID)) do
-						if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend, dbEntry)) then
-							table_insert(AurasPerNameplate[frame], {
-								["duration"] = debuffDuration,
-								["expires"] = debuffExpires,
-								["stacks"] = debuffStack,
-								["spellID"] = debuffSpellID,
-								["type"] = AURA_TYPE_DEBUFF,
-								["dispelType"] = debuffDispelType,
-								["spellName"] = debuffName,
-								["infinite_duration"] = debuffDuration == 0,
-								["dbEntry"] = dbEntry,
-							});
-						end
-					end
+					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
 				end
 				if (buffName == nil and debuffName == nil) then
 					break;

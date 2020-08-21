@@ -6,12 +6,13 @@ local buildTimestamp = "@project-version@";
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
+local AceComm = LibStub("AceComm-3.0");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer,   strsplit =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame, 
@@ -58,30 +59,23 @@ end
 ----- db, on start routines...
 --------------------------------------------------------------------------------------------------
 do
-	
+
 	local ReloadDB;
-	
-	local function DeleteAllSpellsFromDB()
-		if (not StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"]) then
-			StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"] = {
-				text = L["Do you really want to delete ALL spells?"],
-				button1 = YES,
-				button2 = NO,
-				OnAccept = function()
-					for index in pairs(db.CustomSpells2) do
-						db.CustomSpells2[index] = nil;
-					end
-					ReloadDB();
-				end,
-				timeout = 0,
-				whileDead = true,
-				hideOnEscape = true,
-				preferredIndex = 3,
-			};
+
+	local function OnAddonMessageReceived(prefix, text, distribution, sender)
+		if (prefix == "NameplateAuras") then
+			if (string_find(text, "reporting3")) then
+				local _, toWhomGUID, build = strsplit("#", text, 3);
+				if (toWhomGUID == LocalPlayerGUID) then
+					Print(format("%s is using NAuras (%s)", sender, build));
+				end
+			elseif (string_find(text, "requesting3")) then
+				local _, senderGUID = strsplit("#", text, 2);
+				AceComm:SendCommMessage("NameplateAuras", 
+					format("reporting3#%s#%s", senderGUID, buildTimestamp or "DEVELOPER COPY"), distribution);
+			end
 		end
-		StaticPopup_Show("NAURAS_MSG_DELETE_ALL_SPELLS");
 	end
-	addonTable.DeleteAllSpellsFromDB = DeleteAllSpellsFromDB;
 
 	local function ChatCommand_Debug()
 		DebugWindow = DebugWindow or LibStub("LibRedDropdown-1.0").CreateDebugWindow();
@@ -254,9 +248,7 @@ do
 					c = "GUILD";
 				end
 				Print("Waiting for replies from " .. c);
-				C_ChatInfo.SendAddonMessage("NAuras_prefix", "requesting2", c);
-			elseif (msg == "delete-all-spells") then
-				DeleteAllSpellsFromDB();
+				AceComm:SendCommMessage("NameplateAuras", "requesting3#" .. LocalPlayerGUID, c);
 			elseif (msg == "debug") then
 				ChatCommand_Debug();
 			elseif (msg == "test") then
@@ -265,10 +257,10 @@ do
 				addonTable.ShowGUI();
 			end
 		end
-		C_ChatInfo.RegisterAddonMessagePrefix("NAuras_prefix");
+		AceComm:RegisterComm("NameplateAuras", OnAddonMessageReceived);
 		addonTable.OnStartup = nil;
 	end
-	
+
 	function ReloadDB()
 		db = aceDB.profile;
 		addonTable.db = aceDB.profile;
@@ -306,14 +298,14 @@ do
 		end
 		addonTable.UpdateAllNameplates(true);
 	end
-	
+
 end
 
 --------------------------------------------------------------------------------------------------
 ----- Nameplates
 --------------------------------------------------------------------------------------------------
 do
-	
+
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
 	local glowInfo = { };
 	local symmetricAnchors = { 
@@ -321,7 +313,7 @@ do
 		["LEFT"] = "RIGHT",
 		["BOTTOMLEFT"] = "BOTTOMRIGHT",
 	};
-	
+
 	local function GetAuraInfoFromDBByName(auraName, auraID)
 		local bestCandidate, bestIndex = nil, nil;
 		for index, spellInfo in pairs(db.CustomSpells2) do
@@ -343,11 +335,25 @@ do
 		return bestCandidate, bestIndex;
 	end
 
+	local function GetAuraInfoFromDBByNameExt(auraName, auraID)
+		local result = { };
+		for _, spellInfo in pairs(db.CustomSpells2) do
+			if (auraName == spellInfo.spellName) then
+				result[#result+1] = spellInfo;
+			end
+		end
+		return result;
+	end
+
 	a1 = function(auraName, auraID)
 		local beginTime = debugprofilestop();
 		local result = GetAuraInfoFromDBByName(auraName, auraID);
 		local timeUsed = debugprofilestop() - beginTime;
-		print("I used "..timeUsed.." milliseconds!");
+		print("GetAuraInfoFromDBByName: "..timeUsed.." milliseconds");
+		beginTime = debugprofilestop();
+		result = GetAuraInfoFromDBByNameExt(auraName, auraID);
+		timeUsed = debugprofilestop() - beginTime;
+		print("GetAuraInfoFromDBByNameExt: "..timeUsed.." milliseconds");
 		return result;
 	end
 
@@ -365,7 +371,7 @@ do
 		end
 	end
 	addonTable.AllocateIcon_SetAuraTooltip = AllocateIcon_SetAuraTooltip;
-	
+
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
@@ -440,12 +446,12 @@ do
 		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((db.DefaultIconSize / 4) * db.StacksFontScale), "OUTLINE");
 		icon.stackcount = 0;
-		tinsert(addonTable.AllAuraIconFrames, icon);
+		table_insert(addonTable.AllAuraIconFrames, icon);
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSize * frame.NAurasIconsCount);
-		tinsert(frame.NAurasIcons, icon);
+		table_insert(frame.NAurasIcons, icon);
 	end
-		
+
 	local function HideCDIcon(icon)
 		icon.border:Hide();
 		icon.borderState = nil;
@@ -458,14 +464,14 @@ do
 		icon.size = -1;
 		LBG_HideOverlayGlow(icon);
 	end
-	
+
 	local function ShowCDIcon(icon)
 		icon.cooldownText:Show();
 		icon.stacks:Show();
 		icon:Show();
 		icon.shown = true;
 	end
-	
+
 	local function ResizeIcon(icon, size)
 		icon:SetSize(size, size);
 		if (db.TimerTextUseRelativeScale) then
@@ -476,7 +482,7 @@ do
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((size / 4) * db.StacksFontScale), "OUTLINE");
 	end
 	addonTable.ResizeIcon = ResizeIcon;
-	
+
 	local function UpdateAllNameplates(force)
 		if (force) then
 			for nameplate in pairs(Nameplates) do
@@ -514,7 +520,7 @@ do
 		end
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
-		
+
 	local function ProcessAurasForNameplate_Filter(isBuff, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
 		if (db.AlwaysShowMyAuras and auraCaster == "player") then
 			return true;
@@ -536,11 +542,7 @@ do
 		end
 		return false;
 	end
-	
-	local function ProcessAurasForNameplate_MultipleAuraInstances(frame, auraName, auraExpires, auraStack, dbEntry)
-		return true;
-	end
-	
+
 	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend)
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
@@ -580,7 +582,7 @@ do
 			end
 		end
 	end
-	
+
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = UnitReaction("player", unitID) > 4; -- 4 = neutral
@@ -589,9 +591,9 @@ do
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, _, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
-					if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend, dbEntry)) then
-						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, buffName, buffExpires, buffStack, dbEntry)) then
+					--local dbEntry = GetAuraInfoFromDBByName(buffName, buffSpellID);
+					for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(buffName, buffSpellID)) do
+						if (ProcessAurasForNameplate_Filter(true, buffName, buffCaster, buffSpellID, unitIsFriend, dbEntry)) then
 							table_insert(AurasPerNameplate[frame], {
 								["duration"] = buffDuration,
 								["expires"] = buffExpires,
@@ -607,9 +609,9 @@ do
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					local dbEntry, index = GetAuraInfoFromDBByName(debuffName, debuffSpellID);
-					if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend, dbEntry)) then
-						if (ProcessAurasForNameplate_MultipleAuraInstances(frame, debuffName, debuffExpires, debuffStack, dbEntry)) then
+					--local dbEntry, index = GetAuraInfoFromDBByName(debuffName, debuffSpellID);
+					for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(debuffName, debuffSpellID)) do
+						if (ProcessAurasForNameplate_Filter(false, debuffName, debuffCaster, debuffSpellID, unitIsFriend, dbEntry)) then
 							table_insert(AurasPerNameplate[frame], {
 								["duration"] = debuffDuration,
 								["expires"] = debuffExpires,
@@ -638,27 +640,27 @@ do
 		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
 		UpdateNameplate(frame, unitGUID);
 	end
-	
+
 	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC(item1, item2)
 		return item1.expires < item2.expires;
 	end
-	
+
 	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREDES(item1, item2)
 		return item1.expires > item2.expires;
 	end
-	
+
 	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC(item1, item2)
 		local enabledAuraInfo1 = item1.dbEntry;
 		local enabledAuraInfo2 = item2.dbEntry;
 		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
 	end
-	
+
 	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES(item1, item2)
 		local enabledAuraInfo1 = item1.dbEntry;
 		local enabledAuraInfo2 = item2.dbEntry;
 		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
 	end
-	
+
 	local function SortAurasForNameplate_AURA_SORT_MODE_AURATYPE_EXPIRE(item1, item2)
 		if (item1.type ~= item2.type) then
 			return (item1.type == AURA_TYPE_DEBUFF) and true or false;
@@ -669,7 +671,7 @@ do
 			return item1.expires > item2.expires;
 		end
 	end
-	
+
 	local function SortAurasForNameplate(auras)
 		-- todo: is it neccessary to create new table?
 		local t = { };
@@ -693,7 +695,7 @@ do
 		end
 		return t;
 	end
-	
+
 	local function UpdateNameplate_SetCooldown(icon, last, spellInfo)
 		if (icon.info == nil) then
 			icon.info = {
@@ -765,7 +767,7 @@ do
 			end
 		end
 	end
-	
+
 	local function UpdateNameplate_SetStacks(icon, spellInfo)
 		if (icon.stackcount ~= spellInfo.stacks) then
 			if (spellInfo.stacks > 1) then
@@ -776,7 +778,7 @@ do
 			icon.stackcount = spellInfo.stacks;
 		end
 	end
-	
+
 	local function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
 			if (icon.borderState ~= spellInfo.type) then
@@ -799,7 +801,7 @@ do
 			end
 		end
 	end
-	
+
 	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized, dimGlow, remainingAuraTime, spellInfo)
 		if (glowInfo[icon]) then
 			glowInfo[icon]:Cancel(); -- // cancel delayed glow
@@ -823,7 +825,7 @@ do
 		end
 	end
 	addonTable.UpdateNameplate_SetGlow = UpdateNameplate_SetGlow;
-	
+
 	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
 		local totalWidth = 0;
@@ -889,7 +891,7 @@ do
 			frame.UnitFrame.BuffFrame:SetAlpha(0);
 		end
 	end
-	
+
 	function OnUpdate()
 		local currentTime = GetTime();
 		for frame in pairs(NameplatesVisible) do
@@ -909,25 +911,24 @@ do
 			end
 		end
 	end
-	
+
 end
 
 --------------------------------------------------------------------------------------------------
 ----- Frame for events
 --------------------------------------------------------------------------------------------------
 do
-	
+
 	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
 	local MarkerSpellsForRestorationShamansAndShadowPriests = addonTable.MarkerSpellsForRestorationShamansAndShadowPriests;
 	local InterruptSpells = addonTable.Interrupts;
 	local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER;
-	
+
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
-	EventFrame:RegisterEvent("CHAT_MSG_ADDON");
 	EventFrame:SetScript("OnEvent", function(self, event, ...) self[event](...); end);
 	addonTable.EventFrame = EventFrame;
-	
+
 	function EventFrame.PLAYER_ENTERING_WORLD()
 		if (addonTable.OnStartup) then
 			addonTable.OnStartup();
@@ -961,7 +962,7 @@ do
 			end
 		end
 	end
-	
+
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		NameplatesVisible[nameplate] = nil;
@@ -972,7 +973,7 @@ do
 			nameplate.NAurasFrame:Hide();
 		end
 	end
-	
+
 	function EventFrame.UNIT_AURA(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and AurasPerNameplate[nameplate] ~= nil) then
@@ -982,21 +983,7 @@ do
 			end
 		end
 	end
-	
-	function EventFrame.CHAT_MSG_ADDON(prefix, message, channel, sender)
-		if (prefix == "NAuras_prefix") then
-			if (string_find(message, "reporting2")) then
-				local _, toWhom, build = strsplit("^", message, 3);
-				local myName = UnitName("player").."-"..string_gsub(GetRealmName(), " ", "");
-				if (toWhom == myName) then
-					Print(format("%s is using NAuras (%s)", sender, build));
-				end
-			elseif (string_find(message, "requesting2")) then
-				C_ChatInfo.SendAddonMessage("NAuras_prefix", format("reporting2\^%s\^%s", sender, buildTimestamp or "DEVELOPER COPY"), channel);
-			end
-		end
-	end
-	
+
 	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
 		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName = CombatLogGetCurrentEventInfo();
 		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
@@ -1057,7 +1044,7 @@ do
 			end
 		end
 	end
-	
+
 	local function UpdatePvPState()
 		local inPvPCombat = IsUsableSpell(SpellNameByID[195710]); -- // Honorable Medallion
 		if (inPvPCombat ~= InPvPCombat) then

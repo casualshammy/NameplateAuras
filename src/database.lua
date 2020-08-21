@@ -18,11 +18,11 @@ do
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
+local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, table_insert;
 do
 
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID = 
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
+	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, table_insert = 
+		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID, table.insert;
 	
 end
 
@@ -152,6 +152,7 @@ function addonTable.MigrateDB()
 end
 
 local function ImportNewSpells_FillInMissingEntries()
+    local db = addonTable.db;
     for index, spellInfo in pairs(db.CustomSpells2) do
         if (spellInfo.spellName == nil) then
             Print("<"..spellInfo.spellName.."> isn't exist. Removing from database...");

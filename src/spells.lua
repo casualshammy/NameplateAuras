@@ -184,7 +184,7 @@ addonTable.DefaultSpells2 = {
 		[710] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[710] },
 		[198111] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[198111] },
 		[115176] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[115176] },
-		[163505] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[163505], ["checkSpellID"] = 163505 },
+		[163505] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[163505], ["checkSpellID"] = { [163505] = true } },
 		[15487] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[15487] },
 		[107574] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[107574] },
 		[8178] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSize"] = 45, ["spellName"] = SpellNameByID[8178] },

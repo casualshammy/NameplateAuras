@@ -1579,6 +1579,25 @@ local function GUICategory_4(index, value)
 	-- // delete all spells button
 	do
 
+		local function DeleteAllSpellsFromDB()
+			if (not StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"]) then
+				StaticPopupDialogs["NAURAS_MSG_DELETE_ALL_SPELLS"] = {
+					text = L["Do you really want to delete ALL spells?"],
+					button1 = YES,
+					button2 = NO,
+					OnAccept = function()
+						wipe(addonTable.db.CustomSpells2);
+						addonTable.UpdateAllNameplates(true);
+					end,
+					timeout = 0,
+					whileDead = true,
+					hideOnEscape = true,
+					preferredIndex = 3,
+				};
+			end
+			StaticPopup_Show("NAURAS_MSG_DELETE_ALL_SPELLS");
+		end
+
 		local deleteAllSpellsButton = VGUI.CreateButton();
 		deleteAllSpellsButton.clickedOnce = false;
 		deleteAllSpellsButton:SetParent(dropdownMenuSpells);
@@ -1588,7 +1607,7 @@ local function GUICategory_4(index, value)
 		deleteAllSpellsButton:SetText(L["Delete all spells"]);
 		deleteAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				addonTable.DeleteAllSpellsFromDB();
+				DeleteAllSpellsFromDB();
 				self.clickedOnce = false;
 				self:SetText(L["Delete all spells"]);
 			else
@@ -2341,7 +2360,7 @@ local function GUICategory_Interrupts(index, value)
 		checkBoxUseSharedIconTexture:SetOnClickHandler(function(this)
 			addonTable.db.InterruptsUseSharedIconTexture = this:GetChecked();
 			for spellID in pairs(addonTable.Interrupts) do
-				SpellTextureByID[spellID] = addonTable.db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+				SpellTextureByID[spellID] = addonTable.db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or SpellTextureByID[spellID]; -- // icon of Interrupting Shout
 			end
 			addonTable.UpdateAllNameplates(true);
 		end);
@@ -2377,7 +2396,7 @@ local function GUICategory_Interrupts(index, value)
 	-- // sliderInterruptIconSize
 	do
 	
-		sliderInterruptIconSize = VGUI.CreateSlider();
+		local sliderInterruptIconSize = VGUI.CreateSlider();
 		sliderInterruptIconSize:SetParent(interruptOptionsArea);
 		sliderInterruptIconSize:SetWidth(175);
 		sliderInterruptIconSize:SetPoint("TOPLEFT", 20, -40);
@@ -2737,6 +2756,7 @@ local function GUICategory_Dispel(index, value)
 				for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
 					table_insert(t, {
 						text = spellName,
+						icon = SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])],
 						onCloseButtonClick = function(buttonInfo)
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
@@ -2753,6 +2773,9 @@ local function GUICategory_Dispel(index, value)
 			end
 		end);
 		dispellableSpellsBlacklist:SetScript("OnHide", function(self) dispellableSpellsBlacklistMenu:Hide(); end);
+		dispellableSpellsBlacklist:Disable();
+		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() dispellableSpellsBlacklist:Enable(); end);
+		GUIFrame:HookScript("OnHide", function() dispellableSpellsBlacklist:Disable(); end);
 		table_insert(GUIFrame.Categories[index], dispellableSpellsBlacklist);
 	end
 

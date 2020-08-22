@@ -108,11 +108,11 @@ do
 		local enabledStateTokens = { [CONST_SPELL_MODE_DISABLED] = "DISABLED", [CONST_SPELL_MODE_ALL] = "ALL", [CONST_SPELL_MODE_MYAURAS] = "MYAURAS" };
 		local auraTypeTokens = { [AURA_TYPE_BUFF] = "BUFF", [AURA_TYPE_DEBUFF] = "DEBUFF", [AURA_TYPE_ANY] = "ANY" };
 		for _, spellInfo in pairs(db.CustomSpells2) do
-			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s; %s;", spellInfo.spellName,
+			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s;", spellInfo.spellName,
 				tostring(enabledStateTokens[spellInfo.enabledState]),
 				tostring(auraTypeTokens[spellInfo.auraType]),
 				tostring(spellInfo.iconSize),
-				tostring(spellInfo.checkSpellID),
+				spellInfo.checkSpellID ~= nil and table.concat(spellInfo.checkSpellID, ",") or "NONE",
 				tostring(spellInfo.showOnFriends),
 				tostring(spellInfo.showOnEnemies),
 				tostring(spellInfo.pvpCombat),
@@ -515,32 +515,24 @@ do
 		end
 	end
 
-	local function GetAuraInfoFromDBByNameExt(auraName)
-		local result = { };
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			if (auraName == spellInfo.spellName) then
-				result[#result+1] = spellInfo;
-			end
-		end
-		return result;
-	end
-	
 	local function ProcessAurasForNameplate_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
 		local foundInDB = false;
-		for _, dbEntry in pairs(GetAuraInfoFromDBByNameExt(auraName)) do
-			if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
-				table_insert(AurasPerNameplate[frame], {
-					["duration"] = auraDuration,
-					["expires"] = auraExpires,
-					["stacks"] = auraStack,
-					["spellID"] = auraSpellID,
-					["type"] = auraType,
-					["dispelType"] = auraDispelType,
-					["spellName"] = auraName,
-					["infinite_duration"] = auraDuration == 0,
-					["dbEntry"] = dbEntry,
-				});
-				foundInDB = true;
+		for _, dbEntry in pairs(db.CustomSpells2) do
+			if (auraName == dbEntry.spellName) then
+				if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+					table_insert(AurasPerNameplate[frame], {
+						["duration"] = auraDuration,
+						["expires"] = auraExpires,
+						["stacks"] = auraStack,
+						["spellID"] = auraSpellID,
+						["type"] = auraType,
+						["dispelType"] = auraDispelType,
+						["spellName"] = auraName,
+						["infinite_duration"] = auraDuration == 0,
+						["dbEntry"] = dbEntry,
+					});
+					foundInDB = true;
+				end
 			end
 		end
 		if (not foundInDB) then

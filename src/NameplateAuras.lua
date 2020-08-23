@@ -164,7 +164,7 @@ do
 				ShowAurasOnPlayerNameplate = false,
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
-				AlwaysShowMyAuras = true,
+				AlwaysShowMyAuras = false,
 				BorderThickness = 2,
 				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
@@ -312,6 +312,30 @@ do
 		["TOPLEFT"] = "TOPRIGHT", 
 		["LEFT"] = "RIGHT",
 		["BOTTOMLEFT"] = "BOTTOMRIGHT",
+	};
+	local AuraSortFunctions = {
+		[AURA_SORT_MODE_EXPIREASC] = function(item1, item2) return item1.expires < item2.expires; end,
+		[AURA_SORT_MODE_EXPIREDES] = function(item1, item2) return item1.expires > item2.expires; end,
+		[AURA_SORT_MODE_ICONSIZEASC] = function(item1, item2)
+			local enabledAuraInfo1 = item1.dbEntry;
+			local enabledAuraInfo2 = item2.dbEntry;
+			return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
+		end,
+		[AURA_SORT_MODE_ICONSIZEDES] = function(item1, item2)
+			local enabledAuraInfo1 = item1.dbEntry;
+			local enabledAuraInfo2 = item2.dbEntry;
+			return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
+		end,
+		[AURA_SORT_MODE_AURATYPE_EXPIRE] = function(item1, item2)
+			if (item1.type ~= item2.type) then
+				return (item1.type == AURA_TYPE_DEBUFF) and true or false;
+			end
+			if (item1.type == AURA_TYPE_DEBUFF) then
+				return item1.expires < item2.expires;
+			else
+				return item1.expires > item2.expires;
+			end
+		end
 	};
 
 	local function AllocateIcon_SetAuraTooltip(icon)
@@ -557,6 +581,7 @@ do
 						["spellID"] = auraSpellID,
 						["type"] = auraType,
 						["spellName"] = auraName,
+						["infinite_duration"] = auraDuration == 0,
 						["overrideDimGlow"] = true,
 						["overrideShowGlow"] = true,
 					});
@@ -592,61 +617,6 @@ do
 		end
 		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
 		UpdateNameplate(frame, unitGUID);
-	end
-
-	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC(item1, item2)
-		return item1.expires < item2.expires;
-	end
-
-	local function SortAurasForNameplate_AURA_SORT_MODE_EXPIREDES(item1, item2)
-		return item1.expires > item2.expires;
-	end
-
-	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC(item1, item2)
-		local enabledAuraInfo1 = item1.dbEntry;
-		local enabledAuraInfo2 = item2.dbEntry;
-		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
-	end
-
-	local function SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES(item1, item2)
-		local enabledAuraInfo1 = item1.dbEntry;
-		local enabledAuraInfo2 = item2.dbEntry;
-		return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
-	end
-
-	local function SortAurasForNameplate_AURA_SORT_MODE_AURATYPE_EXPIRE(item1, item2)
-		if (item1.type ~= item2.type) then
-			return (item1.type == AURA_TYPE_DEBUFF) and true or false;
-		end
-		if (item1.type == AURA_TYPE_DEBUFF) then
-			return item1.expires < item2.expires;
-		else
-			return item1.expires > item2.expires;
-		end
-	end
-
-	local function SortAurasForNameplate(auras)
-		-- todo: is it neccessary to create new table?
-		local t = { };
-		for _, spellInfo in pairs(auras) do
-			if (spellInfo.spellID ~= nil) then
-				table_insert(t, spellInfo);
-			end
-		end
-		if (db.SortMode == AURA_SORT_MODE_NONE) then
-			-- // do nothing
-		elseif (db.SortMode == AURA_SORT_MODE_EXPIREASC) then
-			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_EXPIREASC);
-		elseif (db.SortMode == AURA_SORT_MODE_EXPIREDES) then
-			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_EXPIREDES);
-		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEASC) then
-			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEASC);
-		elseif (db.SortMode == AURA_SORT_MODE_ICONSIZEDES) then
-			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_ICONSIZEDES);
-		elseif (db.SortMode == AURA_SORT_MODE_AURATYPE_EXPIRE) then
-			table_sort(t, SortAurasForNameplate_AURA_SORT_MODE_AURATYPE_EXPIRE);
-		end
-		return t;
 	end
 
 	local function UpdateNameplate_SetCooldown(icon, last, spellInfo)
@@ -784,7 +754,7 @@ do
 		local totalWidth = 0;
 		if (AurasPerNameplate[frame]) then
 			local currentTime = GetTime();
-			AurasPerNameplate[frame] = SortAurasForNameplate(AurasPerNameplate[frame]);
+			if (db.SortMode ~= AURA_SORT_MODE_NONE) then table_sort(AurasPerNameplate[frame], AuraSortFunctions[db.SortMode]); end
 			for _, spellInfo in pairs(AurasPerNameplate[frame]) do
 				local spellName = SpellNameByID[spellInfo.spellID];
 				local duration = spellInfo.duration;

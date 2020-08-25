@@ -135,29 +135,16 @@ local function MigrateDB_2()
     end
 end
 
-function addonTable.MigrateDB()
-    if (addonTable.db.DBVersion == 0) then
-        MigrateDB_0();
-        addonTable.db.DBVersion = 1;
-    end
-    if (addonTable.db.DBVersion == 1) then
-        MigrateDB_1();
-        addonTable.db.DBVersion = 2;
-    end
-    if (addonTable.db.DBVersion == 2) then
-        MigrateDB_2();
-        addonTable.db.DBVersion = 3;
-    end
-
-end
-
-local function ImportNewSpells_FillInMissingEntries()
+local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
     for index, spellInfo in pairs(db.CustomSpells2) do
         if (spellInfo.spellName == nil) then
-            Print("<"..spellInfo.spellName.."> isn't exist. Removing from database...");
+            -- we don't know what spell it is
             db.CustomSpells2[index] = nil;
         else
+            if (spellInfo.enabledState == nil) then
+                spellInfo.enabledState = CONST_SPELL_MODE_ALL;
+            end
             if (spellInfo.showOnFriends == nil) then
                 spellInfo.showOnFriends = true;
             end
@@ -167,6 +154,12 @@ local function ImportNewSpells_FillInMissingEntries()
             if (spellInfo.pvpCombat == nil) then
                 spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
             end
+            if (spellInfo.auraType == nil) then
+                spellInfo.auraType = AURA_TYPE_ANY;
+            end
+            -- iconSize my be nil
+            -- checkSpellID may be nil
+            -- showGlow may be nil
             if (spellInfo.enabledState == "disabled") then
                 spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
             elseif (spellInfo.enabledState == "all") then
@@ -183,6 +176,22 @@ local function ImportNewSpells_FillInMissingEntries()
             end
         end
     end
+end
+
+function addonTable.MigrateDB()
+    if (addonTable.db.DBVersion == 0) then
+        MigrateDB_0();
+        addonTable.db.DBVersion = 1;
+    end
+    if (addonTable.db.DBVersion == 1) then
+        MigrateDB_1();
+        addonTable.db.DBVersion = 2;
+    end
+    if (addonTable.db.DBVersion == 2) then
+        MigrateDB_2();
+        addonTable.db.DBVersion = 3;
+    end
+    FillInMissingEntriesIsSpells();
 end
 
 function addonTable.ImportNewSpells()
@@ -207,6 +216,7 @@ function addonTable.ImportNewSpells()
             for _, spellInfo in pairs(allNewSpells) do
                 table.insert(db.CustomSpells2, spellInfo);
             end
+            FillInMissingEntriesIsSpells();
         else
             if (table_count(allNewSpells) > 0) then
                 msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
@@ -214,7 +224,7 @@ function addonTable.ImportNewSpells()
                         for _, spellInfo in pairs(allNewSpells) do
                             table.insert(db.CustomSpells2, spellInfo);
                         end
-                        ImportNewSpells_FillInMissingEntries();
+                        FillInMissingEntriesIsSpells();
                         Print("Imported successfully");
                     end,
                     function() end

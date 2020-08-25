@@ -11,13 +11,13 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, 
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
+	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE = 
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = addonTable.TIMER_STYLE_TEXTURETEXT, addonTable.TIMER_STYLE_CIRCULAR, addonTable.TIMER_STYLE_CIRCULAROMNICC, addonTable.TIMER_STYLE_CIRCULARTEXT;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
@@ -31,9 +31,9 @@ end
 local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor;
 do
 
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor = 
+	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor =
 		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID, addonTable.CoroutineProcessor;
-	
+
 end
 
 
@@ -110,8 +110,8 @@ local function CreateGUICategory()
 end
 
 local function GUICategory_1(index, value)
-	
-	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate, 
+
+	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkBoxUseDimGlow, checkboxAuraTooltip;
 
 	-- buttonTestMode
@@ -147,7 +147,7 @@ local function GUICategory_1(index, value)
 			checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
 		end);
 	end
-	
+
 	-- checkBoxHideBlizzardFrames
 	do
 		checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
@@ -187,7 +187,7 @@ local function GUICategory_1(index, value)
 			checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		end);
 	end
-	
+
 	-- // checkBoxShowAurasOnPlayerNameplate
 	do
 		checkBoxShowAurasOnPlayerNameplate = VGUI.CreateCheckBox();
@@ -200,9 +200,9 @@ local function GUICategory_1(index, value)
 		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", checkBoxHidePlayerBlizzardFrame, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate); end);
-	
+
 	end
-	
+
 	-- // checkBoxShowAboveFriendlyUnits
 	do
 		checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
@@ -216,9 +216,9 @@ local function GUICategory_1(index, value)
 		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits); end);
-	
+
 	end
-	
+
 	-- // checkBoxShowMyAuras
 	do
 		checkBoxShowMyAuras = VGUI.CreateCheckBox();
@@ -233,9 +233,9 @@ local function GUICategory_1(index, value)
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
-	
+
 	end
-	
+
 	-- // checkBoxUseDimGlow
 	do
 		checkBoxUseDimGlow = VGUI.CreateCheckBox();
@@ -250,9 +250,9 @@ local function GUICategory_1(index, value)
 		VGUI.SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow); end);
-	
+
 	end
-	
+
 	-- // checkboxAuraTooltip
 	do
 		checkboxAuraTooltip = VGUI.CreateCheckBox();
@@ -270,19 +270,19 @@ local function GUICategory_1(index, value)
 		-- VGUI.SetTooltip(checkboxAuraTooltip, L["options:general:use-dim-glow:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
-	
+
 	end
-	
+
 	-- // dropdownTimerStyle
 	do
-		
+
 		local TimerStylesLocalization = {
 			[TIMER_STYLE_TEXTURETEXT] =		L["Texture with timer"],
 			[TIMER_STYLE_CIRCULAR] =		L["Circular"],
 			[TIMER_STYLE_CIRCULAROMNICC] =	L["Circular with OmniCC support"],
 			[TIMER_STYLE_CIRCULARTEXT] =	L["Circular with timer"],
 		};
-	
+
 		local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
 		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -350);
@@ -316,12 +316,12 @@ local function GUICategory_1(index, value)
 			end
 			_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[addonTable.db.TimerStyle]);
 		end);
-		
+
 	end
-		
+
 	-- // dropdownSortMode
 	do
-		local SortModesLocalization = { 
+		local SortModesLocalization = {
 			[AURA_SORT_MODE_NONE] =				L["None"],
 			[AURA_SORT_MODE_EXPIREASC] =		L["By expire time, ascending"],
 			[AURA_SORT_MODE_EXPIREDES] =		L["By expire time, descending"],
@@ -329,8 +329,8 @@ local function GUICategory_1(index, value)
 			[AURA_SORT_MODE_ICONSIZEDES] =		L["By icon size, descending"],
 			[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["By aura type (de/buff) + expire time"]
 		};
-	
-	
+
+
 		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
 		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -385);
@@ -355,9 +355,9 @@ local function GUICategory_1(index, value)
 		dropdownSortMode.text:SetText(L["Sort mode:"]);
 		table_insert(GUIFrame.Categories[index], dropdownSortMode);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
-		
+
 	end
-	
+
 end
 
 local function GUICategory_2(index, value)
@@ -389,15 +389,15 @@ local function GUICategory_Fonts(index, value)
 		[textAnchors[9]] = L["BOTTOMLEFT"]
 	};
 	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea;
-	
+
 	-- // dropdownFont
 	do
-	
+
 		local fonts = { };
 		local button = VGUI.CreateButton();
 		button:SetParent(GUIFrame);
 		button:SetText(L["Font"] .. ": " .. addonTable.db.Font);
-		
+
 		for idx, font in next, SML:List("font") do
 			table_insert(fonts, {
 				["text"] = font,
@@ -411,7 +411,7 @@ local function GUICategory_Fonts(index, value)
 			});
 		end
 		table_sort(fonts, function(item1, item2) return item1.text < item2.text; end);
-		
+
 		button:SetWidth(170);
 		button:SetHeight(24);
 		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
@@ -428,12 +428,12 @@ local function GUICategory_Fonts(index, value)
 			end
 		end);
 		table_insert(GUIFrame.Categories[index], button);
-		
+
 	end
-	
+
 	-- // sliderTimerFontScale
 	do
-		
+
 		local minValue, maxValue = 0.3, 3;
 		sliderTimerFontScale = VGUI.CreateSlider();
 		sliderTimerFontScale:SetParent(GUIFrame);
@@ -471,12 +471,12 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontScale.lowtext:SetText(tostring(minValue));
 		sliderTimerFontScale.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.FontScale)); sliderTimerFontScale.slider:SetValue(addonTable.db.FontScale); end);
-	
+
 	end
-	
+
 	-- // sliderTimerFontSize
 	do
-		
+
 		local minValue, maxValue = 6, 96;
 		sliderTimerFontSize = VGUI.CreateSlider();
 		sliderTimerFontSize:SetParent(GUIFrame);
@@ -514,12 +514,12 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontSize.lowtext:SetText(tostring(minValue));
 		sliderTimerFontSize.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.TimerTextSize)); sliderTimerFontSize.slider:SetValue(addonTable.db.TimerTextSize); end);
-	
+
 	end
-	
+
 	-- // checkBoxUseRelativeFontSize
 	do
-	
+
 		local checkBoxUseRelativeFontSize = VGUI.CreateCheckBox();
 		checkBoxUseRelativeFontSize:SetText(L["options:timer-text:scale-font-size"]);
 		checkBoxUseRelativeFontSize:SetOnClickHandler(function(this)
@@ -552,12 +552,12 @@ local function GUICategory_Fonts(index, value)
 			sliderTimerFontScale:Hide();
 			sliderTimerFontSize:Hide();
 		end);
-	
+
 	end
-	
+
 	-- // dropdownTimerTextAnchor
 	do
-		
+
 		local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 145);
 		dropdownTimerTextAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -125);
@@ -582,12 +582,12 @@ local function GUICategory_Fonts(index, value)
 		dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchor]); end);
-	
+
 	end
-	
+
 	-- // dropdownTimerTextAnchorIcon
 	do
-		
+
 		local dropdownTimerTextAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerTextAnchorIcon, 145);
 		dropdownTimerTextAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -125);
@@ -612,12 +612,12 @@ local function GUICategory_Fonts(index, value)
 		dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchorIcon]); end);
-	
+
 	end
-			
+
 	-- // sliderTimerTextXOffset
 	do
-		
+
 		local minValue, maxValue = -100, 100;
 		local sliderTimerTextXOffset = VGUI.CreateSlider();
 		sliderTimerTextXOffset:SetParent(GUIFrame);
@@ -656,12 +656,12 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerTextXOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderTimerTextXOffset);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset)); sliderTimerTextXOffset.slider:SetValue(addonTable.db.TimerTextXOffset); end);
-	
+
 	end
-	
+
 	-- // sliderTimerTextYOffset
 	do
-		
+
 		local minValue, maxValue = -100, 100;
 		local sliderTimerTextYOffset = VGUI.CreateSlider();
 		sliderTimerTextYOffset:SetParent(GUIFrame);
@@ -700,13 +700,13 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerTextYOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderTimerTextYOffset);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset)); sliderTimerTextYOffset.slider:SetValue(addonTable.db.TimerTextYOffset); end);
-	
+
 	end
-	
+
 	-- // timerTextColorArea
 	do
-	
-		timerTextColorArea = CreateFrame("Frame", nil, GUIFrame);
+
+		timerTextColorArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		timerTextColorArea:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -721,21 +721,21 @@ local function GUICategory_Fonts(index, value)
 		timerTextColorArea:SetWidth(360);
 		timerTextColorArea:SetHeight(71);
 		table_insert(GUIFrame.Categories[index], timerTextColorArea);
-	
+
 	end
-	
+
 	-- // timerTextColorInfo
 	do
-		
+
 		local timerTextColorInfo = timerTextColorArea:CreateFontString(nil, "OVERLAY", "GameFontNormal");
 		timerTextColorInfo:SetText(L["options:timer-text:text-color-note"]);
 		timerTextColorInfo:SetPoint("TOP", 0, -10);
-		
+
 	end
-	
+
 	-- // colorPickerTimerTextFiveSeconds
 	do
-	
+
 		local colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
 		colorPickerTimerTextFiveSeconds:SetParent(timerTextColorArea);
 		colorPickerTimerTextFiveSeconds:SetPoint("TOPLEFT", 10, -40);
@@ -761,12 +761,12 @@ local function GUICategory_Fonts(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor)); end);
-		
+
 	end
-	
+
 	-- // colorPickerTimerTextMinute
 	do
-	
+
 		local colorPickerTimerTextMinute = VGUI.CreateColorPicker();
 		colorPickerTimerTextMinute:SetParent(timerTextColorArea);
 		colorPickerTimerTextMinute:SetPoint("TOPLEFT", 135, -40);
@@ -792,12 +792,12 @@ local function GUICategory_Fonts(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor)); end);
-	
+
 	end
-	
+
 	-- // colorPickerTimerTextMore
 	do
-	
+
 		local colorPickerTimerTextMore = VGUI.CreateColorPicker();
 		colorPickerTimerTextMore:SetParent(timerTextColorArea);
 		colorPickerTimerTextMore:SetPoint("TOPLEFT", 260, -40);
@@ -823,13 +823,13 @@ local function GUICategory_Fonts(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextMore);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor)); end);
-	
+
 	end
 
 	-- // tenthsOfSecondsArea
 	do
-	
-		tenthsOfSecondsArea = CreateFrame("Frame", nil, GUIFrame);
+
+		tenthsOfSecondsArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		tenthsOfSecondsArea:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -844,12 +844,12 @@ local function GUICategory_Fonts(index, value)
 		tenthsOfSecondsArea:SetWidth(360);
 		tenthsOfSecondsArea:SetHeight(71);
 		table_insert(GUIFrame.Categories[index], tenthsOfSecondsArea);
-		
+
 	end
-	
+
 	-- // sliderDisplayTenthsOfSeconds
 	do
-		
+
 		local minValue, maxValue = 0, 10;
 		local sliderDisplayTenthsOfSeconds = VGUI.CreateSlider();
 		sliderDisplayTenthsOfSeconds:SetParent(tenthsOfSecondsArea);
@@ -890,9 +890,9 @@ local function GUICategory_Fonts(index, value)
 		sliderDisplayTenthsOfSeconds.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderDisplayTenthsOfSeconds);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds)); sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.MinTimeToShowTenthsOfSeconds); end);
-	
+
 	end
-	
+
 end
 
 local function GUICategory_AuraStackFont(index, value)
@@ -909,15 +909,15 @@ local function GUICategory_AuraStackFont(index, value)
 		[textAnchors[8]] = L["LEFT"],
 		[textAnchors[9]] = L["BOTTOMLEFT"]
 	};
-	
+
 	-- // dropdownStacksFont
 	do
-	
+
 		local fonts = { };
 		local button = VGUI.CreateButton();
 		button:SetParent(GUIFrame);
 		button:SetText(L["Font"] .. ": " .. addonTable.db.StacksFont);
-		
+
 		for idx, font in next, SML:List("font") do
 			table_insert(fonts, {
 				["text"] = font,
@@ -931,7 +931,7 @@ local function GUICategory_AuraStackFont(index, value)
 			});
 		end
 		table_sort(fonts, function(item1, item2) return item1.text < item2.text; end);
-		
+
 		button:SetWidth(170);
 		button:SetHeight(24);
 		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
@@ -948,12 +948,12 @@ local function GUICategory_AuraStackFont(index, value)
 			end
 		end);
 		table_insert(GUIFrame.Categories[index], button);
-		
+
 	end
-			
+
 	-- // sliderStacksFontScale
 	do
-		
+
 		local minValue, maxValue = 0.3, 3;
 		local sliderStacksFontScale = VGUI.CreateSlider();
 		sliderStacksFontScale:SetParent(GUIFrame);
@@ -992,12 +992,12 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksFontScale.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderStacksFontScale);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.StacksFontScale)); sliderStacksFontScale.slider:SetValue(addonTable.db.StacksFontScale); end);
-	
+
 	end
-	
+
 	-- // dropdownStacksAnchor
 	do
-		
+
 		local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownStacksAnchor, 145);
 		dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -125);
@@ -1022,12 +1022,12 @@ local function GUICategory_AuraStackFont(index, value)
 		dropdownStacksAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchor]); end);
-	
+
 	end
-	
+
 	-- // dropdownStacksAnchorIcon
 	do
-		
+
 		local dropdownStacksAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchorIcon", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownStacksAnchorIcon, 145);
 		dropdownStacksAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -125);
@@ -1052,12 +1052,12 @@ local function GUICategory_AuraStackFont(index, value)
 		dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchorIcon]); end);
-	
+
 	end
-	
+
 	-- // sliderStacksTextXOffset
 	do
-		
+
 		local minValue, maxValue = -100, 100;
 		local sliderStacksTextXOffset = VGUI.CreateSlider();
 		sliderStacksTextXOffset:SetParent(GUIFrame);
@@ -1096,12 +1096,12 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksTextXOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderStacksTextXOffset);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset)); sliderStacksTextXOffset.slider:SetValue(addonTable.db.StacksTextXOffset); end);
-	
+
 	end
-	
+
 	-- // sliderStacksTextYOffset
 	do
-		
+
 		local minValue, maxValue = -100, 100;
 		local sliderStacksTextYOffset = VGUI.CreateSlider();
 		sliderStacksTextYOffset:SetParent(GUIFrame);
@@ -1140,12 +1140,12 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksTextYOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderStacksTextYOffset);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset)); sliderStacksTextYOffset.slider:SetValue(addonTable.db.StacksTextYOffset); end);
-	
+
 	end
-	
+
 	-- // colorPickerStacksTextColor
 	do
-	
+
 		local colorPickerStacksTextColor = VGUI.CreateColorPicker();
 		colorPickerStacksTextColor:SetParent(GUIFrame);
 		colorPickerStacksTextColor:SetPoint("TOPLEFT", 165, -240);
@@ -1178,18 +1178,18 @@ local function GUICategory_AuraStackFont(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerStacksTextColor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(addonTable.db.StacksTextColor)); end);
-	
+
 	end
-	
+
 end
 
 local function GUICategory_Borders(index, value)
-	
+
 	local debuffArea;
-	
+
 	-- // sliderBorderThickness
 	do
-	
+
 		local minValue, maxValue = 1, 5;
 		local sliderBorderThickness = VGUI.CreateSlider();
 		sliderBorderThickness:SetParent(GUIFrame);
@@ -1234,12 +1234,12 @@ local function GUICategory_Borders(index, value)
 		sliderBorderThickness.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderBorderThickness);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness)); sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness); end);
-		
+
 	end
-	
+
 	-- // checkBoxBuffBorder
 	do
-	
+
 		local checkBoxBuffBorder = VGUI.CreateCheckBoxWithColorPicker();
 		checkBoxBuffBorder:SetText(L["Show border around buff icons"]);
 		checkBoxBuffBorder:SetOnClickHandler(function(this)
@@ -1271,13 +1271,13 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders); checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(addonTable.db.BuffBordersColor)); end);
-		
+
 	end
-	
+
 	-- // debuffArea
 	do
-	
-		debuffArea = CreateFrame("Frame", nil, GUIFrame);
+
+		debuffArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		debuffArea:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1292,12 +1292,12 @@ local function GUICategory_Borders(index, value)
 		debuffArea:SetWidth(360);
 		debuffArea:SetHeight(110);
 		table_insert(GUIFrame.Categories[index], debuffArea);
-	
+
 	end
-	
+
 	-- // checkBoxDebuffBorder
 	do
-	
+
 		local checkBoxDebuffBorder = VGUI.CreateCheckBox();
 		checkBoxDebuffBorder:SetText(L["Show border around debuff icons"]);
 		checkBoxDebuffBorder:SetOnClickHandler(function(this)
@@ -1309,12 +1309,12 @@ local function GUICategory_Borders(index, value)
 		checkBoxDebuffBorder:SetChecked(addonTable.db.ShowDebuffBorders);
 		table_insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDebuffBorder:SetChecked(addonTable.db.ShowDebuffBorders); end);
-		
+
 	end
-	
+
 	-- // colorPickerDebuffMagic
 	do
-	
+
 		local colorPickerDebuffMagic = VGUI.CreateColorPicker();
 		colorPickerDebuffMagic:SetParent(debuffArea);
 		colorPickerDebuffMagic:SetPoint("TOPLEFT", 15, -45);
@@ -1341,12 +1341,12 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic:SetColor(unpack(addonTable.db.DebuffBordersMagicColor)); end);
-	
+
 	end
-	
+
 	-- // colorPickerDebuffCurse
 	do
-	
+
 		local colorPickerDebuffCurse = VGUI.CreateColorPicker();
 		colorPickerDebuffCurse:SetParent(debuffArea);
 		colorPickerDebuffCurse:SetPoint("TOPLEFT", 135, -45);
@@ -1373,12 +1373,12 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersCurseColor)); end);
-	
+
 	end
-	
+
 	-- // colorPickerDebuffDisease
 	do
-	
+
 		local colorPickerDebuffDisease = VGUI.CreateColorPicker();
 		colorPickerDebuffDisease:SetParent(debuffArea);
 		colorPickerDebuffDisease:SetPoint("TOPLEFT", 255, -45);
@@ -1405,12 +1405,12 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersDiseaseColor)); end);
-	
+
 	end
-	
+
 	-- // colorPickerDebuffPoison
 	do
-	
+
 		local colorPickerDebuffPoison = VGUI.CreateColorPicker();
 		colorPickerDebuffPoison:SetParent(debuffArea);
 		colorPickerDebuffPoison:SetPoint("TOPLEFT", 15, -70);
@@ -1437,12 +1437,12 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersPoisonColor)); end);
-	
+
 	end
-	
+
 	-- // colorPickerDebuffOther
 	do
-	
+
 		local colorPickerDebuffOther = VGUI.CreateColorPicker();
 		colorPickerDebuffOther:SetParent(debuffArea);
 		colorPickerDebuffOther:SetPoint("TOPLEFT", 135, -70);
@@ -1469,9 +1469,9 @@ local function GUICategory_Borders(index, value)
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersOtherColor)); end);
-	
+
 	end
-	
+
 end
 
 local function GUICategory_4(index, value)
@@ -1510,7 +1510,7 @@ local function GUICategory_4(index, value)
 		end
 		return spellID, textureID;
 	end
-	
+
 	-- // enable & disable all spells buttons
 	do
 
@@ -1533,7 +1533,7 @@ local function GUICategory_4(index, value)
 			else
 				self.clickedOnce = true;
 				self:SetText(L["options:spells:please-push-once-more"]);
-				CTimerAfter(3, function() 
+				CTimerAfter(3, function()
 					self.clickedOnce = false;
 					self:SetText(L["options:spells:enable-all-spells"]);
 				end);
@@ -1563,7 +1563,7 @@ local function GUICategory_4(index, value)
 			else
 				self.clickedOnce = true;
 				self:SetText(L["options:spells:please-push-once-more"]);
-				CTimerAfter(3, function() 
+				CTimerAfter(3, function()
 					self.clickedOnce = false;
 					self:SetText(L["options:spells:disable-all-spells"]);
 				end);
@@ -1575,7 +1575,7 @@ local function GUICategory_4(index, value)
 		end);
 
 	end
-	
+
 	-- // delete all spells button
 	do
 
@@ -1613,7 +1613,7 @@ local function GUICategory_4(index, value)
 			else
 				self.clickedOnce = true;
 				self:SetText(L["options:spells:please-push-once-more"]);
-				CTimerAfter(3, function() 
+				CTimerAfter(3, function()
 					self.clickedOnce = false;
 					self:SetText(L["Delete all spells"]);
 				end);
@@ -1628,8 +1628,8 @@ local function GUICategory_4(index, value)
 
 	-- // spellArea
 	do
-	
-		spellArea = CreateFrame("Frame", nil, GUIFrame);
+
+		spellArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		spellArea:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1643,18 +1643,18 @@ local function GUICategory_4(index, value)
 		spellArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -85);
 		spellArea:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMRIGHT", 10, 0);
 		spellArea:SetWidth(360);
-		
+
 		spellArea.scrollArea = CreateFrame("ScrollFrame", nil, spellArea, "UIPanelScrollFrameTemplate");
 		spellArea.scrollArea:SetPoint("TOPLEFT", spellArea, "TOPLEFT", 0, -3);
 		spellArea.scrollArea:SetPoint("BOTTOMRIGHT", spellArea, "BOTTOMRIGHT", -8, 3);
 		spellArea.scrollArea:Show();
-		
+
 		spellArea.controlsFrame = CreateFrame("Frame", nil, spellArea.scrollArea);
 		spellArea.scrollArea:SetScrollChild(spellArea.controlsFrame);
 		spellArea.controlsFrame:SetWidth(360);
 		spellArea.controlsFrame:SetHeight(spellArea:GetHeight() + 150);
-		
-		spellArea.scrollBG = CreateFrame("Frame", nil, spellArea)
+
+		spellArea.scrollBG = CreateFrame("Frame", nil, spellArea, BackdropTemplateMixin and "BackdropTemplate")
 		spellArea.scrollBG:SetBackdrop({
 			bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],
 			edgeFile = [[Interface\Tooltips\UI-Tooltip-Border]], edgeSize = 16,
@@ -1665,15 +1665,15 @@ local function GUICategory_4(index, value)
 		spellArea.scrollBG:SetWidth(20);
 		spellArea.scrollBG:SetHeight(spellArea.scrollArea:GetHeight());
 		spellArea.scrollBG:SetPoint("TOPRIGHT", spellArea.scrollArea, "TOPRIGHT", 23, 0)
-		
-		
+
+
 		table_insert(controls, spellArea);
-	
+
 	end
-	
+
 	-- // editboxAddSpell, buttonAddSpell
 	do
-	
+
 		editboxAddSpell = CreateFrame("EditBox", nil, GUIFrame, "InputBoxTemplate");
 		editboxAddSpell:SetAutoFocus(false);
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
@@ -1698,7 +1698,7 @@ local function GUICategory_4(index, value)
 			end
 		end);
 		table_insert(GUIFrame.Categories[index], editboxAddSpell);
-		
+
 		buttonAddSpell = VGUI.CreateButton();
 		buttonAddSpell:SetParent(GUIFrame);
 		buttonAddSpell:SetText(L["Add spell"]);
@@ -1725,7 +1725,7 @@ local function GUICategory_4(index, value)
 			end
 			if (text ~= nil and AllSpellIDsAndIconsByName[text] ~= nil) then
 				local spellName = text;
-				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, addonTable.db.DefaultIconSize, 
+				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, addonTable.db.DefaultIconSize,
 					(customSpellID ~= nil) and { [customSpellID] = true } or nil);
 				table_insert(addonTable.db.CustomSpells2, newSpellInfo);
 				selectSpell:Click();
@@ -1742,12 +1742,12 @@ local function GUICategory_4(index, value)
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() buttonAddSpell:Enable(); end);
 		GUIFrame:HookScript("OnHide", function() buttonAddSpell:Disable(); end);
 		table_insert(GUIFrame.Categories[index], buttonAddSpell);
-		
+
 	end
 
 	-- // selectSpell
 	do
-	
+
 		local function OnSpellSelected(buttonInfo)
 			local spellInfo = buttonInfo.info;
 			for _, control in pairs(controls) do
@@ -1805,11 +1805,11 @@ local function GUICategory_4(index, value)
 				areaGlow:SetHeight(80);
 			end
 		end
-		
+
 		local function HideGameTooltip()
 			GameTooltip:Hide();
 		end
-		
+
 		local function ResetSelectSpell()
 			for _, control in pairs(controls) do
 				control:Hide();
@@ -1819,7 +1819,7 @@ local function GUICategory_4(index, value)
 			selectSpell:SetScript("OnLeave", nil);
 			selectSpell.icon:Hide();
 		end
-	
+
 		selectSpell = VGUI.CreateButton();
 		selectSpell:SetParent(GUIFrame);
 		selectSpell:SetText(L["Click to select spell"]);
@@ -1888,9 +1888,9 @@ local function GUICategory_4(index, value)
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() selectSpell:Enable(); end);
 		GUIFrame:HookScript("OnHide", function() selectSpell:Disable(); end);
 		table_insert(GUIFrame.Categories[index], selectSpell);
-		
+
 	end
-		
+
 	-- // checkboxEnabled
 	do
 		checkboxEnabled = VGUI.CreateCheckBoxTristate();
@@ -1916,9 +1916,9 @@ local function GUICategory_4(index, value)
 			addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
 			addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 		table_insert(controls, checkboxEnabled);
-		
+
 	end
-	
+
 	-- // checkboxShowOnFriends
 	do
 		checkboxShowOnFriends = VGUI.CreateCheckBox();
@@ -1934,7 +1934,7 @@ local function GUICategory_4(index, value)
 		checkboxShowOnFriends:SetPoint("TOPLEFT", 15, -35);
 		table_insert(controls, checkboxShowOnFriends);
 	end
-	
+
 	-- // checkboxShowOnEnemies
 	do
 		checkboxShowOnEnemies = VGUI.CreateCheckBox();
@@ -1947,7 +1947,7 @@ local function GUICategory_4(index, value)
 		checkboxShowOnEnemies:SetPoint("TOPLEFT", 15, -55);
 		table_insert(controls, checkboxShowOnEnemies);
 	end
-	
+
 	-- // checkboxPvPMode
 	do
 		checkboxPvPMode = VGUI.CreateCheckBoxTristate();
@@ -1969,13 +1969,13 @@ local function GUICategory_4(index, value)
 		checkboxPvPMode:SetParent(spellArea.controlsFrame);
 		checkboxPvPMode:SetPoint("TOPLEFT", 15, -75);
 		table_insert(controls, checkboxPvPMode);
-		
+
 	end
-	
+
 	-- // areaGlow
 	do
-	
-		areaGlow = CreateFrame("Frame", nil, spellArea.controlsFrame);
+
+		areaGlow = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
 		areaGlow:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1990,9 +1990,9 @@ local function GUICategory_4(index, value)
 		areaGlow:SetWidth(340);
 		areaGlow:SetHeight(80);
 		table_insert(controls, areaGlow);
-	
+
 	end
-	
+
 	-- // checkboxGlow
 	do
 		checkboxGlow = VGUI.CreateCheckBoxTristate();
@@ -2025,12 +2025,12 @@ local function GUICategory_4(index, value)
 			-- addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
 			-- addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 		table_insert(controls, checkboxGlow);
-		
+
 	end
-	
+
 	-- // sliderGlowThreshold
 	do
-	
+
 		local minV, maxV = 1, 30;
 		sliderGlowThreshold = VGUI.CreateSlider();
 		sliderGlowThreshold:SetParent(areaGlow);
@@ -2072,13 +2072,13 @@ local function GUICategory_4(index, value)
 		sliderGlowThreshold.lowtext:SetText("1");
 		sliderGlowThreshold.hightext:SetText("30");
 		table_insert(controls, sliderGlowThreshold);
-		
+
 	end
-	
+
 	-- // areaIconSize
 	do
-	
-		areaIconSize = CreateFrame("Frame", nil, spellArea.controlsFrame);
+
+		areaIconSize = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
 		areaIconSize:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2093,12 +2093,12 @@ local function GUICategory_4(index, value)
 		areaIconSize:SetWidth(170);
 		areaIconSize:SetHeight(70);
 		table_insert(controls, areaIconSize);
-	
+
 	end
-	
+
 	-- // sliderSpellIconSize
 	do
-	
+
 		sliderSpellIconSize = VGUI.CreateSlider();
 		sliderSpellIconSize:SetParent(areaIconSize);
 		sliderSpellIconSize:SetWidth(160);
@@ -2139,13 +2139,13 @@ local function GUICategory_4(index, value)
 		sliderSpellIconSize.lowtext:SetText("1");
 		sliderSpellIconSize.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
 		table_insert(controls, sliderSpellIconSize);
-		
+
 	end
-	
+
 	-- // areaAuraType
 	do
-	
-		areaAuraType = CreateFrame("Frame", nil, spellArea.controlsFrame);
+
+		areaAuraType = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
 		areaAuraType:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2160,15 +2160,15 @@ local function GUICategory_4(index, value)
 		areaAuraType:SetWidth(170);
 		areaAuraType:SetHeight(70);
 		table_insert(controls, areaAuraType);
-	
+
 	end
-	
+
 	-- // dropdownSpellShowType
 	do
-	
+
 		dropdownSpellShowType = CreateFrame("Frame", "NAuras.GUI.Cat4.DropdownSpellShowType", areaAuraType, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSpellShowType, 130);
-		
+
 		dropdownSpellShowType.text = dropdownSpellShowType:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 		dropdownSpellShowType.text:SetPoint("CENTER", areaAuraType, "CENTER", 0, 15);
 		dropdownSpellShowType.text:SetText(L["Aura type"]);
@@ -2189,13 +2189,13 @@ local function GUICategory_4(index, value)
 		end
 		_G[dropdownSpellShowType:GetName().."Text"]:SetText("");
 		table_insert(controls, dropdownSpellShowType);
-	
+
 	end
-	
+
 	-- // areaIDs
 	do
-	
-		areaIDs = CreateFrame("Frame", nil, spellArea.controlsFrame);
+
+		areaIDs = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
 		areaIDs:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2210,12 +2210,12 @@ local function GUICategory_4(index, value)
 		areaIDs:SetWidth(340);
 		areaIDs:SetHeight(40);
 		table_insert(controls, areaIDs);
-	
+
 	end
-	
+
 	-- // editboxSpellID
 	do
-	
+
 		local function StringToTableKeys(str)
 			local t = { };
 			for key in gmatch(str, "%w+") do
@@ -2226,8 +2226,8 @@ local function GUICategory_4(index, value)
 			end
 			return t;
 		end
-	
-		editboxSpellID = CreateFrame("EditBox", nil, areaIDs);
+
+		editboxSpellID = CreateFrame("EditBox", nil, areaIDs, BackdropTemplateMixin and "BackdropTemplate");
 		editboxSpellID:SetAutoFocus(false);
 		editboxSpellID:SetFontObject(GameFontHighlightSmall);
 		editboxSpellID.text = editboxSpellID:CreateFontString(nil, "ARTWORK", "GameFontNormal");
@@ -2257,12 +2257,12 @@ local function GUICategory_4(index, value)
 			self:ClearFocus();
 		end);
 		table_insert(controls, editboxSpellID);
-	
+
 	end
-	
+
 	-- // buttonDeleteSpell
 	do
-	
+
 		buttonDeleteSpell = VGUI.CreateButton();
 		buttonDeleteSpell:SetParent(spellArea.controlsFrame);
 		buttonDeleteSpell:SetText(L["Delete spell"]);
@@ -2280,18 +2280,18 @@ local function GUICategory_4(index, value)
 			end
 		end);
 		table_insert(controls, buttonDeleteSpell);
-	
+
 	end
-	
+
 end
 
 local function GUICategory_Interrupts(index, value)
-	
+
 	local interruptOptionsArea, checkBoxInterrupts;
-		
+
 	-- // checkBoxInterrupts
 	do
-	
+
 		checkBoxInterrupts = VGUI.CreateCheckBox();
 		checkBoxInterrupts:SetText(L["options:interrupts:enable-interrupts"]);
 		checkBoxInterrupts:SetOnClickHandler(function(this)
@@ -2309,13 +2309,13 @@ local function GUICategory_Interrupts(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxInterrupts:SetChecked(addonTable.db.InterruptsEnabled);
 		end);
-		
+
 	end
-			
+
 	-- // interruptOptionsArea
 	do
-	
-		interruptOptionsArea = CreateFrame("Frame", nil, GUIFrame);
+
+		interruptOptionsArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		interruptOptionsArea:SetBackdrop({
 			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2330,12 +2330,12 @@ local function GUICategory_Interrupts(index, value)
 		interruptOptionsArea:SetWidth(360);
 		interruptOptionsArea:SetHeight(140);
 		table_insert(GUIFrame.Categories[index], interruptOptionsArea);
-	
+
 	end
-	
+
 	-- // checkBoxGlow
 	do
-	
+
 		local checkBoxGlow = VGUI.CreateCheckBox();
 		checkBoxGlow:SetText(L["options:interrupts:glow"]);
 		checkBoxGlow:SetOnClickHandler(function(this)
@@ -2349,12 +2349,12 @@ local function GUICategory_Interrupts(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxGlow:SetChecked(addonTable.db.InterruptsGlow);
 		end);
-		
+
 	end
-	
+
 	-- // checkBoxUseSharedIconTexture
 	do
-	
+
 		local checkBoxUseSharedIconTexture = VGUI.CreateCheckBox();
 		checkBoxUseSharedIconTexture:SetText(L["options:interrupts:use-shared-icon-texture"]);
 		checkBoxUseSharedIconTexture:SetOnClickHandler(function(this)
@@ -2371,12 +2371,12 @@ local function GUICategory_Interrupts(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxUseSharedIconTexture:SetChecked(addonTable.db.InterruptsUseSharedIconTexture);
 		end);
-		
+
 	end
-	
+
 	-- // checkBoxEnableOnlyInPvPMode
 	do
-	
+
 		local checkBoxEnableOnlyInPvPMode = VGUI.CreateCheckBox();
 		checkBoxEnableOnlyInPvPMode:SetText(L["options:interrupts:enable-only-during-pvp-battles"]);
 		checkBoxEnableOnlyInPvPMode:SetOnClickHandler(function(this)
@@ -2390,12 +2390,12 @@ local function GUICategory_Interrupts(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxEnableOnlyInPvPMode:SetChecked(addonTable.db.InterruptsShowOnlyOnPlayers);
 		end);
-		
+
 	end
-	
+
 	-- // sliderInterruptIconSize
 	do
-	
+
 		local sliderInterruptIconSize = VGUI.CreateSlider();
 		sliderInterruptIconSize:SetParent(interruptOptionsArea);
 		sliderInterruptIconSize:SetWidth(175);
@@ -2442,9 +2442,9 @@ local function GUICategory_Interrupts(index, value)
 			sliderInterruptIconSize.slider:SetValue(addonTable.db.InterruptsIconSize);
 			sliderInterruptIconSize.editbox:SetText(tostring(addonTable.db.InterruptsIconSize));
 		end);
-		
+
 	end
-	
+
 end
 
 local function GUICategory_Additions(index, value)
@@ -2476,7 +2476,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	-- // sliderIconSize
 	do
-		
+
 		local sliderIconSize = VGUI.CreateSlider();
 		sliderIconSize:SetParent(GUIFrame);
 		sliderIconSize:SetWidth(155);
@@ -2650,7 +2650,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	-- // dropdownIconAnchor
 	do
-		
+
 		local anchors = { "TOPLEFT", "LEFT", "BOTTOMLEFT" }; -- // if you change this, don't forget to change 'symmetricAnchors'
 		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
@@ -2677,12 +2677,12 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]); end);
-	
+
 	end
-	
+
 	-- // dropdownFrameAnchor
 	do
-		
+
 		local anchors = { "CENTER", "LEFT", "RIGHT" };
 		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
@@ -2709,7 +2709,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]); end);
-	
+
 	end
 
 end
@@ -2720,7 +2720,7 @@ local function GUICategory_Dispel(index, value)
 
 	-- // checkBoxDispellableSpells
 	do
-	
+
 		checkBoxDispellableSpells = VGUI.CreateCheckBox();
 		checkBoxDispellableSpells:SetText(L["options:apps:dispellable-spells"]);
 		checkBoxDispellableSpells:SetOnClickHandler(function(this)
@@ -2737,7 +2737,7 @@ local function GUICategory_Dispel(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
 		end);
-		
+
 	end
 
 	-- // dispellableSpellsBlacklist
@@ -2760,7 +2760,7 @@ local function GUICategory_Dispel(index, value)
 						onCloseButtonClick = function(buttonInfo)
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
-							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click(); 
+							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
 						end,
 					});
 				end
@@ -2890,7 +2890,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 end
 
 local function InitializeGUI()
-	GUIFrame = CreateFrame("Frame", "NAuras.GUIFrame", UIParent);
+	GUIFrame = CreateFrame("Frame", "NAuras.GUIFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate");
 	GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
 	GUIFrame:SetScript("OnEvent", function(self, event, ...)
 		if (event == "PLAYER_REGEN_DISABLED") then
@@ -2912,7 +2912,7 @@ local function InitializeGUI()
 		tile = 1,
 		tileSize = 16,
 		edgeSize = 16,
-		insets = { left = 3, right = 3, top = 3, bottom = 3 } 
+		insets = { left = 3, right = 3, top = 3, bottom = 3 }
 	});
 	GUIFrame:SetBackdropColor(0.25, 0.24, 0.32, 1);
 	GUIFrame:SetBackdropBorderColor(0.1,0.1,0.1,1);
@@ -2924,16 +2924,16 @@ local function InitializeGUI()
 	GUIFrame:SetScript("OnMouseDown", function() GUIFrame:StartMoving(); end);
 	GUIFrame:SetScript("OnMouseUp", function() GUIFrame:StopMovingOrSizing(); end);
 	GUIFrame:Hide();
-	
+
 	GUIFrame.CategoryButtons = {};
 	GUIFrame.ActiveCategory = 1;
-	
+
 	local header = GUIFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 	header:SetFont(GameFontNormal:GetFont(), 22, "THICKOUTLINE");
 	header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 230);
 	header:SetText("NameplateAuras");
-	
-	GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame);
+
+	GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 	GUIFrame.outline:SetBackdrop({
 		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2947,7 +2947,7 @@ local function InitializeGUI()
 	GUIFrame.outline:SetPoint("TOPLEFT", 12, -12);
 	GUIFrame.outline:SetPoint("BOTTOMLEFT", 12, 12);
 	GUIFrame.outline:SetWidth(130);
-	
+
 	local closeButton = CreateFrame("Button", "NAuras.GUI.CloseButton", GUIFrame, "UIPanelButtonTemplate");
 	closeButton:SetWidth(24);
 	closeButton:SetHeight(24);
@@ -2956,12 +2956,12 @@ local function InitializeGUI()
 	closeButton.text = closeButton:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 	closeButton.text:SetPoint("CENTER", closeButton, "CENTER", 1, -1);
 	closeButton.text:SetText("X");
-	
+
 	GUIFrame.Categories = {};
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
-	
-	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"], 
+
+	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"],
 		L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"] };
 	for index, value in pairs(categories) do
 		local b = CreateGUICategory();
@@ -2976,9 +2976,9 @@ local function InitializeGUI()
 		else
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
 		end
-		
+
 		GUIFrame.Categories[index] = {};
-		
+
 		if (value == L["General"]) then
 			GUICategory_1(index, value);
 		elseif (value == L["Profiles"]) then

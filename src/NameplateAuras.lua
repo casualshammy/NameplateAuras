@@ -15,7 +15,7 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame, 
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
 	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, OnUpdate;
 do
 	AurasPerNameplate 						= { };
@@ -30,13 +30,13 @@ do
 end
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, 
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
+	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE = 
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = addonTable.TIMER_STYLE_TEXTURETEXT, addonTable.TIMER_STYLE_CIRCULAR, addonTable.TIMER_STYLE_CIRCULAROMNICC, addonTable.TIMER_STYLE_CIRCULARTEXT;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
@@ -50,9 +50,9 @@ end
 local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
 do
 
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID = 
+	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
 		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
-	
+
 end
 
 --------------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ do
 				end
 			elseif (string_find(text, "requesting3")) then
 				local _, senderGUID = strsplit("#", text, 2);
-				AceComm:SendCommMessage("NameplateAuras", 
+				AceComm:SendCommMessage("NameplateAuras",
 					format("reporting3#%s#%s", senderGUID, buildTimestamp or "DEVELOPER COPY"), distribution);
 			end
 		end
@@ -182,7 +182,7 @@ do
 				Additions_DispellableSpells_Blacklist = {},
 			},
 		};
-		
+
 		-- // ...
 		aceDB = LibStub("AceDB-3.0"):New("NameplateAurasAceDB", aceDBDefaults);
 		-- // adding to blizz options
@@ -277,7 +277,7 @@ do
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
 				ElapsedTimer = ElapsedTimer + elapsed;
 				if (ElapsedTimer >= 0.1) then
-					OnUpdate();				
+					OnUpdate();
 					ElapsedTimer = 0;
 				end
 			end);
@@ -308,8 +308,8 @@ do
 
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
 	local glowInfo = { };
-	local symmetricAnchors = { 
-		["TOPLEFT"] = "TOPRIGHT", 
+	local symmetricAnchors = {
+		["TOPLEFT"] = "TOPRIGHT",
 		["LEFT"] = "RIGHT",
 		["BOTTOMLEFT"] = "BOTTOMRIGHT",
 	};
@@ -532,7 +532,6 @@ do
 					["type"] = AURA_TYPE_DEBUFF,
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
 					["overrideDimGlow"] = false,
-					["infinite_duration"] = true,
 					["overrideShowGlow"] = true,
 				});
 			end
@@ -552,7 +551,6 @@ do
 						["type"] = auraType,
 						["dispelType"] = auraDispelType,
 						["spellName"] = auraName,
-						["infinite_duration"] = auraDuration == 0,
 						["dbEntry"] = dbEntry,
 					});
 					foundInDB = true;
@@ -569,7 +567,6 @@ do
 					["type"] = auraType,
 					["dispelType"] = auraDispelType,
 					["spellName"] = auraName,
-					["infinite_duration"] = auraDuration == 0,
 				});
 			end
 			if (db.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
@@ -581,7 +578,6 @@ do
 						["spellID"] = auraSpellID,
 						["type"] = auraType,
 						["spellName"] = auraName,
-						["infinite_duration"] = auraDuration == 0,
 						["overrideDimGlow"] = true,
 						["overrideShowGlow"] = true,
 					});
@@ -592,7 +588,7 @@ do
 
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
-		local unitIsFriend = UnitReaction("player", unitID) > 4; -- 4 = neutral
+		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
 			for i = 1, 40 do
@@ -630,7 +626,7 @@ do
 		end
 		local info = icon.info;
 		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-			if (last > 3600 or spellInfo.infinite_duration) then
+			if (last > 3600 or spellInfo.duration == 0) then
 				if (info.text ~= "") then
 					icon.cooldownText:SetText("");
 					info.text = "";
@@ -651,7 +647,7 @@ do
 				icon.cooldownText:SetText(string_format("%.1f", last));
 				info.text = nil;
 			end
-			if (last >= 60 or spellInfo.infinite_duration) then
+			if (last >= 60 or spellInfo.duration == 0) then
 				if (info.colorState ~= db.TimerTextLongerColor) then
 					icon.cooldownText:SetTextColor(unpack(db.TimerTextLongerColor));
 					info.colorState = db.TimerTextLongerColor;
@@ -669,7 +665,7 @@ do
 			end
 			if (db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 				if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
-					if (spellInfo.infinite_duration) then
+					if (spellInfo.duration == 0) then
 						icon:SetCooldown(0, VERY_LONG_COOLDOWN_DURATION);
 					else
 						icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
@@ -680,7 +676,7 @@ do
 			end
 		elseif (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULAR) then
 			if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
-				if (spellInfo.infinite_duration) then
+				if (spellInfo.duration == 0) then
 					icon:SetCooldown(0, VERY_LONG_COOLDOWN_DURATION);
 				else
 					icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
@@ -733,7 +729,7 @@ do
 		if (auraInfo and auraInfo.showGlow ~= nil) then
 			if (auraInfo.showGlow == GLOW_TIME_INFINITE) then -- okay, we should show glow and user wants to see it without time limit
 				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
-			elseif (spellInfo.infinite_duration) then -- // okay, user has limited time for glow, but aura is permanent
+			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for glow, but aura is permanent
 				LBG_HideOverlayGlow(icon);
 			elseif (remainingAuraTime < auraInfo.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
 				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
@@ -759,7 +755,7 @@ do
 				local spellName = SpellNameByID[spellInfo.spellID];
 				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
-				if (last > 0 or spellInfo.infinite_duration) then
+				if (last > 0 or spellInfo.duration == 0) then
 					if (counter > frame.NAurasIconsCount) then
 						AllocateIcon(frame);
 					end
@@ -821,9 +817,8 @@ do
 			local counter = 1;
 			if (AurasPerNameplate[frame]) then
 				for _, spellInfo in pairs(AurasPerNameplate[frame]) do
-					local duration = spellInfo.duration;
 					local last = spellInfo.expires - currentTime;
-					if (last > 0 or spellInfo.infinite_duration) then
+					if (last > 0 or spellInfo.duration == 0) then
 						-- // getting reference to icon
 						local icon = frame.NAurasIcons[counter];
 						-- // setting text
@@ -932,7 +927,6 @@ do
 						["spellID"] = spellID,
 						["type"] = AURA_TYPE_DEBUFF,
 						["spellName"] = spellName,
-						["infinite_duration"] = false,
 						["dbEntry"] = {
 							["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 							["auraType"] =					AURA_TYPE_DEBUFF,
@@ -963,7 +957,7 @@ do
 					UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
 					CTimerAfter(60, function() UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = nil; end);
 				end
-				
+
 			end
 		end
 	end
@@ -977,7 +971,7 @@ do
 		CTimerAfter(1, UpdatePvPState);
 	end
 	CTimerAfter(1, UpdatePvPState);
-	
+
 end
 
 --------------------------------------------------------------------------------------------------
@@ -1001,7 +995,6 @@ do
 				["spellID"] = 139,
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[139],
-				["infinite_duration"] = false,
 			},
 			{
 				["duration"] = intervalBetweenRefreshes*2,
@@ -1010,7 +1003,6 @@ do
 				["spellID"] = 215336,
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[215336],
-				["infinite_duration"] = false,
 			},
 			{
 				["duration"] = intervalBetweenRefreshes*20,
@@ -1020,7 +1012,6 @@ do
 				["type"] = AURA_TYPE_DEBUFF,
 				["dispelType"] = "Magic",
 				["spellName"] = SpellNameByID[188389],
-				["infinite_duration"] = false,
 			},
 			{
 				["duration"] = 0,
@@ -1030,9 +1021,8 @@ do
 				["type"] = AURA_TYPE_DEBUFF,
 				["dispelType"] = "Curse",
 				["spellName"] = SpellNameByID[100407],
-				["infinite_duration"] = true,
 			},
-	
+
 		};
 	end
 

@@ -180,6 +180,8 @@ do
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 				Additions_DispellableSpells = false,
 				Additions_DispellableSpells_Blacklist = {},
+				Additions_DispellableSpells_IconSize = 45, -- // must be equal to DefaultIconSize
+				Additions_DispellableSpells_DimGlow = true,
 			},
 		};
 
@@ -532,7 +534,9 @@ do
 					["type"] = AURA_TYPE_DEBUFF,
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
 					["overrideDimGlow"] = false,
-					["overrideShowGlow"] = true,
+					["dbEntry"] = {
+						["showGlow"] = GLOW_TIME_INFINITE,
+					},
 				});
 			end
 		end
@@ -579,7 +583,10 @@ do
 						["type"] = auraType,
 						["spellName"] = auraName,
 						["overrideDimGlow"] = true,
-						["overrideShowGlow"] = true,
+						["dbEntry"] = {
+							["iconSize"] = db.Additions_DispellableSpells_IconSize,
+							["showGlow"] = GLOW_TIME_INFINITE,
+						},
 					});
 				end
 			end
@@ -737,8 +744,6 @@ do
 				LBG_HideOverlayGlow(icon); -- // hide glow
 				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end); -- // queue delayed glow
 			end
-		elseif (spellInfo and spellInfo.overrideShowGlow) then
-			LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
 		else
 			LBG_HideOverlayGlow(icon); -- // this aura doesn't require glow
 		end

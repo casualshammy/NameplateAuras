@@ -2715,8 +2715,9 @@ local function GUICategory_SizeAndPosition(index, value)
 end
 
 local function GUICategory_Dispel(index, value)
-	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell;
+	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, areaIconSize, checkBoxUseDimGlow;
 	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
+	local subControls = { };
 
 	-- // checkBoxDispellableSpells
 	do
@@ -2728,7 +2729,16 @@ local function GUICategory_Dispel(index, value)
 			if (not addonTable.db.Additions_DispellableSpells) then
 				addonTable.UpdateAllNameplates(true);
 			end
+			for _, control in pairs(subControls) do
+				if (addonTable.db.Additions_DispellableSpells) then
+					control:Show();
+				else
+					control:Hide();
+				end
+			end
 		end);
+		checkBoxDispellableSpells:HookScript("OnShow", function() if (addonTable.db.Additions_DispellableSpells) then for _, control in pairs(subControls) do control:Show(); end end end);
+		checkBoxDispellableSpells:HookScript("OnHide", function() for _, control in pairs(subControls) do control:Hide(); end end);
 		checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
 		checkBoxDispellableSpells:SetParent(GUIFrame);
 		checkBoxDispellableSpells:SetPoint("TOPLEFT", 160, -20);
@@ -2740,14 +2750,98 @@ local function GUICategory_Dispel(index, value)
 
 	end
 
+	-- // checkBoxUseDimGlow
+	do
+		checkBoxUseDimGlow = VGUI.CreateCheckBox();
+		checkBoxUseDimGlow:SetText(L["options:general:use-dim-glow"]);
+		checkBoxUseDimGlow:SetOnClickHandler(function(this)
+			addonTable.db.Additions_DispellableSpells_DimGlow = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkBoxUseDimGlow:SetChecked(addonTable.db.Additions_DispellableSpells_DimGlow);
+		checkBoxUseDimGlow:SetParent(GUIFrame);
+		checkBoxUseDimGlow:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", 0, -20);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.Additions_DispellableSpells_DimGlow); end);
+
+	end
+
+	-- // areaIconSize
+	do
+
+		areaIconSize = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaIconSize:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaIconSize:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaIconSize:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaIconSize:SetPoint("TOPLEFT", checkBoxUseDimGlow, "BOTTOMLEFT", 0, 0);
+		areaIconSize:SetWidth(170*2);
+		areaIconSize:SetHeight(70);
+
+	end
+
+	-- // sliderSpellIconSize
+	do
+
+		local sliderSpellIconSize = VGUI.CreateSlider();
+		sliderSpellIconSize:SetParent(areaIconSize);
+		sliderSpellIconSize:SetWidth(areaIconSize:GetWidth() - 10);
+		sliderSpellIconSize:SetPoint("TOPLEFT", 18, -23);
+		sliderSpellIconSize.label:ClearAllPoints();
+		sliderSpellIconSize.label:SetPoint("CENTER", sliderSpellIconSize, "CENTER", 0, 15);
+		sliderSpellIconSize.label:SetText(L["Icon size"]);
+		sliderSpellIconSize:ClearAllPoints();
+		sliderSpellIconSize:SetPoint("CENTER", areaIconSize, "CENTER", 0, 0);
+		sliderSpellIconSize.slider:ClearAllPoints();
+		sliderSpellIconSize.slider:SetPoint("LEFT", 3, 0)
+		sliderSpellIconSize.slider:SetPoint("RIGHT", -3, 0)
+		sliderSpellIconSize.slider:SetValueStep(1);
+		sliderSpellIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
+		sliderSpellIconSize.slider:SetValue(addonTable.db.Additions_DispellableSpells_IconSize);
+		sliderSpellIconSize.editbox:SetText(tostring(addonTable.db.Additions_DispellableSpells_IconSize));
+		sliderSpellIconSize.slider:SetScript("OnValueChanged", function(self, value)
+			sliderSpellIconSize.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.Additions_DispellableSpells_IconSize = math_ceil(value);
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderSpellIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderSpellIconSize.editbox:GetText() ~= "") then
+				local v = tonumber(sliderSpellIconSize.editbox:GetText());
+				if (v == nil) then
+					sliderSpellIconSize.editbox:SetText(tostring(addonTable.db.Additions_DispellableSpells_IconSize));
+					Print(L["Value must be a number"]);
+				else
+					if (v > addonTable.MAX_AURA_ICON_SIZE) then
+						v = addonTable.MAX_AURA_ICON_SIZE;
+					end
+					if (v < 1) then
+						v = 1;
+					end
+					sliderSpellIconSize.slider:SetValue(v);
+				end
+				sliderSpellIconSize.editbox:ClearFocus();
+			end
+		end);
+		sliderSpellIconSize.lowtext:SetText("1");
+		sliderSpellIconSize.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
+		table_insert(GUIFrame.Categories[index], sliderSpellIconSize);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderSpellIconSize.slider:SetValue(addonTable.db.Additions_DispellableSpells_IconSize); end);
+
+	end
+
 	-- // dispellableSpellsBlacklist
 	do
 		dispellableSpellsBlacklist = VGUI.CreateButton();
 		dispellableSpellsBlacklist:SetParent(GUIFrame);
 		dispellableSpellsBlacklist:SetText(L["options:apps:dispellable-spells:black-list-button"]);
-		dispellableSpellsBlacklist:SetWidth(300);
+		dispellableSpellsBlacklist:SetWidth(areaIconSize:GetWidth());
 		dispellableSpellsBlacklist:SetHeight(24);
-		dispellableSpellsBlacklist:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", 0, 0);
+		dispellableSpellsBlacklist:SetPoint("TOPLEFT", areaIconSize, "BOTTOMLEFT", 0, -10);
 		dispellableSpellsBlacklist:SetScript("OnClick", function(button)
 			if (dispellableSpellsBlacklistMenu:IsShown()) then
 				dispellableSpellsBlacklistMenu:Hide();
@@ -2776,7 +2870,6 @@ local function GUICategory_Dispel(index, value)
 		dispellableSpellsBlacklist:Disable();
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() dispellableSpellsBlacklist:Enable(); end);
 		GUIFrame:HookScript("OnHide", function() dispellableSpellsBlacklist:Disable(); end);
-		table_insert(GUIFrame.Categories[index], dispellableSpellsBlacklist);
 	end
 
 	-- addButton
@@ -2857,6 +2950,11 @@ local function GUICategory_Dispel(index, value)
 		dispellableSpellsBlacklistMenu:ClearAllPoints();
 		dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", dispellableSpellsBlacklist, "TOPRIGHT", 5, 0);
 	end
+
+	subControls[#subControls+1] = dispellableSpellsBlacklist;
+	subControls[#subControls+1] = areaIconSize;
+	subControls[#subControls+1] = checkBoxUseDimGlow;
+	for _, control in pairs(subControls) do control:Hide(); end
 
 end
 

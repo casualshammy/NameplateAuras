@@ -582,7 +582,7 @@ do
 						["spellID"] = auraSpellID,
 						["type"] = auraType,
 						["spellName"] = auraName,
-						["overrideDimGlow"] = true,
+						["overrideDimGlow"] = db.Additions_DispellableSpells_DimGlow,
 						["dbEntry"] = {
 							["iconSize"] = db.Additions_DispellableSpells_IconSize,
 							["showGlow"] = GLOW_TIME_INFINITE,

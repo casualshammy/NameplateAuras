@@ -88,9 +88,6 @@ L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option
 L["options:general:hide-blizz-frames"] = "Hide Blizzard's aura frames (except player)"
 L["options:general:hide-player-blizz-frame"] = "Hide Blizzard's aura frames on player"
 L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
-L["options:general:use-dim-glow"] = "Weak glow of icons"
-L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
-(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
 L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
 L["options:interrupts:glow"] = "Icon glow"
@@ -148,5 +145,12 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable aur
 These auras have a dim glow and default size]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
 L["options:category:dispel"] = "Purge/steal";
+
+L["options:glow-type"] = "Glow type";
+L["options:glow-type:GLOW_TYPE_NONE"] = "None";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Action button";
+L["options:glow-type:GLOW_TYPE_AUTOUSE"] = "Auto-use button";
+L["options:glow-type:GLOW_TYPE_PIXEL"] = "Pixel";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"] = "Action button (dim)";
 
 --@end-debug@

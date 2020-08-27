@@ -7,6 +7,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
+local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
@@ -174,14 +175,13 @@ do
 				InterruptsGlow = false,
 				InterruptsUseSharedIconTexture = false,
 				InterruptsShowOnlyOnPlayers = true,
-				UseDimGlow = nil,
 				Additions_ExplosiveOrbs = true,
 				ShowAuraTooltip = false,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 				Additions_DispellableSpells = false,
 				Additions_DispellableSpells_Blacklist = {},
 				Additions_DispellableSpells_IconSize = 45, -- // must be equal to DefaultIconSize
-				Additions_DispellableSpells_DimGlow = true,
+				Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
 			},
 		};
 
@@ -435,6 +435,13 @@ do
 		table_insert(frame.NAurasIcons, icon);
 	end
 
+	local function HideGlow(icon)
+		LBG_HideOverlayGlow(icon);
+		LibCustomGlow.PixelGlow_Stop(icon);
+		LibCustomGlow.AutoCastGlow_Stop(icon);
+		icon.glowType = nil;
+	end
+
 	local function HideCDIcon(icon)
 		icon.border:Hide();
 		icon.borderState = nil;
@@ -445,7 +452,7 @@ do
 		icon.spellID = -1;
 		icon.stackcount = -1;
 		icon.size = -1;
-		LBG_HideOverlayGlow(icon);
+		HideGlow(icon);
 	end
 
 	local function ShowCDIcon(icon)
@@ -533,9 +540,9 @@ do
 					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
 					["type"] = AURA_TYPE_DEBUFF,
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
-					["overrideDimGlow"] = false,
 					["dbEntry"] = {
 						["showGlow"] = GLOW_TIME_INFINITE,
+						["glowType"] = addonTable.GLOW_TYPE_ACTIONBUTTON,
 					},
 				});
 			end
@@ -582,10 +589,10 @@ do
 						["spellID"] = auraSpellID,
 						["type"] = auraType,
 						["spellName"] = auraName,
-						["overrideDimGlow"] = db.Additions_DispellableSpells_DimGlow,
 						["dbEntry"] = {
 							["iconSize"] = db.Additions_DispellableSpells_IconSize,
 							["showGlow"] = GLOW_TIME_INFINITE,
+							["glowType"] = db.Additions_DispellableSpells_GlowType,
 						},
 					});
 				end
@@ -728,27 +735,57 @@ do
 		end
 	end
 
-	local function UpdateNameplate_SetGlow(icon, auraInfo, iconResized, dimGlow, remainingAuraTime, spellInfo)
+	local glowMethods = {
+		[addonTable.GLOW_TYPE_NONE] = function(icon)
+			icon.glowType = nil;
+		end,
+		[addonTable.GLOW_TYPE_ACTIONBUTTON] = function(icon, iconResized)
+			if (icon.glowType ~= addonTable.GLOW_TYPE_ACTIONBUTTON) then
+				LBG_ShowOverlayGlow(icon, iconResized, false);
+				icon.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON;
+			end
+		end,
+		[addonTable.GLOW_TYPE_AUTOUSE] = function(icon)
+			if (icon.glowType ~= addonTable.GLOW_TYPE_AUTOUSE) then
+				LibCustomGlow.AutoCastGlow_Start(icon, nil, nil, 0.2, 1.5);
+				icon.glowType = addonTable.GLOW_TYPE_AUTOUSE;
+			end
+		end,
+		[addonTable.GLOW_TYPE_PIXEL] = function(icon)
+			if (icon.glowType ~= addonTable.GLOW_TYPE_PIXEL) then
+				LibCustomGlow.PixelGlow_Start(icon, nil, nil, nil, nil, 3);
+				icon.glowType = addonTable.GLOW_TYPE_PIXEL;
+			end
+		end,
+		[addonTable.GLOW_TYPE_ACTIONBUTTON_DIM] = function(icon, iconResized)
+			if (icon.glowType ~= addonTable.GLOW_TYPE_ACTIONBUTTON_DIM) then
+				LBG_ShowOverlayGlow(icon, iconResized, true);
+				icon.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+			end
+		end,
+	};
+
+	local function UpdateNameplate_SetGlow(icon, iconResized, remainingAuraTime, spellInfo)
 		if (glowInfo[icon]) then
 			glowInfo[icon]:Cancel(); -- // cancel delayed glow
 			glowInfo[icon] = nil;
 		end
-		if (auraInfo and auraInfo.showGlow ~= nil) then
-			if (auraInfo.showGlow == GLOW_TIME_INFINITE) then -- okay, we should show glow and user wants to see it without time limit
-				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
+		local dbEntry = spellInfo.dbEntry;
+		if (dbEntry and dbEntry.showGlow ~= nil and dbEntry.glowType ~= nil) then
+			if (dbEntry.showGlow == GLOW_TIME_INFINITE) then -- okay, we should show glow and user wants to see it without time limit
+				glowMethods[dbEntry.glowType](icon, iconResized);
 			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for glow, but aura is permanent
-				LBG_HideOverlayGlow(icon);
-			elseif (remainingAuraTime < auraInfo.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
-				LBG_ShowOverlayGlow(icon, iconResized, dimGlow);
+				HideGlow(icon);
+			elseif (remainingAuraTime < dbEntry.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
+				glowMethods[dbEntry.glowType](icon, iconResized);
 			else -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is bigger than user's limit
-				LBG_HideOverlayGlow(icon); -- // hide glow
-				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - auraInfo.showGlow, function() LBG_ShowOverlayGlow(icon, iconResized, dimGlow); end); -- // queue delayed glow
+				HideGlow(icon); -- // hide glow
+				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.showGlow, function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
 			end
 		else
-			LBG_HideOverlayGlow(icon); -- // this aura doesn't require glow
+			HideGlow(icon); -- // this aura doesn't require glow
 		end
 	end
-	addonTable.UpdateNameplate_SetGlow = UpdateNameplate_SetGlow;
 
 	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
@@ -784,11 +821,7 @@ do
 						iconResized = true;
 					end
 					-- // glow
-					if (spellInfo.overrideDimGlow == nil) then
-						UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, db.UseDimGlow, last, spellInfo);
-					else
-						UpdateNameplate_SetGlow(icon, enabledAuraInfo, iconResized, spellInfo.overrideDimGlow, last, spellInfo);
-					end
+					UpdateNameplate_SetGlow(icon, iconResized, last, spellInfo);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
@@ -1000,6 +1033,9 @@ do
 				["spellID"] = 139,
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[139],
+				["dbEntry"] = {
+					["iconSize"] = 50,
+				},
 			},
 			{
 				["duration"] = intervalBetweenRefreshes*2,
@@ -1008,6 +1044,9 @@ do
 				["spellID"] = 215336,
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[215336],
+				["dbEntry"] = {
+					["iconSize"] = 45,
+				},
 			},
 			{
 				["duration"] = intervalBetweenRefreshes*20,
@@ -1017,6 +1056,9 @@ do
 				["type"] = AURA_TYPE_DEBUFF,
 				["dispelType"] = "Magic",
 				["spellName"] = SpellNameByID[188389],
+				["dbEntry"] = {
+					["iconSize"] = 40,
+				},
 			},
 			{
 				["duration"] = 0,
@@ -1026,6 +1068,11 @@ do
 				["type"] = AURA_TYPE_DEBUFF,
 				["dispelType"] = "Curse",
 				["spellName"] = SpellNameByID[100407],
+				["dbEntry"] = {
+					["iconSize"] = 35,
+					["showGlow"] = GLOW_TIME_INFINITE,
+					["glowType"] = db.Additions_DispellableSpells_GlowType,
+				},
 			},
 
 		};
@@ -1041,7 +1088,6 @@ do
 			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
 				nameplate.NAurasFrame:Show();
 			end
-			addonTable.UpdateNameplate_SetGlow(nameplate.NAurasIcons[1], { ["showGlow"] = GLOW_TIME_INFINITE }, true, db.UseDimGlow);
 		end
 	end
 

@@ -52,6 +52,7 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, iconSize, checkSp
 		["showOnEnemies"] =				true,
 		["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
 		["showGlow"] =					nil,
+		["glowType"] =					addonTable.GLOW_TYPE_AUTOUSE,
 	};
 end
 
@@ -112,7 +113,7 @@ end
 local function GUICategory_1(index, value)
 
 	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkBoxUseDimGlow, checkboxAuraTooltip;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip;
 
 	-- buttonTestMode
 	do
@@ -236,23 +237,6 @@ local function GUICategory_1(index, value)
 
 	end
 
-	-- // checkBoxUseDimGlow
-	do
-		checkBoxUseDimGlow = VGUI.CreateCheckBox();
-		checkBoxUseDimGlow:SetText(L["options:general:use-dim-glow"]);
-		checkBoxUseDimGlow:SetOnClickHandler(function(this)
-			addonTable.db.UseDimGlow = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow);
-		checkBoxUseDimGlow:SetParent(GUIFrame);
-		checkBoxUseDimGlow:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
-		VGUI.SetTooltip(checkBoxUseDimGlow, L["options:general:use-dim-glow:tooltip"]);
-		table_insert(GUIFrame.Categories[index], checkBoxUseDimGlow);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.UseDimGlow); end);
-
-	end
-
 	-- // checkboxAuraTooltip
 	do
 		checkboxAuraTooltip = VGUI.CreateCheckBox();
@@ -266,8 +250,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
 		checkboxAuraTooltip:SetParent(GUIFrame);
-		checkboxAuraTooltip:SetPoint("TOPLEFT", checkBoxUseDimGlow, "BOTTOMLEFT", 0, 0);
-		-- VGUI.SetTooltip(checkboxAuraTooltip, L["options:general:use-dim-glow:tooltip"]);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
 
@@ -1480,11 +1463,18 @@ local function GUICategory_4(index, value)
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
 	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
-		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter;
+		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
 		[AURA_TYPE_ANY] =		L["Any"],
+	};
+
+	local glowTypes = {
+		[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
+		[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
+		[addonTable.GLOW_TYPE_PIXEL] = L["options:glow-type:GLOW_TYPE_PIXEL"],
+		[addonTable.GLOW_TYPE_ACTIONBUTTON_DIM] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"],
 	};
 
 	local function GetButtonNameForSpell(spellInfo)
@@ -1794,16 +1784,18 @@ local function GUICategory_4(index, value)
 			if (spellInfo.showGlow == nil) then
 				checkboxGlow:SetTriState(0);
 				sliderGlowThreshold:Hide();
+				dropdownGlowType:Hide();
 				areaGlow:SetHeight(40);
 			elseif (spellInfo.showGlow == GLOW_TIME_INFINITE) then
 				checkboxGlow:SetTriState(2);
 				sliderGlowThreshold:Hide();
-				areaGlow:SetHeight(40);
+				areaGlow:SetHeight(80);
 			else
 				checkboxGlow:SetTriState(1);
 				sliderGlowThreshold.slider:SetValue(spellInfo.showGlow);
 				areaGlow:SetHeight(80);
 			end
+			_G[dropdownGlowType:GetName().."Text"]:SetText(glowTypes[spellInfo.glowType]);
 		end
 
 		local function HideGameTooltip()
@@ -2005,16 +1997,19 @@ local function GUICategory_4(index, value)
 			if (self:GetTriState() == 0) then
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = nil; -- // making addonTable.db smaller
 				sliderGlowThreshold:Hide();
+				dropdownGlowType:Hide();
 				areaGlow:SetHeight(40);
 			elseif (self:GetTriState() == 1) then
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = 5;
 				sliderGlowThreshold:Show();
+				dropdownGlowType:Show();
 				sliderGlowThreshold.slider:SetValue(5);
 				areaGlow:SetHeight(80);
 			else
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = GLOW_TIME_INFINITE;
 				sliderGlowThreshold:Hide();
-				areaGlow:SetHeight(40);
+				dropdownGlowType:Show();
+				areaGlow:SetHeight(80);
 			end
 			addonTable.UpdateAllNameplates(false);
 		end);
@@ -2028,19 +2023,45 @@ local function GUICategory_4(index, value)
 
 	end
 
+	-- // dropdownGlowType
+	do
+		dropdownGlowType = CreateFrame("Frame", "NAurasGUI.Spell.dropdownGlowType", areaGlow, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownGlowType, 145);
+		dropdownGlowType:SetPoint("TOPLEFT", areaGlow, "TOPLEFT", -5, -40);
+		local info = {};
+		dropdownGlowType.initialize = function()
+			wipe(info);
+			for glowType, glowTypeLocalized in pairs(glowTypes) do
+				info.text = glowTypeLocalized;
+				info.value = glowType;
+				info.func = function(self)
+					addonTable.db.CustomSpells2[selectedSpell].glowType = self.value;
+					_G[dropdownGlowType:GetName() .. "Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = glowType == addonTable.db.CustomSpells2[selectedSpell].glowType;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownGlowType.text:SetPoint("LEFT", 20, 15);
+		dropdownGlowType.text:SetText(L["options:glow-type"]);
+		table_insert(controls, dropdownGlowType);
+
+	end
+
 	-- // sliderGlowThreshold
 	do
 
 		local minV, maxV = 1, 30;
 		sliderGlowThreshold = VGUI.CreateSlider();
 		sliderGlowThreshold:SetParent(areaGlow);
-		sliderGlowThreshold:SetWidth(320);
-		sliderGlowThreshold:SetPoint("TOPLEFT", 18, -23);
+		sliderGlowThreshold:SetWidth(140);
 		sliderGlowThreshold.label:ClearAllPoints();
 		sliderGlowThreshold.label:SetPoint("CENTER", sliderGlowThreshold, "CENTER", 0, 15);
 		sliderGlowThreshold.label:SetText();
 		sliderGlowThreshold:ClearAllPoints();
-		sliderGlowThreshold:SetPoint("TOPLEFT", areaGlow, "TOPLEFT", 10, 5);
+		sliderGlowThreshold:SetPoint("TOPRIGHT", areaGlow, "TOPRIGHT", -10, 5);
 		sliderGlowThreshold.slider:ClearAllPoints();
 		sliderGlowThreshold.slider:SetPoint("LEFT", 3, 0)
 		sliderGlowThreshold.slider:SetPoint("RIGHT", -3, 0)
@@ -2715,7 +2736,7 @@ local function GUICategory_SizeAndPosition(index, value)
 end
 
 local function GUICategory_Dispel(index, value)
-	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, areaIconSize, checkBoxUseDimGlow;
+	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, areaIconSize, dropdownGlowType;
 	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
 	local subControls = { };
 
@@ -2750,18 +2771,39 @@ local function GUICategory_Dispel(index, value)
 
 	end
 
-	-- // checkBoxUseDimGlow
+	-- // dropdownGlowType
 	do
-		checkBoxUseDimGlow = VGUI.CreateCheckBox();
-		checkBoxUseDimGlow:SetText(L["options:general:use-dim-glow"]);
-		checkBoxUseDimGlow:SetOnClickHandler(function(this)
-			addonTable.db.Additions_DispellableSpells_DimGlow = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxUseDimGlow:SetChecked(addonTable.db.Additions_DispellableSpells_DimGlow);
-		checkBoxUseDimGlow:SetParent(GUIFrame);
-		checkBoxUseDimGlow:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", 0, -20);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxUseDimGlow:SetChecked(addonTable.db.Additions_DispellableSpells_DimGlow); end);
+		glowTypes = { 
+			[addonTable.GLOW_TYPE_NONE] = L["options:glow-type:GLOW_TYPE_NONE"],
+			[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
+			[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
+			[addonTable.GLOW_TYPE_PIXEL] = L["options:glow-type:GLOW_TYPE_PIXEL"],
+			[addonTable.GLOW_TYPE_ACTIONBUTTON_DIM] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"],
+		};
+
+		dropdownGlowType = CreateFrame("Frame", "NAurasGUI.Dispel.dropdownGlowType", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownGlowType, 150);
+		dropdownGlowType:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", -15, -10);
+		local info = {};
+		dropdownGlowType.initialize = function()
+			wipe(info);
+			for glowType, glowTypeLocalized in pairs(glowTypes) do
+				info.text = glowTypeLocalized;
+				info.value = glowType;
+				info.func = function(self)
+					addonTable.db.Additions_DispellableSpells_GlowType = self.value;
+					_G[dropdownGlowType:GetName() .. "Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = glowType == addonTable.db.Additions_DispellableSpells_GlowType;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]);
+		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownGlowType.text:SetPoint("LEFT", 20, 15);
+		dropdownGlowType.text:SetText(L["options:glow-type"]);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]); end);
 
 	end
 
@@ -2779,7 +2821,7 @@ local function GUICategory_Dispel(index, value)
 		});
 		areaIconSize:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaIconSize:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaIconSize:SetPoint("TOPLEFT", checkBoxUseDimGlow, "BOTTOMLEFT", 0, 0);
+		areaIconSize:SetPoint("TOPLEFT", checkBoxDispellableSpells, "BOTTOMLEFT", 0, -40);
 		areaIconSize:SetWidth(170*2);
 		areaIconSize:SetHeight(70);
 
@@ -2953,7 +2995,7 @@ local function GUICategory_Dispel(index, value)
 
 	subControls[#subControls+1] = dispellableSpellsBlacklist;
 	subControls[#subControls+1] = areaIconSize;
-	subControls[#subControls+1] = checkBoxUseDimGlow;
+	subControls[#subControls+1] = dropdownGlowType;
 	for _, control in pairs(subControls) do control:Hide(); end
 
 end

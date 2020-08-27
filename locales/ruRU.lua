@@ -89,9 +89,6 @@ L["options:general:always-show-my-auras:tooltip"] = [=[Это высший по 
 будут отображаться вне зависимости от других фильтров]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выбрать эту опцию, потому что OmniCC не загружен!"
 L["options:general:show-aura-tooltip"] = "Показывать имя ауры при наведении мышью на иконку"
-L["options:general:use-dim-glow"] = "Слабое свечение иконок"
-L["options:general:use-dim-glow:tooltip"] = [=[Если эта опция включена, вы не увидите постоянного внутреннего и внешнего свечения значков
-(эта опция работает только для тех заклинаний, для которых вы явно включили подсветку иконки)]=]
 L["options:interrupts:enable-interrupts"] = "Включить отслеживание прерываний"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Активно только в PvP"
 L["options:interrupts:glow"] = "Подсветка иконки"
@@ -149,5 +146,12 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры,
 Эти ауры будут иметь тусклое свечение и размер по умолчанию]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Открыть чёрный список";
 L["options:category:dispel"] = "Purge/steal";
+
+L["options:glow-type"] = "Тип свечения";
+L["options:glow-type:GLOW_TYPE_NONE"] = "Нет свечения";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Кнопка действия";
+L["options:glow-type:GLOW_TYPE_AUTOUSE"] = "Кнопка при автоиспользовании";
+L["options:glow-type:GLOW_TYPE_PIXEL"] = "Пиксельное";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"] = "Кнопка действия (тусклый)";
 
 --@end-debug@

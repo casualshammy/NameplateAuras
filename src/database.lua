@@ -135,6 +135,17 @@ local function MigrateDB_2()
     end
 end
 
+local function MigrateDB_3()
+    local db = addonTable.db;
+    if (db.UseDimGlow) then
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            spellInfo.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+        end
+        db.UseDimGlow = nil;
+    end
+    db.Additions_DispellableSpells_DimGlow = nil;
+end
+
 local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
     for index, spellInfo in pairs(db.CustomSpells2) do
@@ -156,6 +167,9 @@ local function FillInMissingEntriesIsSpells()
             end
             if (spellInfo.auraType == nil) then
                 spellInfo.auraType = AURA_TYPE_ANY;
+            end
+            if (spellInfo.glowType == nil) then
+                spellInfo.glowType = addonTable.GLOW_TYPE_NONE;
             end
             -- iconSize my be nil
             -- checkSpellID may be nil
@@ -190,6 +204,10 @@ function addonTable.MigrateDB()
     if (addonTable.db.DBVersion == 2) then
         MigrateDB_2();
         addonTable.db.DBVersion = 3;
+    end
+    if (addonTable.db.DBVersion == 3) then
+        MigrateDB_3();
+        addonTable.db.DBVersion = 4;
     end
     FillInMissingEntriesIsSpells();
 end

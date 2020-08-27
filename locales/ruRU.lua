@@ -146,7 +146,6 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры,
 Эти ауры будут иметь тусклое свечение и размер по умолчанию]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Открыть чёрный список";
 L["options:category:dispel"] = "Purge/steal";
-
 L["options:glow-type"] = "Тип свечения";
 L["options:glow-type:GLOW_TYPE_NONE"] = "Нет свечения";
 L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Кнопка действия";

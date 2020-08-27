@@ -145,7 +145,6 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable aur
 These auras have a dim glow and default size]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
 L["options:category:dispel"] = "Purge/steal";
-
 L["options:glow-type"] = "Glow type";
 L["options:glow-type:GLOW_TYPE_NONE"] = "None";
 L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Action button";

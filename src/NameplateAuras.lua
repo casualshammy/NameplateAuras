@@ -172,7 +172,7 @@ do
 				MinTimeToShowTenthsOfSeconds = 10,
 				InterruptsEnabled = true,
 				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
-				InterruptsGlow = false,
+				InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
 				InterruptsUseSharedIconTexture = false,
 				InterruptsShowOnlyOnPlayers = true,
 				Additions_ExplosiveOrbs = true,
@@ -309,6 +309,8 @@ end
 do
 
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
+	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
+		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local glowInfo = { };
 	local symmetricAnchors = {
 		["TOPLEFT"] = "TOPRIGHT",
@@ -436,10 +438,12 @@ do
 	end
 
 	local function HideGlow(icon)
-		LBG_HideOverlayGlow(icon);
-		LibCustomGlow.PixelGlow_Stop(icon);
-		LibCustomGlow.AutoCastGlow_Stop(icon);
-		icon.glowType = nil;
+		if (icon.glowType ~= nil) then
+			LBG_HideOverlayGlow(icon);
+			LibCustomGlow.PixelGlow_Stop(icon);
+			LibCustomGlow.AutoCastGlow_Stop(icon);
+			icon.glowType = nil;
+		end
 	end
 
 	local function HideCDIcon(icon)
@@ -542,7 +546,7 @@ do
 					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
 					["dbEntry"] = {
 						["showGlow"] = GLOW_TIME_INFINITE,
-						["glowType"] = addonTable.GLOW_TYPE_ACTIONBUTTON,
+						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
 					},
 				});
 			end
@@ -736,31 +740,29 @@ do
 	end
 
 	local glowMethods = {
-		[addonTable.GLOW_TYPE_NONE] = function(icon)
-			icon.glowType = nil;
-		end,
-		[addonTable.GLOW_TYPE_ACTIONBUTTON] = function(icon, iconResized)
-			if (icon.glowType ~= addonTable.GLOW_TYPE_ACTIONBUTTON) then
+		[GLOW_TYPE_NONE] = function(icon) HideGlow(icon); end,
+		[GLOW_TYPE_ACTIONBUTTON] = function(icon, iconResized)
+			if (icon.glowType ~= GLOW_TYPE_ACTIONBUTTON) then
 				LBG_ShowOverlayGlow(icon, iconResized, false);
-				icon.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON;
+				icon.glowType = GLOW_TYPE_ACTIONBUTTON;
 			end
 		end,
-		[addonTable.GLOW_TYPE_AUTOUSE] = function(icon)
-			if (icon.glowType ~= addonTable.GLOW_TYPE_AUTOUSE) then
+		[GLOW_TYPE_AUTOUSE] = function(icon)
+			if (icon.glowType ~= GLOW_TYPE_AUTOUSE) then
 				LibCustomGlow.AutoCastGlow_Start(icon, nil, nil, 0.2, 1.5);
-				icon.glowType = addonTable.GLOW_TYPE_AUTOUSE;
+				icon.glowType = GLOW_TYPE_AUTOUSE;
 			end
 		end,
-		[addonTable.GLOW_TYPE_PIXEL] = function(icon)
-			if (icon.glowType ~= addonTable.GLOW_TYPE_PIXEL) then
+		[GLOW_TYPE_PIXEL] = function(icon)
+			if (icon.glowType ~= GLOW_TYPE_PIXEL) then
 				LibCustomGlow.PixelGlow_Start(icon, nil, nil, nil, nil, 3);
-				icon.glowType = addonTable.GLOW_TYPE_PIXEL;
+				icon.glowType = GLOW_TYPE_PIXEL;
 			end
 		end,
-		[addonTable.GLOW_TYPE_ACTIONBUTTON_DIM] = function(icon, iconResized)
-			if (icon.glowType ~= addonTable.GLOW_TYPE_ACTIONBUTTON_DIM) then
+		[GLOW_TYPE_ACTIONBUTTON_DIM] = function(icon, iconResized)
+			if (icon.glowType ~= GLOW_TYPE_ACTIONBUTTON_DIM) then
 				LBG_ShowOverlayGlow(icon, iconResized, true);
-				icon.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+				icon.glowType = GLOW_TYPE_ACTIONBUTTON_DIM;
 			end
 		end,
 	};
@@ -969,7 +971,8 @@ do
 							["enabledState"] =				CONST_SPELL_MODE_DISABLED,
 							["auraType"] =					AURA_TYPE_DEBUFF,
 							["iconSize"] =					db.InterruptsIconSize,
-							["showGlow"] =					db.InterruptsGlow and GLOW_TIME_INFINITE or nil,
+							["showGlow"] =					GLOW_TIME_INFINITE,
+							["glowType"] =					db.InterruptsGlowType,
 						},
 					};
 					for frame, unitID in pairs(NameplatesVisible) do
@@ -1034,7 +1037,7 @@ do
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[139],
 				["dbEntry"] = {
-					["iconSize"] = 50,
+					["iconSize"] = 45,
 				},
 			},
 			{
@@ -1045,7 +1048,7 @@ do
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[215336],
 				["dbEntry"] = {
-					["iconSize"] = 45,
+					["iconSize"] = 30,
 				},
 			},
 			{

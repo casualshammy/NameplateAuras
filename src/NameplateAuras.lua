@@ -755,7 +755,7 @@ do
 		end,
 		[GLOW_TYPE_PIXEL] = function(icon)
 			if (icon.glowType ~= GLOW_TYPE_PIXEL) then
-				LibCustomGlow.PixelGlow_Start(icon, nil, nil, nil, nil, 3);
+				LibCustomGlow.PixelGlow_Start(icon, nil, nil, nil, nil, 2);
 				icon.glowType = GLOW_TYPE_PIXEL;
 			end
 		end,
@@ -1083,13 +1083,16 @@ do
 
 	local function Ticker_OnTick()
 		for nameplate, auras in pairs(AurasPerNameplate) do
-			wipe(auras);
-			for _, spellInfo in pairs(GetSpells()) do
-				table_insert(auras, spellInfo);
-			end
-			UpdateNameplate(nameplate, nil);
-			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-				nameplate.NAurasFrame:Show();
+			local unitID = NameplatesVisible[nameplate];
+			if (unitID ~= nil) then
+				wipe(auras);
+				for _, spellInfo in pairs(GetSpells()) do
+					table_insert(auras, spellInfo);
+				end
+				UpdateNameplate(nameplate, unitID);
+				if (db.FullOpacityAlways and nameplate.NAurasFrame) then
+					nameplate.NAurasFrame:Show();
+				end
 			end
 		end
 	end

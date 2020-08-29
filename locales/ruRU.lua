@@ -11,7 +11,12 @@ L["> 1min"] = "> 1мин"
 L["Add new spell: "] = "Добавить новое заклинание: "
 L["Add spell"] = "Добавить"
 L["All auras"] = "Все ауры"
-L["Always display icons at full opacity (ReloadUI is required)"] = "Иконки всегда непрозрачны (требуется рестарт UI)"
+L["options:general:full-opacity-always"] = "Иконки всегда полностью непрозрачны"
+L["options:general:full-opacity-always:tooltip"] = 
+[[Если эта опция включена, то иконки всегда
+всегда будут полностью непрозрачны. Если нет,
+то степень непрозрачности будет такая же,
+как у полоски здоровья]]
 L["Always show auras cast by myself"] = "Всегда отображать мои ауры"
 L["Anchor point"] = "Точка привязки"
 L["Anchor to icon"] = "Точка привязки к иконке"
@@ -91,7 +96,6 @@ L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выб
 L["options:general:show-aura-tooltip"] = "Показывать имя ауры при наведении мышью на иконку"
 L["options:interrupts:enable-interrupts"] = "Включить отслеживание прерываний"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Активно только в PvP"
-L["options:interrupts:glow"] = "Подсветка иконки"
 L["options:interrupts:icon-size"] = "Размер иконки"
 L["options:interrupts:use-shared-icon-texture"] = "Использовать одну текстуру для всех прерываний"
 L["options:selector:search"] = "Поиск:"

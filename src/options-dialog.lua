@@ -132,19 +132,17 @@ local function GUICategory_1(index, value)
 	-- checkBoxFullOpacityAlways
 	do
 		checkBoxFullOpacityAlways = VGUI.CreateCheckBox();
-		checkBoxFullOpacityAlways:SetText(L["Always display icons at full opacity (ReloadUI is required)"]);
+		checkBoxFullOpacityAlways:SetText(L["options:general:full-opacity-always"]);
+		VGUI.SetTooltip(checkBoxFullOpacityAlways, L["options:general:full-opacity-always:tooltip"]);
 		checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
 			addonTable.db.FullOpacityAlways = this:GetChecked();
-			addonTable.PopupReloadUI();
+			addonTable.UpdateAllNameplates(true);
 		end);
 		checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
 		checkBoxFullOpacityAlways:SetParent(GUIFrame);
 		checkBoxFullOpacityAlways:SetPoint("TOPLEFT", buttonTestMode, "BOTTOMLEFT", 0, -10);
 		table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (checkBoxFullOpacityAlways:GetChecked() ~= addonTable.db.FullOpacityAlways) then
-				addonTable.PopupReloadUI();
-			end
 			checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
 		end);
 	end

@@ -11,7 +11,11 @@ L["> 1min"] = "> 1min"
 L["Add new spell: "] = "Add new spell: "
 L["Add spell"] = "Add spell"
 L["All auras"] = "All auras"
-L["Always display icons at full opacity (ReloadUI is required)"] = "Always display icons at full opacity (ReloadUI is required)"
+L["options:general:full-opacity-always"] = "Icons are always completely opaque"
+L["options:general:full-opacity-always:tooltip"] = 
+[[If this option is enabled, the icons will 
+always be completely opaque. If not, the opacity
+will be the same as the health bar]]
 L["Always show auras cast by myself"] = "Always show auras cast by myself"
 L["Anchor point"] = "Anchor point"
 L["Anchor to icon"] = "Anchor to icon"
@@ -90,7 +94,6 @@ L["options:general:hide-player-blizz-frame"] = "Hide Blizzard's aura frames on p
 L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
 L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
-L["options:interrupts:glow"] = "Icon glow"
 L["options:interrupts:icon-size"] = "Icon size"
 L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
 L["options:selector:search"] = "Search:"

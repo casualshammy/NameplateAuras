@@ -359,11 +359,13 @@ do
 
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
-			frame.NAurasFrame = CreateFrame("frame", nil, db.FullOpacityAlways and WorldFrame or frame);
+			frame.NAurasFrame = CreateFrame("frame", nil, frame);
 			frame.NAurasFrame:SetWidth(db.DefaultIconSize);
 			frame.NAurasFrame:SetHeight(db.DefaultIconSize);
 			frame.NAurasFrame:SetPoint(db.FrameAnchor, frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
+			frame.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
+			frame.NAurasFrame:SetIgnoreParentScale(true);
 		end
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);
@@ -483,6 +485,7 @@ do
 				if (nameplate.NAurasFrame) then
 					nameplate.NAurasFrame:ClearAllPoints();
 					nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.IconXOffset, db.IconYOffset);
+					nameplate.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
 					for iconIndex, icon in pairs(nameplate.NAurasIcons) do
 						if (icon.shown) then
 							if (db.TimerTextUseRelativeScale) then
@@ -907,9 +910,6 @@ do
 			AurasPerNameplate[nameplate] = {};
 		end
 		ProcessAurasForNameplate(nameplate, unitID);
-		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:Show();
-		end
 		if (db.InterruptsEnabled) then
 			local interrupt = InterruptsPerUnitGUID[UnitGUID(unitID)];
 			if (interrupt ~= nil) then
@@ -927,18 +927,12 @@ do
 		if (AurasPerNameplate[nameplate] ~= nil) then
 			wipe(AurasPerNameplate[nameplate]);
 		end
-		if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:Hide();
-		end
 	end
 
 	function EventFrame.UNIT_AURA(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and AurasPerNameplate[nameplate] ~= nil) then
 			ProcessAurasForNameplate(nameplate, unitID);
-			if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-				nameplate.NAurasFrame:Show();
-			end
 		end
 	end
 
@@ -1090,9 +1084,6 @@ do
 					table_insert(auras, spellInfo);
 				end
 				UpdateNameplate(nameplate, unitID);
-				if (db.FullOpacityAlways and nameplate.NAurasFrame) then
-					nameplate.NAurasFrame:Show();
-				end
 			end
 		end
 	end

@@ -2,3 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: Question
     url:  https://t.me/nankahen
+    about: Ask developer directly

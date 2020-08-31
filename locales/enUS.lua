@@ -11,7 +11,11 @@ L["> 1min"] = "> 1min"
 L["Add new spell: "] = "Add new spell: "
 L["Add spell"] = "Add spell"
 L["All auras"] = "All auras"
-L["Always display icons at full opacity (ReloadUI is required)"] = "Always display icons at full opacity (ReloadUI is required)"
+L["options:general:full-opacity-always"] = "Icons are always completely opaque"
+L["options:general:full-opacity-always:tooltip"] = 
+[[If this option is enabled, the icons will 
+always be completely opaque. If not, the opacity
+will be the same as the health bar]]
 L["Always show auras cast by myself"] = "Always show auras cast by myself"
 L["Anchor point"] = "Anchor point"
 L["Anchor to icon"] = "Anchor to icon"
@@ -88,12 +92,8 @@ L["options:general:error-omnicc-is-not-loaded"] = "You cannot select this option
 L["options:general:hide-blizz-frames"] = "Hide Blizzard's aura frames (except player)"
 L["options:general:hide-player-blizz-frame"] = "Hide Blizzard's aura frames on player"
 L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
-L["options:general:use-dim-glow"] = "Weak glow of icons"
-L["options:general:use-dim-glow:tooltip"] = [=[If this option is selected you will not see constant inner and outer glow of the icons
-(this option is valid only for those spells for which you explicitly turned on the glow of icons)]=]
 L["options:interrupts:enable-interrupts"] = "Enable interrupt tracking"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Enable during PvP battles only"
-L["options:interrupts:glow"] = "Icon glow"
 L["options:interrupts:icon-size"] = "Icon size"
 L["options:interrupts:use-shared-icon-texture"] = "Use the same texture for all interrupt spells"
 L["options:selector:search"] = "Search:"
@@ -148,5 +148,11 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable aur
 These auras have a dim glow and default size]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
 L["options:category:dispel"] = "Purge/steal";
+L["options:glow-type"] = "Glow type";
+L["options:glow-type:GLOW_TYPE_NONE"] = "None";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Action button";
+L["options:glow-type:GLOW_TYPE_AUTOUSE"] = "Auto-use button";
+L["options:glow-type:GLOW_TYPE_PIXEL"] = "Pixel";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"] = "Action button (dim)";
 
 --@end-debug@

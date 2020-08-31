@@ -11,7 +11,12 @@ L["> 1min"] = "> 1мин"
 L["Add new spell: "] = "Добавить новое заклинание: "
 L["Add spell"] = "Добавить"
 L["All auras"] = "Все ауры"
-L["Always display icons at full opacity (ReloadUI is required)"] = "Иконки всегда непрозрачны (требуется рестарт UI)"
+L["options:general:full-opacity-always"] = "Иконки всегда полностью непрозрачны"
+L["options:general:full-opacity-always:tooltip"] = 
+[[Если эта опция включена, то иконки всегда
+всегда будут полностью непрозрачны. Если нет,
+то степень непрозрачности будет такая же,
+как у полоски здоровья]]
 L["Always show auras cast by myself"] = "Всегда отображать мои ауры"
 L["Anchor point"] = "Точка привязки"
 L["Anchor to icon"] = "Точка привязки к иконке"
@@ -89,12 +94,8 @@ L["options:general:always-show-my-auras:tooltip"] = [=[Это высший по 
 будут отображаться вне зависимости от других фильтров]=]
 L["options:general:error-omnicc-is-not-loaded"] = "Вы не можете выбрать эту опцию, потому что OmniCC не загружен!"
 L["options:general:show-aura-tooltip"] = "Показывать имя ауры при наведении мышью на иконку"
-L["options:general:use-dim-glow"] = "Слабое свечение иконок"
-L["options:general:use-dim-glow:tooltip"] = [=[Если эта опция включена, вы не увидите постоянного внутреннего и внешнего свечения значков
-(эта опция работает только для тех заклинаний, для которых вы явно включили подсветку иконки)]=]
 L["options:interrupts:enable-interrupts"] = "Включить отслеживание прерываний"
 L["options:interrupts:enable-only-during-pvp-battles"] = "Активно только в PvP"
-L["options:interrupts:glow"] = "Подсветка иконки"
 L["options:interrupts:icon-size"] = "Размер иконки"
 L["options:interrupts:use-shared-icon-texture"] = "Использовать одну текстуру для всех прерываний"
 L["options:selector:search"] = "Поиск:"
@@ -149,5 +150,11 @@ L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры,
 Эти ауры будут иметь тусклое свечение и размер по умолчанию]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Открыть чёрный список";
 L["options:category:dispel"] = "Purge/steal";
+L["options:glow-type"] = "Тип свечения";
+L["options:glow-type:GLOW_TYPE_NONE"] = "Нет свечения";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Кнопка действия";
+L["options:glow-type:GLOW_TYPE_AUTOUSE"] = "Кнопка при автоиспользовании";
+L["options:glow-type:GLOW_TYPE_PIXEL"] = "Пиксельное";
+L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"] = "Кнопка действия (тусклый)";
 
 --@end-debug@

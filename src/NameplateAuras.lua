@@ -365,7 +365,7 @@ do
 			frame.NAurasFrame:SetPoint(db.FrameAnchor, frame, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 			frame.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
-			frame.NAurasFrame:SetIgnoreParentScale(true);
+			--frame.NAurasFrame:SetIgnoreParentScale(true);
 		end
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);

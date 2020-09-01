@@ -74,6 +74,7 @@ local function Nameplates_OnDefaultIconSizeOrOffsetChanged(oldDefaultIconSize)
 			nameplate.NAurasFrame:SetWidth(totalWidth);
 		end
 	end
+	addonTable.UpdateAllNameplates(true);
 end
 
 local function ShowGUICategory(index)
@@ -359,15 +360,15 @@ local function GUICategory_Fonts(index, value)
 	local dropdownMenuFont = VGUI.CreateDropdownMenu();
 	local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local textAnchorsLocalization = {
-		[textAnchors[1]] = L["TOPRIGHT"],
-		[textAnchors[2]] = L["RIGHT"],
-		[textAnchors[3]] = L["BOTTOMRIGHT"],
-		[textAnchors[4]] = L["TOP"],
-		[textAnchors[5]] = L["CENTER"],
-		[textAnchors[6]] = L["BOTTOM"],
-		[textAnchors[7]] = L["TOPLEFT"],
-		[textAnchors[8]] = L["LEFT"],
-		[textAnchors[9]] = L["BOTTOMLEFT"]
+		[textAnchors[1]] = L["anchor-point:topright"],
+		[textAnchors[2]] = L["anchor-point:right"],
+		[textAnchors[3]] = L["anchor-point:bottomright"],
+		[textAnchors[4]] = L["anchor-point:top"],
+		[textAnchors[5]] = L["anchor-point:center"],
+		[textAnchors[6]] = L["anchor-point:bottom"],
+		[textAnchors[7]] = L["anchor-point:topleft"],
+		[textAnchors[8]] = L["anchor-point:left"],
+		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea;
 
@@ -557,12 +558,12 @@ local function GUICategory_Fonts(index, value)
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchor]);
+		_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]);
 		dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
 		dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]); end);
 
 	end
 
@@ -587,12 +588,12 @@ local function GUICategory_Fonts(index, value)
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchorIcon]);
+		_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]);
 		dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 15);
 		dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.TimerTextAnchorIcon]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]); end);
 
 	end
 
@@ -880,15 +881,15 @@ local function GUICategory_AuraStackFont(index, value)
 	local dropdownMenuFont = VGUI.CreateDropdownMenu();
 	local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local textAnchorsLocalization = {
-		[textAnchors[1]] = L["TOPRIGHT"],
-		[textAnchors[2]] = L["RIGHT"],
-		[textAnchors[3]] = L["BOTTOMRIGHT"],
-		[textAnchors[4]] = L["TOP"],
-		[textAnchors[5]] = L["CENTER"],
-		[textAnchors[6]] = L["BOTTOM"],
-		[textAnchors[7]] = L["TOPLEFT"],
-		[textAnchors[8]] = L["LEFT"],
-		[textAnchors[9]] = L["BOTTOMLEFT"]
+		[textAnchors[1]] = L["anchor-point:topright"],
+		[textAnchors[2]] = L["anchor-point:right"],
+		[textAnchors[3]] = L["anchor-point:bottomright"],
+		[textAnchors[4]] = L["anchor-point:top"],
+		[textAnchors[5]] = L["anchor-point:center"],
+		[textAnchors[6]] = L["anchor-point:bottom"],
+		[textAnchors[7]] = L["anchor-point:topleft"],
+		[textAnchors[8]] = L["anchor-point:left"],
+		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 
 	-- // dropdownStacksFont
@@ -997,12 +998,12 @@ local function GUICategory_AuraStackFont(index, value)
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchor]);
+		_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]);
 		dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
 		dropdownStacksAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]); end);
 
 	end
 
@@ -1027,12 +1028,12 @@ local function GUICategory_AuraStackFont(index, value)
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchorIcon]);
+		_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]);
 		dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 15);
 		dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(L[addonTable.db.StacksTextAnchorIcon]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]); end);
 
 	end
 
@@ -2512,6 +2513,20 @@ local function GUICategory_Additions(index, value)
 end
 
 local function GUICategory_SizeAndPosition(index, value)
+	local dropdownFrameAnchorToNameplate;
+	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
+	local frameAnchorsLocalization = {
+		[frameAnchors[1]] = L["anchor-point:topright"],
+		[frameAnchors[2]] = L["anchor-point:right"],
+		[frameAnchors[3]] = L["anchor-point:bottomright"],
+		[frameAnchors[4]] = L["anchor-point:top"],
+		[frameAnchors[5]] = L["anchor-point:center"],
+		[frameAnchors[6]] = L["anchor-point:bottom"],
+		[frameAnchors[7]] = L["anchor-point:topleft"],
+		[frameAnchors[8]] = L["anchor-point:left"],
+		[frameAnchors[9]] = L["anchor-point:bottomleft"]
+	};
+
 
 	-- // sliderIconSize
 	do
@@ -2687,14 +2702,77 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	end
 
+	-- // dropdownFrameAnchorToNameplate
+	do
+					
+		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 130);
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -150);
+		local info = {};
+		dropdownFrameAnchorToNameplate.initialize = function()
+			wipe(info);
+			for _, anchorPoint in pairs(frameAnchors) do
+				info.text = frameAnchorsLocalization[anchorPoint];
+				info.value = anchorPoint;
+				info.func = function(self)
+					addonTable.db.FrameAnchorToNameplate = self.value;
+					_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = anchorPoint == addonTable.db.FrameAnchorToNameplate;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]);
+		dropdownFrameAnchorToNameplate.text = dropdownFrameAnchorToNameplate:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownFrameAnchorToNameplate.text:SetPoint("LEFT", 20, 15);
+		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
+		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]); end);
+		
+	end
+
+	-- // dropdownFrameAnchor
+	do
+		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
+		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -150);
+		local info = {};
+		dropdownFrameAnchor.initialize = function()
+			wipe(info);
+			for _, anchorPoint in pairs(frameAnchors) do
+				info.text = frameAnchorsLocalization[anchorPoint];
+				info.value = anchorPoint;
+				info.func = function(self)
+					addonTable.db.FrameAnchor = self.value;
+					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.FrameAnchor == anchorPoint);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchor]);
+		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownFrameAnchor.text:SetText(L["options:size-and-position:anchor-point-of-frame"]);
+		VGUI.SetTooltip(dropdownFrameAnchor, L["options:size-and-position:anchor-point-of-frame:tooltip"]);
+		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchor]); end);
+
+	end
+
 	-- // dropdownIconAnchor
 	do
 
-		local anchors = { "TOPLEFT", "LEFT", "BOTTOMLEFT" }; -- // if you change this, don't forget to change 'symmetricAnchors'
-		local anchorsLocalization = { [anchors[1]] = L["TOPLEFT"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["BOTTOMLEFT"] };
+		local anchors = { addonTable.ICON_ALIGN_BOTTOM_LEFT, addonTable.ICON_ALIGN_TOP_RIGHT, addonTable.ICON_ALIGN_CENTER }; -- // if you change this, don't forget to change 'symmetricAnchors'
+		local anchorsLocalization = { 
+			[anchors[1]] = L["options:size-and-position:icon-align:bottom-left"],
+			[anchors[2]] = L["options:size-and-position:icon-align:top-right"],
+			[anchors[3]] = L["options:size-and-position:icon-align:center"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 130);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -150);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -190);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -2710,45 +2788,68 @@ local function GUICategory_SizeAndPosition(index, value)
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]);
+		_G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]);
 		dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
-		dropdownIconAnchor.text:SetText(L["Icon anchor:"]);
+		dropdownIconAnchor.text:SetText(L["options:size-and-position:icon-align"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(L[addonTable.db.IconAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]); end);
 
 	end
 
-	-- // dropdownFrameAnchor
+	-- // dropdownIconGrowDirection
 	do
-
-		local anchors = { "CENTER", "LEFT", "RIGHT" };
-		local anchorsLocalization = { [anchors[1]] = L["CENTER"], [anchors[2]] = L["LEFT"], [anchors[3]] = L["RIGHT"] };
-		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 130);
-		dropdownFrameAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -150);
+		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT, 
+			addonTable.ICON_GROW_DIRECTION_UP, addonTable.ICON_GROW_DIRECTION_DOWN };
+		local growDirectionsL = {
+			[growDirections[1]] = L["icon-grow-direction:right"],
+			[growDirections[2]] = L["icon-grow-direction:left"],
+			[growDirections[3]] = L["icon-grow-direction:up"],
+			[growDirections[4]] = L["icon-grow-direction:down"],
+		};
+		local dropdownIconGrowDirection = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.DropdownIconGrowDirection", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownIconGrowDirection, 130);
+		dropdownIconGrowDirection:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 316, -190);
 		local info = {};
-		dropdownFrameAnchor.initialize = function()
+		dropdownIconGrowDirection.initialize = function()
 			wipe(info);
-			for _, anchor in pairs(anchors) do
-				info.text = anchorsLocalization[anchor];
-				info.value = anchor;
+			for _, direction in pairs(growDirections) do
+				info.text = growDirectionsL[direction];
+				info.value = direction;
 				info.func = function(self)
-					addonTable.db.FrameAnchor = self.value;
-					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
+					addonTable.db.IconGrowDirection = self.value;
+					_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.FrameAnchor == info.value);
+				info.checked = (addonTable.db.IconGrowDirection == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]);
-		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
-		dropdownFrameAnchor.text:SetText(L["Frame anchor:"]);
-		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(L[addonTable.db.FrameAnchor]); end);
+		_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]);
+		dropdownIconGrowDirection.text = dropdownIconGrowDirection:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownIconGrowDirection.text:SetPoint("LEFT", 20, 15);
+		dropdownIconGrowDirection.text:SetText(L["options:general:icon-grow-direction"]);
+		table.insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]); end);
+		
+	end
 
+	-- checkBoxIgnoreNameplateScale
+	do
+		local checkBoxIgnoreNameplateScale = VGUI.CreateCheckBox();
+		checkBoxIgnoreNameplateScale:SetText(L["options:general:ignore-nameplate-scale"]);
+		VGUI.SetTooltip(checkBoxIgnoreNameplateScale, L["options:general:ignore-nameplate-scale:tooltip"]);
+		checkBoxIgnoreNameplateScale:SetOnClickHandler(function(this)
+			addonTable.db.IgnoreNameplateScale = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
+		checkBoxIgnoreNameplateScale:SetParent(GUIFrame);
+		checkBoxIgnoreNameplateScale:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -230);
+		table_insert(GUIFrame.Categories[index], checkBoxIgnoreNameplateScale);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
+		end);
 	end
 
 end

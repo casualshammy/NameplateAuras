@@ -11,9 +11,9 @@ local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo =
+			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo;
+			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
@@ -169,6 +169,7 @@ do
 				BorderThickness = 2,
 				ShowAboveFriendlyUnits = true,
 				FrameAnchor = "CENTER",
+				FrameAnchorToNameplate = "CENTER",
 				MinTimeToShowTenthsOfSeconds = 10,
 				InterruptsEnabled = true,
 				InterruptsIconSize = 45, -- // must be equal to DefaultIconSize
@@ -182,6 +183,8 @@ do
 				Additions_DispellableSpells_Blacklist = {},
 				Additions_DispellableSpells_IconSize = 45, -- // must be equal to DefaultIconSize
 				Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
+				IgnoreNameplateScale = false,
+				IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
 			},
 		};
 
@@ -312,14 +315,25 @@ do
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local glowInfo = { };
-	local symmetricAnchors = {
-		["TOPLEFT"] = "TOPRIGHT",
-		["LEFT"] = "RIGHT",
-		["BOTTOMLEFT"] = "BOTTOMRIGHT",
-	};
 	local AuraSortFunctions = {
-		[AURA_SORT_MODE_EXPIREASC] = function(item1, item2) return item1.expires < item2.expires; end,
-		[AURA_SORT_MODE_EXPIREDES] = function(item1, item2) return item1.expires > item2.expires; end,
+		[AURA_SORT_MODE_EXPIREASC] = function(item1, item2)
+			if (item1.expires == 0) then
+				return false;
+			elseif (item2.expires == 0) then
+				return true;
+			else
+				return item1.expires < item2.expires;
+			end
+		end,
+		[AURA_SORT_MODE_EXPIREDES] = function(item1, item2)
+			if (item1.expires == 0) then
+				return true;
+			elseif (item2.expires == 0) then
+				return false;
+			else
+				return item1.expires > item2.expires; 
+			end
+		end,
 		[AURA_SORT_MODE_ICONSIZEASC] = function(item1, item2)
 			local enabledAuraInfo1 = item1.dbEntry;
 			local enabledAuraInfo2 = item2.dbEntry;
@@ -357,23 +371,92 @@ do
 	end
 	addonTable.AllocateIcon_SetAuraTooltip = AllocateIcon_SetAuraTooltip;
 
+	local function SetFrameSize(frame, maxIconSize, maxWidth)
+		if (db.IconGrowDirection == addonTable.ICON_GROW_DIRECTION_RIGHT or db.IconGrowDirection == addonTable.ICON_GROW_DIRECTION_LEFT) then
+			frame:SetWidth(maxWidth);
+			frame:SetHeight(maxIconSize);
+		else
+			frame:SetWidth(maxIconSize);
+			frame:SetHeight(maxWidth);
+		end
+	end
+
+	local iconAligns0 = {
+		[addonTable.ICON_ALIGN_BOTTOM_LEFT] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "BOTTOMLEFT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMLEFT",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPLEFT",
+		}, 
+		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPLEFT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPRIGHT",
+		}, 
+		[addonTable.ICON_ALIGN_CENTER] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "LEFT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "RIGHT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOM",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOP",
+		}, 
+	};
+
+	local iconAlignsOther = {
+		[addonTable.ICON_ALIGN_BOTTOM_LEFT] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "BOTTOMRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMLEFT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPLEFT",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMLEFT",
+		}, 
+		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPLEFT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPRIGHT",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMRIGHT",
+		}, 
+		[addonTable.ICON_ALIGN_CENTER] = {
+			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "RIGHT",
+			[addonTable.ICON_GROW_DIRECTION_LEFT] = "LEFT",
+			[addonTable.ICON_GROW_DIRECTION_UP] = "TOP",
+			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOM",
+		}, 
+	};
+
+	local function AllocateIcon_SetIconPlace(frame, icon, iconIndex)
+		icon:ClearAllPoints();
+		local index = iconIndex == nil and frame.NAurasIconsCount or (iconIndex-1)
+		if (index == 0) then
+			local anchor = iconAligns0[db.IconAnchor][db.IconGrowDirection];
+			icon:SetPoint(anchor, frame.NAurasFrame, anchor, 0, 0);
+		else
+			local anchor0 = iconAligns0[db.IconAnchor][db.IconGrowDirection];
+			local anchor1 = iconAlignsOther[db.IconAnchor][db.IconGrowDirection];
+			if (db.IconGrowDirection == addonTable.ICON_GROW_DIRECTION_RIGHT) then
+				icon:SetPoint(anchor0, frame.NAurasIcons[index], anchor1, db.IconSpacing, 0);
+			elseif (db.IconGrowDirection == addonTable.ICON_GROW_DIRECTION_LEFT) then
+				icon:SetPoint(anchor0, frame.NAurasIcons[index], anchor1, -db.IconSpacing, 0);
+			elseif (db.IconGrowDirection == addonTable.ICON_GROW_DIRECTION_UP) then
+				icon:SetPoint(anchor0, frame.NAurasIcons[index], anchor1, 0, db.IconSpacing);
+			else -- // down
+				icon:SetPoint(anchor0, frame.NAurasIcons[index], anchor1, 0, -db.IconSpacing);
+			end
+		end
+	end
+
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, frame);
 			frame.NAurasFrame:SetWidth(db.DefaultIconSize);
 			frame.NAurasFrame:SetHeight(db.DefaultIconSize);
-			frame.NAurasFrame:SetPoint(db.FrameAnchor, frame, db.IconXOffset, db.IconYOffset);
+			frame.NAurasFrame:SetPoint(db.FrameAnchor, frame, db.FrameAnchorToNameplate, db.IconXOffset, db.IconYOffset);
 			frame.NAurasFrame:Show();
 			frame.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
-			--frame.NAurasFrame:SetIgnoreParentScale(true);
+			frame.NAurasFrame:SetIgnoreParentScale(db.IgnoreNameplateScale);
 		end
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);
-		if (frame.NAurasIconsCount == 0) then
-			icon:SetPoint(db.IconAnchor, frame.NAurasFrame, 0, 0);
-		else
-			icon:SetPoint(db.IconAnchor, frame.NAurasIcons[frame.NAurasIconsCount], symmetricAnchors[db.IconAnchor], db.IconSpacing, 0);
-		end
+		AllocateIcon_SetIconPlace(frame, icon);
 		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
@@ -397,15 +480,21 @@ do
 				if (startTime == 0) then duration = 0; end
 				icon.cooldownFrame:SetCooldown(startTime, duration);
 			end;
-			hooksecurefunc(icon.stacks, "SetText", function(self, text)
-				if (text ~= "") then
-					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
-						icon.stacks:SetParent(icon);
+			icon.SetStacksText = function(self, spellInfo)
+				if (self.stackcount ~= spellInfo.stacks) then
+					if (spellInfo.stacks > 1) then
+						self.stacks:SetText(spellInfo.stacks);
+						if (spellInfo.duration == 0) then
+							self.stacks:SetParent(self);
+						else
+							self.stacks:SetParent(self.cooldownFrame);
+						end
 					else
-						icon.stacks:SetParent(icon.cooldownFrame);
+						self.stacks:SetText("");
 					end
+					self.stackcount = spellInfo.stacks;
 				end
-			end);
+			end;
 			hooksecurefunc(icon.cooldownText, "SetText", function(self, text)
 				if (text ~= "") then
 					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
@@ -484,8 +573,9 @@ do
 			for nameplate in pairs(Nameplates) do
 				if (nameplate.NAurasFrame) then
 					nameplate.NAurasFrame:ClearAllPoints();
-					nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.IconXOffset, db.IconYOffset);
+					nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.FrameAnchorToNameplate, db.IconXOffset, db.IconYOffset);
 					nameplate.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
+					nameplate.NAurasFrame:SetIgnoreParentScale(db.IgnoreNameplateScale);
 					for iconIndex, icon in pairs(nameplate.NAurasIcons) do
 						if (icon.shown) then
 							if (db.TimerTextUseRelativeScale) then
@@ -495,12 +585,7 @@ do
 							end
 							icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((icon.size / 4) * db.StacksFontScale), "OUTLINE");
 						end
-						icon:ClearAllPoints();
-						if (iconIndex == 1) then
-							icon:SetPoint(db.IconAnchor, nameplate.NAurasFrame, 0, 0);
-						else
-							icon:SetPoint(db.IconAnchor, nameplate.NAurasIcons[iconIndex-1], symmetricAnchors[db.IconAnchor], db.IconSpacing, 0);
-						end
+						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex);
 						icon.cooldownText:ClearAllPoints();
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 						icon.stacks:ClearAllPoints();
@@ -687,7 +772,7 @@ do
 			if (db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
 				if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
 					if (spellInfo.duration == 0) then
-						icon:SetCooldown(0, VERY_LONG_COOLDOWN_DURATION);
+						icon:SetCooldown(0, 0);
 					else
 						icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 					end
@@ -698,24 +783,13 @@ do
 		elseif (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULAR) then
 			if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
 				if (spellInfo.duration == 0) then
-					icon:SetCooldown(0, VERY_LONG_COOLDOWN_DURATION);
+					icon:SetCooldown(0, 0);
 				else
 					icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
 				end
 				info.cooldownExpires = spellInfo.expires;
 				info.cooldownDuration = spellInfo.duration;
 			end
-		end
-	end
-
-	local function UpdateNameplate_SetStacks(icon, spellInfo)
-		if (icon.stackcount ~= spellInfo.stacks) then
-			if (spellInfo.stacks > 1) then
-				icon.stacks:SetText(spellInfo.stacks);
-			else
-				icon.stacks:SetText("");
-			end
-			icon.stackcount = spellInfo.stacks;
 		end
 	end
 
@@ -795,6 +869,7 @@ do
 	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
 		local totalWidth = 0;
+		local maxIconWidth = 0;
 		if (AurasPerNameplate[frame]) then
 			local currentTime = GetTime();
 			if (db.SortMode ~= AURA_SORT_MODE_NONE) then table_sort(AurasPerNameplate[frame], AuraSortFunctions[db.SortMode]); end
@@ -813,7 +888,7 @@ do
 					end
 					UpdateNameplate_SetCooldown(icon, last, spellInfo);
 					-- // stacks
-					UpdateNameplate_SetStacks(icon, spellInfo);
+					icon:SetStacksText(spellInfo);
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
@@ -825,6 +900,7 @@ do
 						ResizeIcon(icon, icon.size);
 						iconResized = true;
 					end
+					maxIconWidth = math_max(maxIconWidth, normalSize);
 					-- // glow
 					UpdateNameplate_SetGlow(icon, iconResized, last, spellInfo);
 					if (not icon.shown) then
@@ -837,7 +913,7 @@ do
 		end
 		if (frame.NAurasFrame ~= nil) then
 			totalWidth = totalWidth - db.IconSpacing; -- // because we don't need last spacing
-			frame.NAurasFrame:SetWidth(totalWidth);
+			SetFrameSize(frame.NAurasFrame, maxIconWidth, totalWidth);
 		end
 		for k = counter, frame.NAurasIconsCount do
 			local icon = frame.NAurasIcons[k];
@@ -1014,7 +1090,7 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	local TestModeIsActive = false;
-	local intervalBetweenRefreshes = 10;
+	local intervalBetweenRefreshes = 13;
 	local ticker = nil;
 	local spellsLastTimeUpdated = GetTime() - intervalBetweenRefreshes;
 
@@ -1024,9 +1100,9 @@ do
 		end
 		return {
 			{
-				["duration"] = intervalBetweenRefreshes,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
-				["stacks"] = 1,
+				["duration"] = intervalBetweenRefreshes-3,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
+				["stacks"] = 2,
 				["spellID"] = 139,
 				["type"] = AURA_TYPE_BUFF,
 				["spellName"] = SpellNameByID[139],

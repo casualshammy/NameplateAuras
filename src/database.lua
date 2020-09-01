@@ -158,6 +158,21 @@ local function MigrateDB_4()
     db.InterruptsGlow = nil;
 end
 
+local function MigrateDB_5()
+    local db = addonTable.db;
+    db.FrameAnchorToNameplate = db.FrameAnchor;
+end
+
+local function MigrateDB_6()
+    local db = addonTable.db;
+    local iconAligh = { 
+        ["TOPLEFT"] = addonTable.ICON_ALIGN_TOP_RIGHT,
+        ["LEFT"] = addonTable.ICON_ALIGN_CENTER,
+        ["BOTTOMLEFT"] = addonTable.ICON_ALIGN_BOTTOM_LEFT,
+    };
+    db.IconAnchor = iconAligh[db.IconAnchor];
+end
+
 local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
     for index, spellInfo in pairs(db.CustomSpells2) do
@@ -224,6 +239,14 @@ function addonTable.MigrateDB()
     if (addonTable.db.DBVersion == 4) then
         MigrateDB_4();
         addonTable.db.DBVersion = 5;
+    end
+    if (addonTable.db.DBVersion == 5) then
+        MigrateDB_5();
+        addonTable.db.DBVersion = 6;
+    end
+    if (addonTable.db.DBVersion == 6) then
+        MigrateDB_6();
+        addonTable.db.DBVersion = 7;
     end
     FillInMissingEntriesIsSpells();
 end

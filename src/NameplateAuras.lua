@@ -32,14 +32,13 @@ end
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
+	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = addonTable.TIMER_STYLE_TEXTURETEXT, addonTable.TIMER_STYLE_CIRCULAR, addonTable.TIMER_STYLE_CIRCULAROMNICC, addonTable.TIMER_STYLE_CIRCULARTEXT;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
@@ -153,7 +152,6 @@ do
 				StacksTextXOffset = -3,
 				StacksTextYOffset = 5,
 				StacksTextColor = { 1, 0.1, 0.1 },
-				TimerStyle = TIMER_STYLE_TEXTURETEXT,
 				ShowBuffBorders = true,
 				BuffBordersColor = {0, 1, 0},
 				ShowDebuffBorders = true,
@@ -185,6 +183,9 @@ do
 				Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
 				IgnoreNameplateScale = false,
 				IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
+				ShowStacks = true,
+				ShowCooldownText = true,
+				ShowCooldownAnimation = true,
 			},
 		};
 
@@ -278,7 +279,7 @@ do
 		-- // import default spells
 		addonTable.ImportNewSpells();
 		-- // starting OnUpdate()
-		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
+		if (db.ShowCooldownText) then
 			EventFrame:SetScript("OnUpdate", function(self, elapsed)
 				ElapsedTimer = ElapsedTimer + elapsed;
 				if (ElapsedTimer >= 0.1) then
@@ -444,6 +445,80 @@ do
 		end
 	end
 
+	local function IconSetCooldown(icon, remainingTime, spellInfo)
+		if (db.ShowCooldownText) then
+			-- cooldown text
+			local text = nil;
+			if (remainingTime > 3600 or spellInfo.duration == 0) then
+				text = "";
+			elseif (remainingTime >= 60) then
+				text = math_floor(remainingTime/60).."m";
+			elseif (remainingTime >= db.MinTimeToShowTenthsOfSeconds) then
+				text = string_format("%d", remainingTime);
+			else
+				text = string_format("%.1f", remainingTime);
+			end
+			if (icon.text ~= text) then
+				icon.cooldownText:SetText(text);
+				icon.text = text;
+				if (spellInfo.duration == 0 or not db.ShowCooldownAnimation) then
+					icon.cooldownText:SetParent(icon);
+				else
+					icon.cooldownText:SetParent(icon.cooldownFrame);
+				end
+			end
+
+			-- cooldown text color
+			local colorInfo = nil;
+			if (remainingTime >= 60 or spellInfo.duration == 0) then
+				colorInfo = db.TimerTextLongerColor;
+			elseif (remainingTime >= 5) then
+				colorInfo = db.TimerTextUnderMinuteColor;
+			else
+				colorInfo = db.TimerTextSoonToExpireColor;
+			end
+			if (icon.textColorInfo ~= colorInfo) then
+				icon.cooldownText:SetTextColor(unpack(colorInfo));
+				icon.textColorInfo = colorInfo;
+			end
+		elseif (icon.text ~= "") then
+			icon.cooldownText:SetText("");
+			icon.text = "";
+		end
+
+		-- stacks
+		local stacks = db.ShowStacks and spellInfo.stacks or 1;
+		if (icon.stackcount ~= stacks) then
+			if (stacks > 1) then
+				icon.stacks:SetText(stacks);
+				if (spellInfo.duration == 0 or not db.ShowCooldownAnimation) then
+					icon.stacks:SetParent(icon);
+				else
+					icon.stacks:SetParent(icon.cooldownFrame);
+				end
+			else
+				icon.stacks:SetText("");
+			end
+			icon.stackcount = stacks;
+		end
+
+		-- cooldown animation
+		if (db.ShowCooldownAnimation) then
+			if (spellInfo.expires ~= icon.cooldownExpires or spellInfo.duration ~= icon.cooldownDuration) then
+				if (spellInfo.duration == 0) then
+					icon.cooldownFrame:Hide();
+				else
+					icon.cooldownFrame:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
+					icon.cooldownFrame:Show();
+				end
+				icon.cooldownExpires = spellInfo.expires;
+				icon.cooldownDuration = spellInfo.duration;
+			end
+		else
+			icon.cooldownFrame:Hide();
+		end
+	end
+
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, frame);
@@ -464,47 +539,12 @@ do
 		icon.border = icon:CreateTexture(nil, "OVERLAY");
 		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
 		icon.cooldownText = icon:CreateFontString(nil, "OVERLAY");
-		if (db.TimerStyle == TIMER_STYLE_CIRCULAR or db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-			icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
-			icon.cooldownFrame:SetAllPoints(icon);
-			icon.cooldownFrame:SetReverse(true);
-			icon.cooldownFrame:SetHideCountdownNumbers(true);
-			if (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC) then
-				icon.cooldownFrame:SetDrawEdge(false);
-				icon.cooldownFrame:SetDrawSwipe(true);
-				icon.cooldownFrame:SetSwipeColor(0, 0, 0, 0.8);
-			else
-				icon.cooldownFrame.noCooldownCount = true;
-			end
-			icon.SetCooldown = function(self, startTime, duration)
-				if (startTime == 0) then duration = 0; end
-				icon.cooldownFrame:SetCooldown(startTime, duration);
-			end;
-			icon.SetStacksText = function(self, spellInfo)
-				if (self.stackcount ~= spellInfo.stacks) then
-					if (spellInfo.stacks > 1) then
-						self.stacks:SetText(spellInfo.stacks);
-						if (spellInfo.duration == 0) then
-							self.stacks:SetParent(self);
-						else
-							self.stacks:SetParent(self.cooldownFrame);
-						end
-					else
-						self.stacks:SetText("");
-					end
-					self.stackcount = spellInfo.stacks;
-				end
-			end;
-			hooksecurefunc(icon.cooldownText, "SetText", function(self, text)
-				if (text ~= "") then
-					if (icon.cooldownFrame:GetCooldownDuration() == 0) then
-						icon.cooldownText:SetParent(icon);
-					else
-						icon.cooldownText:SetParent(icon.cooldownFrame);
-					end
-				end
-			end);
-		end
+		icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
+		icon.cooldownFrame:SetAllPoints(icon);
+		icon.cooldownFrame:SetReverse(true);
+		icon.cooldownFrame:SetHideCountdownNumbers(true);
+		icon.cooldownFrame.noCooldownCount = true; -- refuse OmniCC
+		icon.SetCooldown = IconSetCooldown;
 		icon.size = db.DefaultIconSize;
 		icon:Hide();
 		icon.cooldownText:SetTextColor(0.7, 1, 0);
@@ -547,6 +587,8 @@ do
 		icon.spellID = -1;
 		icon.stackcount = -1;
 		icon.size = -1;
+		icon.text = nil;
+		icon.cooldownExpires = nil;
 		HideGlow(icon);
 	end
 
@@ -721,78 +763,6 @@ do
 		UpdateNameplate(frame, unitGUID);
 	end
 
-	local function UpdateNameplate_SetCooldown(icon, last, spellInfo)
-		if (icon.info == nil) then
-			icon.info = {
-				["text"] = nil,
-				["colorState"] = nil,
-				["cooldownExpires"] = 0,
-				["cooldownDuration"] = 0,
-			};
-		end
-		local info = icon.info;
-		if (db.TimerStyle == TIMER_STYLE_TEXTURETEXT or db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-			if (last > 3600 or spellInfo.duration == 0) then
-				if (info.text ~= "") then
-					icon.cooldownText:SetText("");
-					info.text = "";
-				end
-			elseif (last >= 60) then
-				local newValue = math_floor(last/60).."m";
-				if (info.text ~= newValue) then
-					icon.cooldownText:SetText(newValue);
-					info.text = newValue;
-				end
-			elseif (last >= db.MinTimeToShowTenthsOfSeconds) then
-				local newValue = string_format("%d", last);
-				if (info.text ~= newValue) then
-					icon.cooldownText:SetText(newValue);
-					info.text = newValue;
-				end
-			else
-				icon.cooldownText:SetText(string_format("%.1f", last));
-				info.text = nil;
-			end
-			if (last >= 60 or spellInfo.duration == 0) then
-				if (info.colorState ~= db.TimerTextLongerColor) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextLongerColor));
-					info.colorState = db.TimerTextLongerColor;
-				end
-			elseif (last >= 5) then
-				if (info.colorState ~= db.TimerTextUnderMinuteColor) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
-					info.colorState = db.TimerTextUnderMinuteColor;
-				end
-			else
-				if (info.colorState ~= db.TimerTextSoonToExpireColor) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
-					info.colorState = db.TimerTextSoonToExpireColor;
-				end
-			end
-			if (db.TimerStyle == TIMER_STYLE_CIRCULARTEXT) then
-				if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
-					if (spellInfo.duration == 0) then
-						icon:SetCooldown(0, 0);
-					else
-						icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
-					end
-					info.cooldownExpires = spellInfo.expires;
-					info.cooldownDuration = spellInfo.duration;
-				end
-			end
-		elseif (db.TimerStyle == TIMER_STYLE_CIRCULAROMNICC or db.TimerStyle == TIMER_STYLE_CIRCULAR) then
-			if (spellInfo.expires ~= info.cooldownExpires or spellInfo.duration ~= info.cooldownDuration) then
-				if (spellInfo.duration == 0) then
-					icon:SetCooldown(0, 0);
-				else
-					icon:SetCooldown(spellInfo.expires - spellInfo.duration, spellInfo.duration);
-				end
-				info.cooldownExpires = spellInfo.expires;
-				info.cooldownDuration = spellInfo.duration;
-			end
-		end
-	end
-
 	local function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
 			if (icon.borderState ~= spellInfo.type) then
@@ -886,9 +856,7 @@ do
 						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
 						icon.spellID = spellInfo.spellID;
 					end
-					UpdateNameplate_SetCooldown(icon, last, spellInfo);
-					-- // stacks
-					icon:SetStacksText(spellInfo);
+					icon:SetCooldown(last, spellInfo);
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
@@ -941,7 +909,7 @@ do
 						-- // getting reference to icon
 						local icon = frame.NAurasIcons[counter];
 						-- // setting text
-						UpdateNameplate_SetCooldown(icon, last, spellInfo);
+						icon:SetCooldown(last, spellInfo);
 						counter = counter + 1;
 					end
 				end

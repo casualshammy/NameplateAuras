@@ -2,14 +2,13 @@ local _, addonTable = ...;
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, 
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
+	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE = 
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = addonTable.TIMER_STYLE_TEXTURETEXT, addonTable.TIMER_STYLE_CIRCULAR, addonTable.TIMER_STYLE_CIRCULAROMNICC, addonTable.TIMER_STYLE_CIRCULARTEXT;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
@@ -26,152 +25,163 @@ do
 	
 end
 
-local function MigrateDB_0()
-    local db = addonTable.db;
-    -- delete unused fields
-    for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells", "InterruptsEnableOnlyInPvP" }) do
-        if (db[entry] ~= nil) then
-            db[entry] = nil;
-            Print("Old db record is deleted: " .. entry);
-        end
-    end
-    if (db.TimerTextSizeMode ~= nil) then
-        db.TimerTextUseRelativeScale = (db.TimerTextSizeMode == "relative");
-        db.TimerTextSizeMode = nil;
-    end
-    if (db.SortMode ~= nil and type(db.SortMode) == "string") then
-        local replacements = { ["none"] = AURA_SORT_MODE_NONE, ["by-expire-time-asc"] = AURA_SORT_MODE_EXPIREASC, ["by-expire-time-des"] = AURA_SORT_MODE_EXPIREDES,
-            ["by-icon-size-asc"] = AURA_SORT_MODE_ICONSIZEASC, ["by-icon-size-des"] = AURA_SORT_MODE_ICONSIZEDES, ["by-aura-type-expire-time"] = AURA_SORT_MODE_AURATYPE_EXPIRE };
-        db.SortMode = replacements[db.SortMode];
-    end
-    if (db.TimerStyle ~= nil and type(db.TimerStyle) == "string") then
-        local replacements = { [TIMER_STYLE_TEXTURETEXT] = "texture-with-text", [TIMER_STYLE_CIRCULAR] = "cooldown-frame-no-text", [TIMER_STYLE_CIRCULAROMNICC] = "cooldown-frame", [TIMER_STYLE_CIRCULARTEXT] = "circular-noomnicc-text" };
-        for newValue, oldValue in pairs(replacements) do
-            if (db.TimerStyle == oldValue) then
-                db.TimerStyle = newValue;
-                break;
+local migrations = {
+    [0] = function()
+        local db = addonTable.db;
+        -- delete unused fields
+        for _, entry in pairs({ "IconSize", "DebuffBordersColor", "DisplayBorders", "ShowMyAuras", "DefaultSpells", "InterruptsEnableOnlyInPvP" }) do
+            if (db[entry] ~= nil) then
+                db[entry] = nil;
+                Print("Old db record is deleted: " .. entry);
             end
         end
-    end
-    if (db.DisplayTenthsOfSeconds ~= nil) then
-        db.MinTimeToShowTenthsOfSeconds = db.DisplayTenthsOfSeconds and 10 or 0;
-        db.DisplayTenthsOfSeconds = nil;
-    end
-    if (db.DefaultSpellsAreImported ~= nil) then
-        db.DefaultSpellsLastSetImported = 1;
-        db.DefaultSpellsAreImported = nil;
-    end
-    for spellID, spellInfo in pairs(db.CustomSpells2) do
-        if (type(spellInfo.checkSpellID) == "number") then
-            spellInfo.checkSpellID = { [spellInfo.checkSpellID] = true };
+        if (db.TimerTextSizeMode ~= nil) then
+            db.TimerTextUseRelativeScale = (db.TimerTextSizeMode == "relative");
+            db.TimerTextSizeMode = nil;
         end
-    end
-    for spellID, spellInfo in pairs(db.CustomSpells2) do
-        if (spellInfo.checkSpellID ~= nil) then
-            local toAdd = { };
-            for key in pairs(spellInfo.checkSpellID) do
-                if (type(key) == "string") then
-                    spellInfo.checkSpellID[key] = nil;
-                    local nmbr = tonumber(key);
-                    if (nmbr ~= nil) then
-                        table_insert(toAdd, nmbr);
+        if (db.SortMode ~= nil and type(db.SortMode) == "string") then
+            local replacements = { ["none"] = AURA_SORT_MODE_NONE, ["by-expire-time-asc"] = AURA_SORT_MODE_EXPIREASC, ["by-expire-time-des"] = AURA_SORT_MODE_EXPIREDES,
+                ["by-icon-size-asc"] = AURA_SORT_MODE_ICONSIZEASC, ["by-icon-size-des"] = AURA_SORT_MODE_ICONSIZEDES, ["by-aura-type-expire-time"] = AURA_SORT_MODE_AURATYPE_EXPIRE };
+            db.SortMode = replacements[db.SortMode];
+        end
+        if (db.TimerStyle ~= nil and type(db.TimerStyle) == "string") then
+            local replacements = { [1] = "texture-with-text", [2] = "cooldown-frame-no-text", [3] = "cooldown-frame", [4] = "circular-noomnicc-text" };
+            for newValue, oldValue in pairs(replacements) do
+                if (db.TimerStyle == oldValue) then
+                    db.TimerStyle = newValue;
+                    break;
+                end
+            end
+        end
+        if (db.DisplayTenthsOfSeconds ~= nil) then
+            db.MinTimeToShowTenthsOfSeconds = db.DisplayTenthsOfSeconds and 10 or 0;
+            db.DisplayTenthsOfSeconds = nil;
+        end
+        if (db.DefaultSpellsAreImported ~= nil) then
+            db.DefaultSpellsLastSetImported = 1;
+            db.DefaultSpellsAreImported = nil;
+        end
+        for spellID, spellInfo in pairs(db.CustomSpells2) do
+            if (type(spellInfo.checkSpellID) == "number") then
+                spellInfo.checkSpellID = { [spellInfo.checkSpellID] = true };
+            end
+        end
+        for spellID, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.checkSpellID ~= nil) then
+                local toAdd = { };
+                for key in pairs(spellInfo.checkSpellID) do
+                    if (type(key) == "string") then
+                        spellInfo.checkSpellID[key] = nil;
+                        local nmbr = tonumber(key);
+                        if (nmbr ~= nil) then
+                            table_insert(toAdd, nmbr);
+                        end
                     end
                 end
-            end
-            for _, value in pairs(toAdd) do
-                spellInfo.checkSpellID[value] = true;
-            end
-        end
-    end
-    for spellID, spellInfo in pairs(db.CustomSpells2) do
-        if (spellInfo.checkSpellID ~= nil) then
-            local toAdd = { };
-            for key, value in pairs(spellInfo.checkSpellID) do
-                if (type(value) == "number") then
-                    table_insert(toAdd, value);
-                    spellInfo.checkSpellID[key] = nil;
+                for _, value in pairs(toAdd) do
+                    spellInfo.checkSpellID[value] = true;
                 end
             end
-            for _, value in pairs(toAdd) do
-                spellInfo.checkSpellID[value] = true;
+        end
+        for spellID, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.checkSpellID ~= nil) then
+                local toAdd = { };
+                for key, value in pairs(spellInfo.checkSpellID) do
+                    if (type(value) == "number") then
+                        table_insert(toAdd, value);
+                        spellInfo.checkSpellID[key] = nil;
+                    end
+                end
+                for _, value in pairs(toAdd) do
+                    spellInfo.checkSpellID[value] = true;
+                end
             end
         end
-    end
-    for _, spellInfo in pairs(db.CustomSpells2) do
-        if (spellInfo.showGlow ~= nil and type(spellInfo.showGlow) == "boolean") then
-            spellInfo.showGlow = GLOW_TIME_INFINITE;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.showGlow ~= nil and type(spellInfo.showGlow) == "boolean") then
+                spellInfo.showGlow = GLOW_TIME_INFINITE;
+            end
         end
-    end
-    for _, spellInfo in pairs(db.CustomSpells2) do
-        if (spellInfo.allowMultipleInstances ~= nil and type(spellInfo.allowMultipleInstances) == "boolean" and spellInfo.allowMultipleInstances == false) then
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.allowMultipleInstances ~= nil and type(spellInfo.allowMultipleInstances) == "boolean" and spellInfo.allowMultipleInstances == false) then
+                spellInfo.allowMultipleInstances = nil;
+            end
+        end
+        if (db.HidePlayerBlizzardFrame == "undefined") then
+            db.HidePlayerBlizzardFrame = db.HideBlizzardFrames;
+        end
+    end,
+    [1] = function()
+        local db = addonTable.db;
+        local tempTable = { };
+        for spellID, spellInfo in pairs(db.CustomSpells2) do
+            local entry = addonTable.deepcopy(spellInfo);
+            entry.spellName = SpellNameByID[spellID];
+            entry.spellID = nil;
+            table.insert(tempTable, entry);
+        end
+        wipe(db.CustomSpells2);
+        for _, spellInfo in pairs(tempTable) do
+            table.insert(db.CustomSpells2, spellInfo);
+        end
+    end,
+    [2] = function()
+        local db = addonTable.db;
+        db.CustomSpells3 = nil;
+        for _, spellInfo in pairs(db.CustomSpells2) do
             spellInfo.allowMultipleInstances = nil;
         end
-    end
-    if (db.HidePlayerBlizzardFrame == "undefined") then
-        db.HidePlayerBlizzardFrame = db.HideBlizzardFrames;
-    end
-end
-
-local function MigrateDB_1()
-    local db = addonTable.db;
-    local tempTable = { };
-    for spellID, spellInfo in pairs(db.CustomSpells2) do
-        local entry = addonTable.deepcopy(spellInfo);
-        entry.spellName = SpellNameByID[spellID];
-        entry.spellID = nil;
-        table.insert(tempTable, entry);
-    end
-    wipe(db.CustomSpells2);
-    for _, spellInfo in pairs(tempTable) do
-        table.insert(db.CustomSpells2, spellInfo);
-    end
-end
-
-local function MigrateDB_2()
-    local db = addonTable.db;
-    db.CustomSpells3 = nil;
-    for _, spellInfo in pairs(db.CustomSpells2) do
-        spellInfo.allowMultipleInstances = nil;
-    end
-end
-
-local function MigrateDB_3()
-    local db = addonTable.db;
-    for _, spellInfo in pairs(db.CustomSpells2) do
-        if (db.UseDimGlow) then
-            spellInfo.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
-        else
-            spellInfo.glowType = addonTable.GLOW_TYPE_AUTOUSE;
+    end,
+    [3] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (db.UseDimGlow) then
+                spellInfo.glowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+            else
+                spellInfo.glowType = addonTable.GLOW_TYPE_AUTOUSE;
+            end
         end
-    end
-    db.UseDimGlow = nil;
-    db.Additions_DispellableSpells_DimGlow = nil;
-end
-
-local function MigrateDB_4()
-    local db = addonTable.db;
-    if (not db.InterruptsGlow) then
-        db.InterruptsGlowType = addonTable.GLOW_TYPE_NONE;
-    else
-        db.InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
-    end
-    db.InterruptsGlow = nil;
-end
-
-local function MigrateDB_5()
-    local db = addonTable.db;
-    db.FrameAnchorToNameplate = db.FrameAnchor;
-end
-
-local function MigrateDB_6()
-    local db = addonTable.db;
-    local iconAligh = { 
-        ["TOPLEFT"] = addonTable.ICON_ALIGN_TOP_RIGHT,
-        ["LEFT"] = addonTable.ICON_ALIGN_CENTER,
-        ["BOTTOMLEFT"] = addonTable.ICON_ALIGN_BOTTOM_LEFT,
-    };
-    db.IconAnchor = iconAligh[db.IconAnchor];
-end
+        db.UseDimGlow = nil;
+        db.Additions_DispellableSpells_DimGlow = nil;
+    end,
+    [4] = function()
+        local db = addonTable.db;
+        if (not db.InterruptsGlow) then
+            db.InterruptsGlowType = addonTable.GLOW_TYPE_NONE;
+        else
+            db.InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+        end
+        db.InterruptsGlow = nil;
+    end,
+    [5] = function()
+        local db = addonTable.db;
+        db.FrameAnchorToNameplate = db.FrameAnchor;
+    end,
+    [6] = function()
+        local db = addonTable.db;
+        local iconAligh = { 
+            ["TOPLEFT"] = addonTable.ICON_ALIGN_TOP_RIGHT,
+            ["LEFT"] = addonTable.ICON_ALIGN_CENTER,
+            ["BOTTOMLEFT"] = addonTable.ICON_ALIGN_BOTTOM_LEFT,
+        };
+        db.IconAnchor = iconAligh[db.IconAnchor];
+    end,
+    [7] = function()
+        local db = addonTable.db;
+        if (db.TimerStyle == 2 or db.TimerStyle == 3) then
+            db.TimerStyle = 4;
+            db.ShowStacks = db.TimerStyle == 3;
+            db.ShowCooldownText = db.TimerStyle == 3;
+        end
+    end,
+    [8] = function()
+        local db = addonTable.db;
+        if (db.TimerStyle ~= nil) then
+            db.ShowCooldownAnimation = db.TimerStyle == 4;
+            db.TimerStyle = nil;
+        end
+    end,
+};
 
 local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
@@ -220,34 +230,11 @@ local function FillInMissingEntriesIsSpells()
 end
 
 function addonTable.MigrateDB()
-    if (addonTable.db.DBVersion == 0) then
-        MigrateDB_0();
-        addonTable.db.DBVersion = 1;
+    for i = addonTable.db.DBVersion, (table_count(migrations)-1) do
+        migrations[i]();
+        addonTable.Print("Converting DB up to version", i);
     end
-    if (addonTable.db.DBVersion == 1) then
-        MigrateDB_1();
-        addonTable.db.DBVersion = 2;
-    end
-    if (addonTable.db.DBVersion == 2) then
-        MigrateDB_2();
-        addonTable.db.DBVersion = 3;
-    end
-    if (addonTable.db.DBVersion == 3) then
-        MigrateDB_3();
-        addonTable.db.DBVersion = 4;
-    end
-    if (addonTable.db.DBVersion == 4) then
-        MigrateDB_4();
-        addonTable.db.DBVersion = 5;
-    end
-    if (addonTable.db.DBVersion == 5) then
-        MigrateDB_5();
-        addonTable.db.DBVersion = 6;
-    end
-    if (addonTable.db.DBVersion == 6) then
-        MigrateDB_6();
-        addonTable.db.DBVersion = 7;
-    end
+    addonTable.db.DBVersion = table_count(migrations);
     FillInMissingEntriesIsSpells();
 end
 

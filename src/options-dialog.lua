@@ -12,14 +12,13 @@ local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
+	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT = addonTable.TIMER_STYLE_TEXTURETEXT, addonTable.TIMER_STYLE_CIRCULAR, addonTable.TIMER_STYLE_CIRCULAROMNICC, addonTable.TIMER_STYLE_CIRCULARTEXT;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
@@ -114,7 +113,7 @@ end
 local function GUICategory_1(index, value)
 
 	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
 
 	-- buttonTestMode
 	do
@@ -255,49 +254,19 @@ local function GUICategory_1(index, value)
 
 	end
 
-	-- // dropdownTimerStyle
+	-- // checkboxShowCooldownAnimation
 	do
-
-		local TimerStylesLocalization = {
-			[TIMER_STYLE_TEXTURETEXT] =		L["Texture with timer"],
-			[TIMER_STYLE_CIRCULAR] =		L["Circular"],
-			[TIMER_STYLE_CIRCULAROMNICC] =	L["Circular with OmniCC support"],
-			[TIMER_STYLE_CIRCULARTEXT] =	L["Circular with timer"],
-		};
-
-		local dropdownTimerStyle = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownTimerStyle", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownTimerStyle, 300);
-		dropdownTimerStyle:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -350);
-		local info = {};
-		dropdownTimerStyle.initialize = function()
-			wipe(info);
-			for _, timerStyle in pairs({ TIMER_STYLE_TEXTURETEXT, TIMER_STYLE_CIRCULAR, TIMER_STYLE_CIRCULAROMNICC, TIMER_STYLE_CIRCULARTEXT }) do
-				info.text = TimerStylesLocalization[timerStyle];
-				info.value = timerStyle;
-				info.func = function(self)
-					if (self.value == TIMER_STYLE_CIRCULAROMNICC and not IsAddOnLoaded("omnicc")) then
-						msg(L["options:general:error-omnicc-is-not-loaded"]);
-					else
-						addonTable.db.TimerStyle = self.value;
-						_G[dropdownTimerStyle:GetName().."Text"]:SetText(self:GetText());
-						addonTable.PopupReloadUI();
-					end
-				end
-				info.checked = (addonTable.db.TimerStyle == info.value);
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[addonTable.db.TimerStyle]);
-		dropdownTimerStyle.text = dropdownTimerStyle:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownTimerStyle.text:SetPoint("LEFT", 20, 15);
-		dropdownTimerStyle.text:SetText(L["Timer style:"]);
-		table_insert(GUIFrame.Categories[index], dropdownTimerStyle);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (_G[dropdownTimerStyle:GetName().."Text"]:GetText() ~= TimerStylesLocalization[addonTable.db.TimerStyle]) then
-				addonTable.PopupReloadUI();
-			end
-			_G[dropdownTimerStyle:GetName().."Text"]:SetText(TimerStylesLocalization[addonTable.db.TimerStyle]);
+		checkboxShowCooldownAnimation = VGUI.CreateCheckBox();
+		checkboxShowCooldownAnimation:SetText(L["options:general:show-cooldown-animation"]);
+		checkboxShowCooldownAnimation:SetOnClickHandler(function(this)
+			addonTable.db.ShowCooldownAnimation = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
 		end);
+		checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation);
+		checkboxShowCooldownAnimation:SetParent(GUIFrame);
+		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
 
 	end
 

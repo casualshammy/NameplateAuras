@@ -11,14 +11,14 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
+	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
-		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
+		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
@@ -270,45 +270,6 @@ local function GUICategory_1(index, value)
 
 	end
 
-	-- // dropdownSortMode
-	do
-		local SortModesLocalization = {
-			[AURA_SORT_MODE_NONE] =				L["None"],
-			[AURA_SORT_MODE_EXPIREASC] =		L["By expire time, ascending"],
-			[AURA_SORT_MODE_EXPIREDES] =		L["By expire time, descending"],
-			[AURA_SORT_MODE_ICONSIZEASC] =		L["By icon size, ascending"],
-			[AURA_SORT_MODE_ICONSIZEDES] =		L["By icon size, descending"],
-			[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["By aura type (de/buff) + expire time"]
-		};
-
-
-		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -385);
-		local info = {};
-		dropdownSortMode.initialize = function()
-			wipe(info);
-			for _, sortMode in pairs({ AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE }) do
-				info.text = SortModesLocalization[sortMode];
-				info.value = sortMode;
-				info.func = function(self)
-					addonTable.db.SortMode = self.value;
-					_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-				end
-				info.checked = (addonTable.db.SortMode == info.value);
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]);
-		dropdownSortMode.text = dropdownSortMode:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownSortMode.text:SetPoint("LEFT", 20, 15);
-		dropdownSortMode.text:SetText(L["Sort mode:"]);
-		table_insert(GUIFrame.Categories[index], dropdownSortMode);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
-
-	end
-
 end
 
 local function GUICategory_2(index, value)
@@ -529,7 +490,7 @@ local function GUICategory_Fonts(index, value)
 		end
 		_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]);
 		dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]); end);
@@ -559,7 +520,7 @@ local function GUICategory_Fonts(index, value)
 		end
 		_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]);
 		dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 15);
+		dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 20);
 		dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownTimerTextAnchorIcon);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]); end);
@@ -969,7 +930,7 @@ local function GUICategory_AuraStackFont(index, value)
 		end
 		_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]);
 		dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownStacksAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownStacksAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownStacksAnchor.text:SetText(L["Anchor point"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]); end);
@@ -999,7 +960,7 @@ local function GUICategory_AuraStackFont(index, value)
 		end
 		_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]);
 		dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 15);
+		dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 20);
 		dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
 		table_insert(GUIFrame.Categories[index], dropdownStacksAnchorIcon);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]); end);
@@ -2012,7 +1973,7 @@ local function GUICategory_4(index, value)
 			end
 		end
 		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownGlowType.text:SetPoint("LEFT", 20, 15);
+		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
 		table_insert(controls, dropdownGlowType);
 
@@ -2356,7 +2317,7 @@ local function GUICategory_Interrupts(index, value)
 		end
 		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.InterruptsGlowType]);
 		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownGlowType.text:SetPoint("LEFT", 20, 15);
+		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.InterruptsGlowType]); end);
 
@@ -2694,7 +2655,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		end
 		_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]);
 		dropdownFrameAnchorToNameplate.text = dropdownFrameAnchorToNameplate:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchorToNameplate.text:SetPoint("LEFT", 20, 15);
+		dropdownFrameAnchorToNameplate.text:SetPoint("LEFT", 20, 20);
 		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]); end);
@@ -2723,7 +2684,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		end
 		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchor]);
 		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownFrameAnchor.text:SetText(L["options:size-and-position:anchor-point-of-frame"]);
 		VGUI.SetTooltip(dropdownFrameAnchor, L["options:size-and-position:anchor-point-of-frame:tooltip"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
@@ -2759,7 +2720,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		end
 		_G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]);
 		dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownIconAnchor.text:SetPoint("LEFT", 20, 15);
+		dropdownIconAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownIconAnchor.text:SetText(L["options:size-and-position:icon-align"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]); end);
@@ -2796,11 +2757,48 @@ local function GUICategory_SizeAndPosition(index, value)
 		end
 		_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]);
 		dropdownIconGrowDirection.text = dropdownIconGrowDirection:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownIconGrowDirection.text:SetPoint("LEFT", 20, 15);
+		dropdownIconGrowDirection.text:SetPoint("LEFT", 20, 20);
 		dropdownIconGrowDirection.text:SetText(L["options:general:icon-grow-direction"]);
 		table.insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]); end);
 		
+	end
+
+	-- // dropdownSortMode
+	do
+		local SortModesLocalization = {
+			[AURA_SORT_MODE_NONE] =				L["icon-sort-mode:none"],
+			[AURA_SORT_MODE_EXPIRETIME] =		L["icon-sort-mode:by-expire-time"],
+			[AURA_SORT_MODE_ICONSIZE] =			L["icon-sort-mode:by-icon-size"],
+			[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["icon-sort-mode:by-aura-type+by-expire-time"],
+		};
+
+
+		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
+		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -240);
+		local info = {};
+		dropdownSortMode.initialize = function()
+			wipe(info);
+			for sortMode, sortModeL in pairs(SortModesLocalization) do
+				info.text = sortModeL;
+				info.value = sortMode;
+				info.func = function(self)
+					addonTable.db.SortMode = self.value;
+					_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.SortMode == info.value);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]);
+		dropdownSortMode.text = dropdownSortMode:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		dropdownSortMode.text:SetPoint("LEFT", 20, 20);
+		dropdownSortMode.text:SetText(L["Sort mode:"]);
+		table_insert(GUIFrame.Categories[index], dropdownSortMode);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
+
 	end
 
 	-- checkBoxIgnoreNameplateScale
@@ -2814,7 +2812,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		end);
 		checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
 		checkBoxIgnoreNameplateScale:SetParent(GUIFrame);
-		checkBoxIgnoreNameplateScale:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -230);
+		checkBoxIgnoreNameplateScale:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -280);
 		table_insert(GUIFrame.Categories[index], checkBoxIgnoreNameplateScale);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
@@ -2903,7 +2901,7 @@ local function GUICategory_Dispel(index, value)
 		end
 		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]);
 		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownGlowType.text:SetPoint("LEFT", 20, 15);
+		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]); end);
 

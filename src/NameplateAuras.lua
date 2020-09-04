@@ -31,14 +31,14 @@ do
 end
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC,
-	AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
+	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
 	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIREASC, AURA_SORT_MODE_EXPIREDES, AURA_SORT_MODE_ICONSIZEASC, AURA_SORT_MODE_ICONSIZEDES, AURA_SORT_MODE_AURATYPE_EXPIRE =
-		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIREASC, addonTable.AURA_SORT_MODE_EXPIREDES, addonTable.AURA_SORT_MODE_ICONSIZEASC, addonTable.AURA_SORT_MODE_ICONSIZEDES, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
+		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
@@ -134,7 +134,7 @@ do
 				Font = "NAuras_TeenBold",
 				HideBlizzardFrames = true,
 				DefaultIconSize = 45,
-				SortMode = AURA_SORT_MODE_EXPIREASC,
+				SortMode = AURA_SORT_MODE_EXPIRETIME,
 				FontScale = 1,
 				TimerTextUseRelativeScale = true,
 				TimerTextSize = 20,
@@ -316,44 +316,24 @@ do
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local glowInfo = { };
-	local AuraSortFunctions = {
-		[AURA_SORT_MODE_EXPIREASC] = function(item1, item2)
-			if (item1.expires == 0) then
-				return false;
-			elseif (item2.expires == 0) then
-				return true;
-			else
-				return item1.expires < item2.expires;
-			end
+	local AuraSortFunctions;
+	AuraSortFunctions = {
+		[AURA_SORT_MODE_EXPIRETIME] = function(item1, item2)
+			local expires1, expires2 = item1.expires, item2.expires;
+			if (expires1 == 0) then expires1 = VERY_LONG_COOLDOWN_DURATION; end
+			if (expires2 == 0) then expires2 = VERY_LONG_COOLDOWN_DURATION; end
+			return expires1 < expires2;
 		end,
-		[AURA_SORT_MODE_EXPIREDES] = function(item1, item2)
-			if (item1.expires == 0) then
-				return true;
-			elseif (item2.expires == 0) then
-				return false;
-			else
-				return item1.expires > item2.expires; 
-			end
-		end,
-		[AURA_SORT_MODE_ICONSIZEASC] = function(item1, item2)
+		[AURA_SORT_MODE_ICONSIZE] = function(item1, item2)
 			local enabledAuraInfo1 = item1.dbEntry;
 			local enabledAuraInfo2 = item2.dbEntry;
 			return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) < (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
-		end,
-		[AURA_SORT_MODE_ICONSIZEDES] = function(item1, item2)
-			local enabledAuraInfo1 = item1.dbEntry;
-			local enabledAuraInfo2 = item2.dbEntry;
-			return (enabledAuraInfo1 and enabledAuraInfo1.iconSize or db.DefaultIconSize) > (enabledAuraInfo2 and enabledAuraInfo2.iconSize or db.DefaultIconSize);
 		end,
 		[AURA_SORT_MODE_AURATYPE_EXPIRE] = function(item1, item2)
 			if (item1.type ~= item2.type) then
 				return (item1.type == AURA_TYPE_DEBUFF) and true or false;
 			end
-			if (item1.type == AURA_TYPE_DEBUFF) then
-				return item1.expires < item2.expires;
-			else
-				return item1.expires > item2.expires;
-			end
+			return AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME](item1, item2);
 		end
 	};
 
@@ -1079,8 +1059,8 @@ do
 				},
 			},
 			{
-				["duration"] = intervalBetweenRefreshes*2,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
+				["duration"] = intervalBetweenRefreshes*20,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
 				["stacks"] = 1,
 				["spellID"] = 215336,
 				["type"] = AURA_TYPE_BUFF,
@@ -1090,8 +1070,8 @@ do
 				},
 			},
 			{
-				["duration"] = intervalBetweenRefreshes*20,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
+				["duration"] = intervalBetweenRefreshes*2,
+				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
 				["stacks"] = 3,
 				["spellID"] = 188389,
 				["type"] = AURA_TYPE_DEBUFF,

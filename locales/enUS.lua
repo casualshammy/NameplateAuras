@@ -171,5 +171,10 @@ L["anchor-point:bottom"] = "Bottom";
 L["anchor-point:topleft"] = "Top left";
 L["anchor-point:left"] = "Left";
 L["anchor-point:bottomleft"] = "Bottom left";
+L["icon-sort-mode:none"] = "Without sorting";
+L["icon-sort-mode:by-expire-time"] = "By expiration time";
+L["icon-sort-mode:by-icon-size"] = "By icon size";
+L["icon-sort-mode:by-aura-type+by-expire-time"] = "By aura type + by expiration time";
+L["options:general:show-cooldown-animation"] = "Show cooldown animation";
 
 --@end-debug@

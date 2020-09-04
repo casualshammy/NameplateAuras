@@ -173,5 +173,10 @@ L["anchor-point:bottom"] = "Снизу";
 L["anchor-point:topleft"] = "Сверху слева";
 L["anchor-point:left"] = "Слева";
 L["anchor-point:bottomleft"] = "Снизу слева";
+L["icon-sort-mode:none"] = "Без сортировки";
+L["icon-sort-mode:by-expire-time"] = "По оставшемуся времени";
+L["icon-sort-mode:by-icon-size"] = "По размеру иконки";
+L["icon-sort-mode:by-aura-type+by-expire-time"] = "По типу ауры + по оставшемуся времени";
+L["options:general:show-cooldown-animation"] = "Показывать анимацию кулдауна";
 
 --@end-debug@

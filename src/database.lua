@@ -192,6 +192,21 @@ local migrations = {
             db.SortMode = addonTable.AURA_SORT_MODE_ICONSIZE;
         end
     end,
+    [10] = function()
+        local db = addonTable.db;
+        if (db.IgnoreNameplateScale ~= nil) then
+            if (not db.IgnoreNameplateScale) then
+                db.IconScaleTarget = 1.2;
+            end
+            db.IgnoreNameplateScale = nil;
+        end
+        if (db.FullOpacityAlways ~= nil) then
+            if (not db.FullOpacityAlways) then
+                db.IconAlpha = 0.6;
+            end
+            db.FullOpacityAlways = nil;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

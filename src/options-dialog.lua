@@ -112,7 +112,7 @@ end
 
 local function GUICategory_1(index, value)
 
-	local buttonTestMode, checkBoxFullOpacityAlways, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
+	local buttonTestMode, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
 
 	-- buttonTestMode
@@ -129,24 +129,6 @@ local function GUICategory_1(index, value)
 		table_insert(GUIFrame.Categories[index], buttonTestMode);
 	end
 
-	-- checkBoxFullOpacityAlways
-	do
-		checkBoxFullOpacityAlways = VGUI.CreateCheckBox();
-		checkBoxFullOpacityAlways:SetText(L["options:general:full-opacity-always"]);
-		VGUI.SetTooltip(checkBoxFullOpacityAlways, L["options:general:full-opacity-always:tooltip"]);
-		checkBoxFullOpacityAlways:SetOnClickHandler(function(this)
-			addonTable.db.FullOpacityAlways = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
-		checkBoxFullOpacityAlways:SetParent(GUIFrame);
-		checkBoxFullOpacityAlways:SetPoint("TOPLEFT", buttonTestMode, "BOTTOMLEFT", 0, -10);
-		table_insert(GUIFrame.Categories[index], checkBoxFullOpacityAlways);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxFullOpacityAlways:SetChecked(addonTable.db.FullOpacityAlways);
-		end);
-	end
-
 	-- checkBoxHideBlizzardFrames
 	do
 		checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
@@ -157,7 +139,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
-		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", checkBoxFullOpacityAlways, "BOTTOMLEFT", 0, 0);
+		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", buttonTestMode, "BOTTOMLEFT", 0, -10);
 		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
@@ -2801,22 +2783,253 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	end
 
-	-- checkBoxIgnoreNameplateScale
+	local scaleArea, sliderScale, sliderScaleTarget;
+
+	-- // scaleArea
 	do
-		local checkBoxIgnoreNameplateScale = VGUI.CreateCheckBox();
-		checkBoxIgnoreNameplateScale:SetText(L["options:general:ignore-nameplate-scale"]);
-		VGUI.SetTooltip(checkBoxIgnoreNameplateScale, L["options:general:ignore-nameplate-scale:tooltip"]);
-		checkBoxIgnoreNameplateScale:SetOnClickHandler(function(this)
-			addonTable.db.IgnoreNameplateScale = this:GetChecked();
+
+		scaleArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		scaleArea:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		scaleArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		scaleArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		scaleArea:SetPoint("TOPLEFT", 150, -280);
+		scaleArea:SetWidth(360);
+		scaleArea:SetHeight(140);
+		table_insert(GUIFrame.Categories[index], scaleArea);
+
+	end
+
+	-- // sliderScale
+	do
+
+		local minValue, maxValue, step = -10, 10, 0.1;
+		sliderScale = VGUI.CreateSlider();
+		sliderScale:SetParent(scaleArea);
+		sliderScale:SetWidth(scaleArea:GetWidth() - 20);
+		sliderScale:SetPoint("TOPLEFT", 10, -20);
+		sliderScale.label:SetText(L["options:size-and-position:scale"]);
+		sliderScale.slider:SetValueStep(step);
+		sliderScale.slider:SetMinMaxValues(minValue, maxValue);
+		sliderScale.slider:SetValue(addonTable.db.IconScale);
+		sliderScale.slider:SetScript("OnValueChanged", function(self, value)
+			local actualValue = tonumber(string_format("%.1f", value));
+			sliderScale.editbox:SetText(tostring(actualValue));
+			addonTable.db.IconScale = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
-		checkBoxIgnoreNameplateScale:SetParent(GUIFrame);
-		checkBoxIgnoreNameplateScale:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -280);
-		table_insert(GUIFrame.Categories[index], checkBoxIgnoreNameplateScale);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxIgnoreNameplateScale:SetChecked(addonTable.db.IgnoreNameplateScale);
+		sliderScale.editbox:SetText(tostring(addonTable.db.IconScale));
+		sliderScale.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (self:GetText() ~= "") then
+				local v = tonumber(self:GetText());
+				if (v == nil) then
+					self:SetText(tostring(addonTable.db.IconScale));
+					msg(L["Value must be a number"]);
+				else
+					if (v > maxValue) then
+						v = maxValue;
+					end
+					if (v < minValue) then
+						v = minValue;
+					end
+					sliderScale.slider:SetValue(v);
+				end
+				self:ClearFocus();
+			else
+				self:SetText(tostring(addonTable.db.IconScale));
+				msg(L["Value must be a number"]);
+			end
 		end);
+		sliderScale.lowtext:SetText(tostring(minValue));
+		sliderScale.hightext:SetText(tostring(maxValue));
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderScale.editbox:SetText(tostring(addonTable.db.IconScale));
+			sliderScale.slider:SetValue(addonTable.db.IconScale);
+		end);
+		sliderScale:Show();
+
+	end
+
+	-- // sliderScaleTarget
+	do
+
+		local minValue, maxValue, step = -10, 10, 0.1;
+		sliderScaleTarget = VGUI.CreateSlider();
+		sliderScaleTarget:SetParent(scaleArea);
+		sliderScaleTarget:SetWidth(scaleArea:GetWidth() - 20);
+		sliderScaleTarget:SetPoint("TOPLEFT", 10, -85);
+		sliderScaleTarget.label:SetText(L["options:size-and-position:scale-target"]);
+		sliderScaleTarget.slider:SetValueStep(step);
+		sliderScaleTarget.slider:SetMinMaxValues(minValue, maxValue);
+		sliderScaleTarget.slider:SetValue(addonTable.db.IconScaleTarget);
+		sliderScaleTarget.slider:SetScript("OnValueChanged", function(self, value)
+			local actualValue = tonumber(string_format("%.1f", value));
+			sliderScaleTarget.editbox:SetText(tostring(actualValue));
+			addonTable.db.IconScaleTarget = actualValue;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconScaleTarget));
+		sliderScaleTarget.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (self:GetText() ~= "") then
+				local v = tonumber(self:GetText());
+				if (v == nil) then
+					self:SetText(tostring(addonTable.db.IconScaleTarget));
+					msg(L["Value must be a number"]);
+				else
+					if (v > maxValue) then
+						v = maxValue;
+					end
+					if (v < minValue) then
+						v = minValue;
+					end
+					sliderScaleTarget.slider:SetValue(v);
+				end
+				self:ClearFocus();
+			else
+				self:SetText(tostring(addonTable.db.IconScaleTarget));
+				msg(L["Value must be a number"]);
+			end
+		end);
+		sliderScaleTarget.lowtext:SetText(tostring(minValue));
+		sliderScaleTarget.hightext:SetText(tostring(maxValue));
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconScaleTarget));
+			sliderScaleTarget.slider:SetValue(addonTable.db.IconScaleTarget);
+		end);
+		sliderScaleTarget:Show();
+
+	end
+
+end
+
+local function GUICategory_Alpha(index, value)
+	local alphaArea, sliderAlpha, sliderAlphaTarget;
+
+	-- // alphaArea
+	do
+
+		alphaArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		alphaArea:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		alphaArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		alphaArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		alphaArea:SetPoint("TOPLEFT", 150, -12);
+		alphaArea:SetWidth(360);
+		alphaArea:SetHeight(140);
+		table_insert(GUIFrame.Categories[index], alphaArea);
+
+	end
+
+	-- // sliderAlpha
+	do
+
+		local minValue, maxValue, step = 0, 1, 0.01;
+		sliderAlpha = VGUI.CreateSlider();
+		sliderAlpha:SetParent(alphaArea);
+		sliderAlpha:SetWidth(alphaArea:GetWidth() - 20);
+		sliderAlpha:SetPoint("TOPLEFT", 10, -20);
+		sliderAlpha.label:SetText(L["options:alpha:alpha"]);
+		sliderAlpha.slider:SetValueStep(step);
+		sliderAlpha.slider:SetMinMaxValues(minValue, maxValue);
+		sliderAlpha.slider:SetValue(addonTable.db.IconAlpha);
+		sliderAlpha.slider:SetScript("OnValueChanged", function(self, value)
+			local actualValue = tonumber(string_format("%.2f", value));
+			sliderAlpha.editbox:SetText(tostring(actualValue));
+			addonTable.db.IconAlpha = actualValue;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderAlpha.editbox:SetText(tostring(addonTable.db.IconAlpha));
+		sliderAlpha.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (self:GetText() ~= "") then
+				local v = tonumber(self:GetText());
+				if (v == nil) then
+					self:SetText(tostring(addonTable.db.IconAlpha));
+					msg(L["Value must be a number"]);
+				else
+					if (v > maxValue) then
+						v = maxValue;
+					end
+					if (v < minValue) then
+						v = minValue;
+					end
+					sliderAlpha.slider:SetValue(v);
+				end
+				self:ClearFocus();
+			else
+				self:SetText(tostring(addonTable.db.IconAlpha));
+				msg(L["Value must be a number"]);
+			end
+		end);
+		sliderAlpha.lowtext:SetText(tostring(minValue));
+		sliderAlpha.hightext:SetText(tostring(maxValue));
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderAlpha.editbox:SetText(tostring(addonTable.db.IconAlpha));
+			sliderAlpha.slider:SetValue(addonTable.db.IconAlpha);
+		end);
+		sliderAlpha:Show();
+
+	end
+
+	-- // sliderAlphaTarget
+	do
+
+		local minValue, maxValue, step = 0, 1, 0.01;
+		sliderAlphaTarget = VGUI.CreateSlider();
+		sliderAlphaTarget:SetParent(alphaArea);
+		sliderAlphaTarget:SetWidth(alphaArea:GetWidth() - 20);
+		sliderAlphaTarget:SetPoint("TOPLEFT", 10, -85);
+		sliderAlphaTarget.label:SetText(L["options:alpha:alpha-target"]);
+		sliderAlphaTarget.slider:SetValueStep(step);
+		sliderAlphaTarget.slider:SetMinMaxValues(minValue, maxValue);
+		sliderAlphaTarget.slider:SetValue(addonTable.db.IconAlphaTarget);
+		sliderAlphaTarget.slider:SetScript("OnValueChanged", function(self, value)
+			local actualValue = tonumber(string_format("%.2f", value));
+			sliderAlphaTarget.editbox:SetText(tostring(actualValue));
+			addonTable.db.IconAlphaTarget = actualValue;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconAlphaTarget));
+		sliderAlphaTarget.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (self:GetText() ~= "") then
+				local v = tonumber(self:GetText());
+				if (v == nil) then
+					self:SetText(tostring(addonTable.db.IconAlphaTarget));
+					msg(L["Value must be a number"]);
+				else
+					if (v > maxValue) then
+						v = maxValue;
+					end
+					if (v < minValue) then
+						v = minValue;
+					end
+					sliderAlphaTarget.slider:SetValue(v);
+				end
+				self:ClearFocus();
+			else
+				self:SetText(tostring(addonTable.db.IconAlphaTarget));
+				msg(L["Value must be a number"]);
+			end
+		end);
+		sliderAlphaTarget.lowtext:SetText(tostring(minValue));
+		sliderAlphaTarget.hightext:SetText(tostring(maxValue));
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconAlphaTarget));
+			sliderAlphaTarget.slider:SetValue(addonTable.db.IconAlphaTarget);
+		end);
+		sliderAlphaTarget:Show();
+
 	end
 
 end
@@ -3175,8 +3388,8 @@ local function InitializeGUI()
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 
-	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["Timer text"], L["Stack text"], L["Icon borders"],
-		L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"] };
+	local categories = { L["General"], L["Profiles"], L["options:category:size-and-position"], L["options:category:alpha"], L["Timer text"], L["Stack text"],
+		L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"] };
 	for index, value in pairs(categories) do
 		local b = CreateGUICategory();
 		b.index = index;
@@ -3213,6 +3426,8 @@ local function InitializeGUI()
 			GUICategory_SizeAndPosition(index, value);
 		elseif (value == L["options:category:dispel"]) then
 			GUICategory_Dispel(index, value);
+		elseif (value == L["options:category:alpha"]) then
+			GUICategory_Alpha(index, value);
 		end
 	end
 	InitializeGUI_CreateSpellInfoCaches();

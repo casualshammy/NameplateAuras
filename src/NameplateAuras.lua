@@ -55,6 +55,22 @@ do
 
 end
 
+local function SetAlphaScaleForNameplate(nameplate)
+	if (nameplate ~= nil and nameplate.NAurasFrame ~= nil) then
+		local unitID = NameplatesVisible[nameplate];
+		if (unitID ~= nil) then
+			local unitGUID = UnitGUID(unitID);
+			if (unitGUID == UnitGUID("target")) then
+				nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
+				nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
+			else
+				nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
+				nameplate.NAurasFrame:SetScale(db.IconScale);
+			end
+		end
+	end
+end
+
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
 --------------------------------------------------------------------------------------------------
@@ -130,7 +146,6 @@ do
 				CustomSpells2 = { },
 				IconXOffset = 0,
 				IconYOffset = 50,
-				FullOpacityAlways = false,
 				Font = "NAuras_TeenBold",
 				HideBlizzardFrames = true,
 				DefaultIconSize = 45,
@@ -181,11 +196,14 @@ do
 				Additions_DispellableSpells_Blacklist = {},
 				Additions_DispellableSpells_IconSize = 45, -- // must be equal to DefaultIconSize
 				Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
-				IgnoreNameplateScale = false,
 				IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
 				ShowStacks = true,
 				ShowCooldownText = true,
 				ShowCooldownAnimation = true,
+				IconAlpha = 1.0,
+				IconAlphaTarget = 1.0,
+				IconScale = 1.0,
+				IconScaleTarget = 1.0,
 			},
 		};
 
@@ -238,6 +256,7 @@ do
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
+		EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED");
 		if (db.InterruptsEnabled) then
 			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
@@ -501,13 +520,12 @@ do
 
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
-			frame.NAurasFrame = CreateFrame("frame", nil, frame);
+			frame.NAurasFrame = CreateFrame("frame", nil, UIParent);
 			frame.NAurasFrame:SetWidth(db.DefaultIconSize);
 			frame.NAurasFrame:SetHeight(db.DefaultIconSize);
 			frame.NAurasFrame:SetPoint(db.FrameAnchor, frame, db.FrameAnchorToNameplate, db.IconXOffset, db.IconYOffset);
+			SetAlphaScaleForNameplate(frame);
 			frame.NAurasFrame:Show();
-			frame.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
-			frame.NAurasFrame:SetIgnoreParentScale(db.IgnoreNameplateScale);
 		end
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);
@@ -596,8 +614,6 @@ do
 				if (nameplate.NAurasFrame) then
 					nameplate.NAurasFrame:ClearAllPoints();
 					nameplate.NAurasFrame:SetPoint(db.FrameAnchor, nameplate, db.FrameAnchorToNameplate, db.IconXOffset, db.IconYOffset);
-					nameplate.NAurasFrame:SetIgnoreParentAlpha(db.FullOpacityAlways);
-					nameplate.NAurasFrame:SetIgnoreParentScale(db.IgnoreNameplateScale);
 					for iconIndex, icon in pairs(nameplate.NAurasIcons) do
 						if (icon.shown) then
 							if (db.TimerTextUseRelativeScale) then
@@ -614,6 +630,7 @@ do
 						icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 						HideCDIcon(icon);
 					end
+					SetAlphaScaleForNameplate(nameplate);
 				end
 			end
 		end
@@ -943,6 +960,10 @@ do
 				end
 			end
 		end
+		SetAlphaScaleForNameplate(nameplate);
+		if (nameplate.NAurasFrame ~= nil) then
+			nameplate.NAurasFrame:Show();
+		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
@@ -950,6 +971,9 @@ do
 		NameplatesVisible[nameplate] = nil;
 		if (AurasPerNameplate[nameplate] ~= nil) then
 			wipe(AurasPerNameplate[nameplate]);
+		end
+		if (nameplate.NAurasFrame ~= nil) then
+			nameplate.NAurasFrame:Hide();
 		end
 	end
 
@@ -1018,6 +1042,12 @@ do
 				end
 
 			end
+		end
+	end
+
+	function EventFrame.PLAYER_TARGET_CHANGED()
+		for nameplate in pairs(NameplatesVisible) do
+			SetAlphaScaleForNameplate(nameplate);
 		end
 	end
 

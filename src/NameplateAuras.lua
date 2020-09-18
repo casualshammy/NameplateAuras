@@ -65,7 +65,7 @@ local function SetAlphaScaleForNameplate(nameplate)
 				nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
 			else
 				nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
-				nameplate.NAurasFrame:SetScale(db.IconScale);
+				nameplate.NAurasFrame:SetScale(1.0);
 			end
 		end
 	end
@@ -202,7 +202,6 @@ do
 				ShowCooldownAnimation = true,
 				IconAlpha = 1.0,
 				IconAlphaTarget = 1.0,
-				IconScale = 1.0,
 				IconScaleTarget = 1.0,
 			},
 		};
@@ -1120,7 +1119,7 @@ do
 				["dispelType"] = "Curse",
 				["spellName"] = SpellNameByID[100407],
 				["dbEntry"] = {
-					["iconSize"] = 35,
+					["iconSize"] = db.DefaultIconSize,
 					["showGlow"] = GLOW_TIME_INFINITE,
 					["glowType"] = db.Additions_DispellableSpells_GlowType,
 				},

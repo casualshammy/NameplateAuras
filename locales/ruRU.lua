@@ -178,5 +178,9 @@ L["icon-sort-mode:by-expire-time"] = "По оставшемуся времени
 L["icon-sort-mode:by-icon-size"] = "По размеру иконки";
 L["icon-sort-mode:by-aura-type+by-expire-time"] = "По типу ауры + по оставшемуся времени";
 L["options:general:show-cooldown-animation"] = "Показывать анимацию кулдауна";
+L["options:alpha:alpha"] = "Прозрачность иконок (исключая те, что на полоске ХП вашей цели)";
+L["options:alpha:alpha-target"] = "Прозрачность иконок на полоске ХП вашей цели";
+L["options:size-and-position:scale-target"] = "Масштаб иконок на полоске ХП вашей цели";
+L["options:category:alpha"] = "Прозрачность";
 
 --@end-debug@

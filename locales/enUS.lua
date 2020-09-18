@@ -176,5 +176,9 @@ L["icon-sort-mode:by-expire-time"] = "By expiration time";
 L["icon-sort-mode:by-icon-size"] = "By icon size";
 L["icon-sort-mode:by-aura-type+by-expire-time"] = "By aura type + by expiration time";
 L["options:general:show-cooldown-animation"] = "Show cooldown animation";
+L["options:alpha:alpha"] = "Alpha of the icons (except the nameplate of your target)";
+L["options:alpha:alpha-target"] = "Alpha of the icons on the nameplate of your target";
+L["options:size-and-position:scale-target"] = "Scale of the icons on the nameplate of your target";
+L["options:category:alpha"] = "Alpha";
 
 --@end-debug@

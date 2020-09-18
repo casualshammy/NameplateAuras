@@ -207,6 +207,10 @@ local migrations = {
             db.FullOpacityAlways = nil;
         end
     end,
+    [11] = function()
+        local db = addonTable.db;
+        db.IconScale = nil;
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

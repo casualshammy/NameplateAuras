@@ -55,27 +55,6 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, iconSize, checkSp
 	};
 end
 
-local function Nameplates_OnDefaultIconSizeOrOffsetChanged(oldDefaultIconSize)
-	for nameplate in pairs(addonTable.Nameplates) do
-		if (nameplate.NAurasFrame) then
-			nameplate.NAurasFrame:SetPoint(addonTable.db.FrameAnchor, nameplate, addonTable.db.IconXOffset, addonTable.db.IconYOffset);
-			local totalWidth = 0;
-			for _, icon in pairs(nameplate.NAurasIcons) do
-				if (icon.shown == true) then
-					if (icon.size == oldDefaultIconSize) then
-						icon.size = addonTable.db.DefaultIconSize;
-					end
-					addonTable.ResizeIcon(icon, icon.size);
-				end
-				totalWidth = totalWidth + icon.size + addonTable.db.IconSpacing;
-			end
-			totalWidth = totalWidth - addonTable.db.IconSpacing; -- // because we don't need last spacing
-			nameplate.NAurasFrame:SetWidth(totalWidth);
-		end
-	end
-	addonTable.UpdateAllNameplates(true);
-end
-
 local function ShowGUICategory(index)
 	for i, v in pairs(GUIFrame.Categories) do
 		for k, l in pairs(v) do
@@ -2452,15 +2431,15 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSize);
 		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
-			sliderIconSize.editbox:SetText(tostring(math_ceil(value)));
+			local valueNum = math_ceil(value);
+			sliderIconSize.editbox:SetText(tostring(valueNum));
 			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				if (spellInfo.iconSize == addonTable.db.DefaultIconSize) then
-					spellInfo.iconSize = math_ceil(value);
+					spellInfo.iconSize = valueNum;
 				end
 			end
-			local oldSize = addonTable.db.DefaultIconSize;
-			addonTable.db.DefaultIconSize = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(oldSize);
+			addonTable.db.DefaultIconSize = valueNum;
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSize));
 		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2544,7 +2523,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconXOffset.slider:SetScript("OnValueChanged", function(self, value)
 			sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.IconXOffset = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
 		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2586,7 +2565,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconYOffset.slider:SetScript("OnValueChanged", function(self, value)
 			sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.IconYOffset = math_ceil(value);
-			Nameplates_OnDefaultIconSizeOrOffsetChanged(addonTable.db.DefaultIconSize);
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
 		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -2801,58 +2780,8 @@ local function GUICategory_SizeAndPosition(index, value)
 		scaleArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		scaleArea:SetPoint("TOPLEFT", 150, -280);
 		scaleArea:SetWidth(360);
-		scaleArea:SetHeight(140);
+		scaleArea:SetHeight(70);
 		table_insert(GUIFrame.Categories[index], scaleArea);
-
-	end
-
-	-- // sliderScale
-	do
-
-		local minValue, maxValue, step = -10, 10, 0.1;
-		sliderScale = VGUI.CreateSlider();
-		sliderScale:SetParent(scaleArea);
-		sliderScale:SetWidth(scaleArea:GetWidth() - 20);
-		sliderScale:SetPoint("TOPLEFT", 10, -20);
-		sliderScale.label:SetText(L["options:size-and-position:scale"]);
-		sliderScale.slider:SetValueStep(step);
-		sliderScale.slider:SetMinMaxValues(minValue, maxValue);
-		sliderScale.slider:SetValue(addonTable.db.IconScale);
-		sliderScale.slider:SetScript("OnValueChanged", function(self, value)
-			local actualValue = tonumber(string_format("%.1f", value));
-			sliderScale.editbox:SetText(tostring(actualValue));
-			addonTable.db.IconScale = actualValue;
-			addonTable.UpdateAllNameplates(true);
-		end);
-		sliderScale.editbox:SetText(tostring(addonTable.db.IconScale));
-		sliderScale.editbox:SetScript("OnEnterPressed", function(self, value)
-			if (self:GetText() ~= "") then
-				local v = tonumber(self:GetText());
-				if (v == nil) then
-					self:SetText(tostring(addonTable.db.IconScale));
-					msg(L["Value must be a number"]);
-				else
-					if (v > maxValue) then
-						v = maxValue;
-					end
-					if (v < minValue) then
-						v = minValue;
-					end
-					sliderScale.slider:SetValue(v);
-				end
-				self:ClearFocus();
-			else
-				self:SetText(tostring(addonTable.db.IconScale));
-				msg(L["Value must be a number"]);
-			end
-		end);
-		sliderScale.lowtext:SetText(tostring(minValue));
-		sliderScale.hightext:SetText(tostring(maxValue));
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderScale.editbox:SetText(tostring(addonTable.db.IconScale));
-			sliderScale.slider:SetValue(addonTable.db.IconScale);
-		end);
-		sliderScale:Show();
 
 	end
 
@@ -2863,7 +2792,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderScaleTarget = VGUI.CreateSlider();
 		sliderScaleTarget:SetParent(scaleArea);
 		sliderScaleTarget:SetWidth(scaleArea:GetWidth() - 20);
-		sliderScaleTarget:SetPoint("TOPLEFT", 10, -85);
+		sliderScaleTarget:SetPoint("TOPLEFT", 10, -20);
 		sliderScaleTarget.label:SetText(L["options:size-and-position:scale-target"]);
 		sliderScaleTarget.slider:SetValueStep(step);
 		sliderScaleTarget.slider:SetMinMaxValues(minValue, maxValue);

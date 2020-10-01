@@ -180,5 +180,7 @@ L["options:alpha:alpha"] = "Alpha of the icons (except the nameplate of your tar
 L["options:alpha:alpha-target"] = "Alpha of the icons on the nameplate of your target";
 L["options:size-and-position:scale-target"] = "Scale of the icons on the nameplate of your target";
 L["options:category:alpha"] = "Alpha";
+L["options:general:show-cooldown-text"] = "Show aura's remaining time";
+L["options:general:show-stacks"] = "Show aura's stacks"
 
 --@end-debug@

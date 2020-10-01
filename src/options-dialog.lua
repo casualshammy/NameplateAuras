@@ -92,7 +92,7 @@ end
 local function GUICategory_1(index, value)
 
 	local buttonTestMode, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation, checkboxShowCooldownText, checkboxShowStacks;
 
 	-- buttonTestMode
 	do
@@ -229,6 +229,42 @@ local function GUICategory_1(index, value)
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
 
+	end
+
+	-- // checkboxShowCooldownText
+	do
+		checkboxShowCooldownText = VGUI.CreateCheckBox();
+		checkboxShowCooldownText:SetText(L["options:general:show-cooldown-text"]);
+		checkboxShowCooldownText:SetOnClickHandler(function(this)
+			addonTable.db.ShowCooldownText = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+		checkboxShowCooldownText:SetParent(GUIFrame);
+		checkboxShowCooldownText:SetPoint("TOPLEFT", checkboxShowCooldownAnimation, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowCooldownText);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+			checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+			addonTable.UpdateAllNameplates(true);
+		end);
+	end
+
+	-- // checkboxShowStacks
+	do
+		checkboxShowStacks = VGUI.CreateCheckBox();
+		checkboxShowStacks:SetText(L["options:general:show-stacks"]);
+		checkboxShowStacks:SetOnClickHandler(function(this)
+			addonTable.db.ShowStacks = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+		checkboxShowStacks:SetParent(GUIFrame);
+		checkboxShowStacks:SetPoint("TOPLEFT", checkboxShowCooldownText, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+			addonTable.UpdateAllNameplates(true);
+		end);
 	end
 
 end

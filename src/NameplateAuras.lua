@@ -632,6 +632,17 @@ do
 					SetAlphaScaleForNameplate(nameplate);
 				end
 			end
+			if (db.ShowCooldownText) then
+				EventFrame:SetScript("OnUpdate", function(self, elapsed)
+					ElapsedTimer = ElapsedTimer + elapsed;
+					if (ElapsedTimer >= 0.1) then
+						OnUpdate();
+						ElapsedTimer = 0;
+					end
+				end);
+			else
+				EventFrame:SetScript("OnUpdate", nil);
+			end
 		end
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrame and nameplate.UnitFrame ~= nil and nameplate.UnitFrame.unit ~= nil) then

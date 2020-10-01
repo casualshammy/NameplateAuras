@@ -1389,7 +1389,7 @@ local function GUICategory_4(index, value)
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
 	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSize, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
-		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType;
+		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1401,6 +1401,10 @@ local function GUICategory_4(index, value)
 		[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
 		[addonTable.GLOW_TYPE_PIXEL] = L["options:glow-type:GLOW_TYPE_PIXEL"],
 		[addonTable.GLOW_TYPE_ACTIONBUTTON_DIM] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"],
+	};
+
+	local animationTypes = {
+		[addonTable.ICON_ANIMATION_TYPE_ALPHA] = L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"],
 	};
 
 	local function GetButtonNameForSpell(spellInfo)
@@ -1722,6 +1726,21 @@ local function GUICategory_4(index, value)
 				areaGlow:SetHeight(80);
 			end
 			_G[dropdownGlowType:GetName().."Text"]:SetText(glowTypes[spellInfo.glowType]);
+			if (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE) then
+				checkboxAnimation:SetTriState(0);
+				sliderAnimationThreshold:Hide();
+				dropdownAnimationType:Hide();
+				areaAnimation:SetHeight(40);
+			elseif (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS) then
+				checkboxAnimation:SetTriState(2);
+				sliderAnimationThreshold:Hide();
+				areaAnimation:SetHeight(80);
+			elseif (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD) then
+				checkboxAnimation:SetTriState(1);
+				sliderAnimationThreshold.slider:SetValue(spellInfo.animationTimer);
+				areaAnimation:SetHeight(80);
+			end
+			_G[dropdownAnimationType:GetName().."Text"]:SetText(animationTypes[spellInfo.animationType]);
 		end
 
 		local function HideGameTooltip()
@@ -2022,6 +2041,131 @@ local function GUICategory_4(index, value)
 
 	end
 
+	-- // areaAnimation
+	do
+		areaAnimation = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaAnimation:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaAnimation:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaAnimation:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaAnimation:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 0, 0);
+		areaAnimation:SetWidth(340);
+		areaAnimation:SetHeight(80);
+		table_insert(controls, areaAnimation);
+	end
+
+	-- // checkboxAnimation
+	do
+		checkboxAnimation = VGUI.CreateCheckBoxTristate();
+		checkboxAnimation:SetTextEntries({
+			addonTable.ColorizeText(L["options:spells:icon-animation"], 1, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-animation-threshold"], 0, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-animation-always"], 0, 1, 0),
+		});
+		checkboxAnimation:SetOnClickHandler(function(self)
+			if (self:GetTriState() == 0) then
+				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
+				sliderAnimationThreshold:Hide();
+				dropdownAnimationType:Hide();
+				areaAnimation:SetHeight(40);
+			elseif (self:GetTriState() == 1) then
+				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
+				sliderAnimationThreshold:Show();
+				dropdownAnimationType:Show();
+				sliderAnimationThreshold.slider:SetValue(5);
+				areaAnimation:SetHeight(80);
+			else
+				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS;
+				sliderAnimationThreshold:Hide();
+				dropdownAnimationType:Show();
+				areaAnimation:SetHeight(80);
+			end
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxAnimation:SetParent(areaAnimation);
+		checkboxAnimation:SetPoint("TOPLEFT", 10, -10);
+		table_insert(controls, checkboxAnimation);
+	end
+
+	-- // dropdownAnimationType
+	do
+		dropdownAnimationType = CreateFrame("Frame", "NAurasGUI.Spell.dropdownAnimationType", areaAnimation, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownAnimationType, 145);
+		dropdownAnimationType:SetPoint("TOPLEFT", areaAnimation, "TOPLEFT", -5, -40);
+		local info = {};
+		dropdownAnimationType.initialize = function()
+			wipe(info);
+			for animationType, animationTypeLocalized in pairs(animationTypes) do
+				info.text = animationTypeLocalized;
+				info.value = animationType;
+				info.func = function(self)
+					addonTable.db.CustomSpells2[selectedSpell].animationType = self.value;
+					_G[dropdownAnimationType:GetName() .. "Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = animationType == addonTable.db.CustomSpells2[selectedSpell].animationType;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		dropdownAnimationType.text = dropdownAnimationType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownAnimationType.text:SetPoint("LEFT", 20, 20);
+		dropdownAnimationType.text:SetText(L["options:animation-type"]);
+		table_insert(controls, dropdownAnimationType);
+
+	end
+
+	-- // sliderAnimationThreshold
+	do
+
+		local minV, maxV = 1, 30;
+		sliderAnimationThreshold = VGUI.CreateSlider();
+		sliderAnimationThreshold:SetParent(areaAnimation);
+		sliderAnimationThreshold:SetWidth(140);
+		sliderAnimationThreshold.label:ClearAllPoints();
+		sliderAnimationThreshold.label:SetPoint("CENTER", sliderAnimationThreshold, "CENTER", 0, 15);
+		sliderAnimationThreshold.label:SetText();
+		sliderAnimationThreshold:ClearAllPoints();
+		sliderAnimationThreshold:SetPoint("TOPRIGHT", areaAnimation, "TOPRIGHT", -10, 5);
+		sliderAnimationThreshold.slider:ClearAllPoints();
+		sliderAnimationThreshold.slider:SetPoint("LEFT", 3, 0)
+		sliderAnimationThreshold.slider:SetPoint("RIGHT", -3, 0)
+		sliderAnimationThreshold.slider:SetValueStep(1);
+		sliderAnimationThreshold.slider:SetMinMaxValues(minV, maxV);
+		sliderAnimationThreshold.slider:SetScript("OnValueChanged", function(self, value)
+			sliderAnimationThreshold.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.CustomSpells2[selectedSpell].animationTimer = math_ceil(value);
+			addonTable.UpdateAllNameplates(false);
+		end);
+		sliderAnimationThreshold.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderAnimationThreshold.editbox:GetText() ~= "") then
+				local v = tonumber(sliderAnimationThreshold.editbox:GetText());
+				if (v == nil) then
+					sliderAnimationThreshold.editbox:SetText(tostring(addonTable.db.CustomSpells2[selectedSpell].animationTimer));
+					Print(L["Value must be a number"]);
+				else
+					if (v > maxV) then
+						v = maxV;
+					end
+					if (v < minV) then
+						v = minV;
+					end
+					sliderAnimationThreshold.slider:SetValue(v);
+				end
+				sliderAnimationThreshold.editbox:ClearFocus();
+			end
+		end);
+		sliderAnimationThreshold.lowtext:SetText(tostring(minV));
+		sliderAnimationThreshold.hightext:SetText(tostring(maxV));
+		table_insert(controls, sliderAnimationThreshold);
+
+	end
+
 	-- // areaIconSize
 	do
 
@@ -2036,7 +2180,7 @@ local function GUICategory_4(index, value)
 		});
 		areaIconSize:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaIconSize:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaIconSize:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 170, 0);
+		areaIconSize:SetPoint("TOPLEFT", areaAnimation, "BOTTOMLEFT", 170, 0);
 		areaIconSize:SetWidth(170);
 		areaIconSize:SetHeight(70);
 		table_insert(controls, areaIconSize);
@@ -2103,7 +2247,7 @@ local function GUICategory_4(index, value)
 		});
 		areaAuraType:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaAuraType:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaAuraType:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 0, 0);
+		areaAuraType:SetPoint("TOPLEFT", areaAnimation, "BOTTOMLEFT", 0, 0);
 		areaAuraType:SetWidth(170);
 		areaAuraType:SetHeight(70);
 		table_insert(controls, areaAuraType);

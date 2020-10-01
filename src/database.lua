@@ -238,6 +238,15 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.glowType == nil) then
                 spellInfo.glowType = addonTable.GLOW_TYPE_AUTOUSE;
             end
+            if (spellInfo.animationType == nil) then
+                spellInfo.animationType = addonTable.ICON_ANIMATION_TYPE_ALPHA;
+            end
+            if (spellInfo.animationTimer == nil) then
+                spellInfo.animationTimer = 10;
+            end
+            if (spellInfo.animationDisplayMode == nil) then
+                spellInfo.animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
+            end
             -- iconSize my be nil
             -- checkSpellID may be nil
             -- showGlow may be nil

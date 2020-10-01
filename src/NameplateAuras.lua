@@ -334,6 +334,7 @@ do
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local glowInfo = { };
+	local animationInfo = { };
 	local AuraSortFunctions;
 	AuraSortFunctions = {
 		[AURA_SORT_MODE_EXPIRETIME] = function(item1, item2)
@@ -517,6 +518,16 @@ do
 		end
 	end
 
+	local function CreateAlphaAnimation(icon)
+		icon.alphaAnimationGroup = icon:CreateAnimationGroup();
+		icon.alphaAnimationGroup:SetLooping("BOUNCE");
+		local animation = icon.alphaAnimationGroup:CreateAnimation("Alpha");
+		animation:SetFromAlpha(1);
+    	animation:SetToAlpha(0);
+    	animation:SetDuration(0.5);
+		animation:SetOrder(1);
+	end
+
 	local function AllocateIcon(frame)
 		if (not frame.NAurasFrame) then
 			frame.NAurasFrame = CreateFrame("frame", nil, UIParent);
@@ -529,6 +540,7 @@ do
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);
 		AllocateIcon_SetIconPlace(frame, icon);
+		CreateAlphaAnimation(icon);
 		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
@@ -574,6 +586,13 @@ do
 		end
 	end
 
+	local function HideAnimation(icon)
+		if (icon.animationType ~= nil) then
+			icon.alphaAnimationGroup:Stop();
+			icon.animationType = nil;
+		end
+	end
+
 	local function HideCDIcon(icon)
 		icon.border:Hide();
 		icon.borderState = nil;
@@ -587,6 +606,7 @@ do
 		icon.text = nil;
 		icon.cooldownExpires = nil;
 		HideGlow(icon);
+		HideAnimation(icon);
 	end
 
 	local function ShowCDIcon(icon)
@@ -821,6 +841,40 @@ do
 		end,
 	};
 
+	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS, ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 
+		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS, addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
+	local ICON_ANIMATION_TYPE_ALPHA = addonTable.ICON_ANIMATION_TYPE_ALPHA;
+	local animationMethods = {
+		[ICON_ANIMATION_TYPE_ALPHA] = function(icon)
+			if (icon.animationType ~= ICON_ANIMATION_TYPE_ALPHA) then
+				icon.alphaAnimationGroup:Play();
+				icon.animationType = ICON_ANIMATION_TYPE_ALPHA;
+			end
+		end,
+	};
+
+	local function UpdateNameplate_SetAnimation(icon, iconResized, remainingAuraTime, spellInfo)
+		if (animationInfo[icon]) then
+			animationInfo[icon]:Cancel(); -- // cancel delayed animation
+			animationInfo[icon] = nil;
+		end
+		local dbEntry = spellInfo.dbEntry;
+		if (dbEntry and dbEntry.animationDisplayMode ~= ICON_ANIMATION_DISPLAY_MODE_NONE) then
+			if (dbEntry.animationDisplayMode == ICON_ANIMATION_DISPLAY_MODE_ALWAYS) then -- okay, we should show animation and user wants to see it without time limit
+				animationMethods[dbEntry.animationType](icon);
+			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for animation, but aura is permanent
+				HideAnimation(icon);
+			elseif (remainingAuraTime < dbEntry.animationTimer) then -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is less than user's limit
+				animationMethods[dbEntry.animationType](icon);
+			else -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is bigger than user's limit
+				HideAnimation(icon); -- // hide animation
+				animationInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.animationTimer, function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
+			end
+		else
+			HideAnimation(icon); -- // this aura doesn't require animation
+		end
+	end
+
 	local function UpdateNameplate_SetGlow(icon, iconResized, remainingAuraTime, spellInfo)
 		if (glowInfo[icon]) then
 			glowInfo[icon]:Cancel(); -- // cancel delayed glow
@@ -878,6 +932,7 @@ do
 					maxIconWidth = math_max(maxIconWidth, normalSize);
 					-- // glow
 					UpdateNameplate_SetGlow(icon, iconResized, last, spellInfo);
+					UpdateNameplate_SetAnimation(icon, iconResized, last, spellInfo);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end

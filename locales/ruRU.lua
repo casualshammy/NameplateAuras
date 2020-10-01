@@ -183,5 +183,7 @@ L["options:alpha:alpha-target"] = "Прозрачность иконок на п
 L["options:size-and-position:scale-target"] = "Масштаб иконок на полоске ХП вашей цели";
 L["options:category:alpha"] = "Прозрачность";
 L["options:spells:enable-all-spells"] = "Включить все ауры"
+L["options:general:show-cooldown-text"] = "Показывать оставшееся время ауры";
+L["options:general:show-stacks"] = "Показывать стаки ауры"
 
 --@end-debug@

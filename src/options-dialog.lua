@@ -1405,6 +1405,7 @@ local function GUICategory_4(index, value)
 
 	local animationTypes = {
 		[addonTable.ICON_ANIMATION_TYPE_ALPHA] = L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"],
+		[addonTable.ICON_ANIMATION_TYPE_SCALE] = L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"],
 	};
 
 	local function GetButtonNameForSpell(spellInfo)
@@ -2115,7 +2116,7 @@ local function GUICategory_4(index, value)
 		end
 		dropdownAnimationType.text = dropdownAnimationType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownAnimationType.text:SetPoint("LEFT", 20, 20);
-		dropdownAnimationType.text:SetText(L["options:animation-type"]);
+		dropdownAnimationType.text:SetText(L["options:spells:animation-type"]);
 		table_insert(controls, dropdownAnimationType);
 
 	end

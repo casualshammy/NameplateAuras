@@ -183,4 +183,13 @@ L["options:category:alpha"] = "Alpha";
 L["options:general:show-cooldown-text"] = "Show aura's remaining time";
 L["options:general:show-stacks"] = "Show aura's stacks"
 
+
+L["options:spells:icon-animation"] = "Icon animation";
+L["options:spells:icon-animation-threshold"] = "Show animation if aura's remaining time is less than";
+L["options:spells:icon-animation-always"] = "Show animation all the time";
+L["options:spells:animation-type"] = "Animation type";
+L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Alpha";
+L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"] = "Scale";
+
+
 --@end-debug@

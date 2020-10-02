@@ -186,4 +186,11 @@ L["options:spells:enable-all-spells"] = "Включить все ауры"
 L["options:general:show-cooldown-text"] = "Показывать оставшееся время ауры";
 L["options:general:show-stacks"] = "Показывать стаки ауры"
 
+L["options:spells:icon-animation"] = "Анимация иконки";
+L["options:spells:icon-animation-threshold"] = "Показывать анимацию если таймер меньше чем";
+L["options:spells:icon-animation-always"] = "Показывать анимацию всё время";
+L["options:spells:animation-type"] = "Тип анимации";
+L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Прозрачность";
+L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"] = "Масштаб";
+
 --@end-debug@

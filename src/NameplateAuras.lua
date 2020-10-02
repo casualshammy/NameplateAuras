@@ -17,7 +17,7 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
-	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, OnUpdate;
+	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, OnUpdate, SetAlphaScaleForNameplate;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
@@ -53,22 +53,6 @@ do
 	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
 		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
 
-end
-
-local function SetAlphaScaleForNameplate(nameplate)
-	if (nameplate ~= nil and nameplate.NAurasFrame ~= nil) then
-		local unitID = NameplatesVisible[nameplate];
-		if (unitID ~= nil) then
-			local unitGUID = UnitGUID(unitID);
-			if (unitGUID == UnitGUID("target")) then
-				nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
-				nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
-			else
-				nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
-				nameplate.NAurasFrame:SetScale(1.0);
-			end
-		end
-	end
 end
 
 --------------------------------------------------------------------------------------------------
@@ -423,6 +407,22 @@ do
 		}, 
 	};
 
+	function SetAlphaScaleForNameplate(nameplate)
+		if (nameplate ~= nil and nameplate.NAurasFrame ~= nil) then
+			local unitID = NameplatesVisible[nameplate];
+			if (unitID ~= nil) then
+				local unitGUID = UnitGUID(unitID);
+				if (unitGUID == UnitGUID("target")) then
+					nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
+					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
+				else
+					nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
+					nameplate.NAurasFrame:SetScale(1.0);
+				end
+			end
+		end
+	end
+
 	local function AllocateIcon_SetIconPlace(frame, icon, iconIndex)
 		icon:ClearAllPoints();
 		local index = iconIndex == nil and frame.NAurasIconsCount or (iconIndex-1)
@@ -518,14 +518,43 @@ do
 		end
 	end
 
-	local function CreateAlphaAnimation(icon)
+	local function CreateIconAnimation(icon)
 		icon.alphaAnimationGroup = icon:CreateAnimationGroup();
 		icon.alphaAnimationGroup:SetLooping("BOUNCE");
-		local animation = icon.alphaAnimationGroup:CreateAnimation("Alpha");
-		animation:SetFromAlpha(1);
-    	animation:SetToAlpha(0);
-    	animation:SetDuration(0.5);
-		animation:SetOrder(1);
+		local animation0 = icon.alphaAnimationGroup:CreateAnimation("Alpha");
+		animation0:SetFromAlpha(1);
+    	animation0:SetToAlpha(0);
+    	animation0:SetDuration(0.5);
+		animation0:SetOrder(1);
+
+		icon.scaleAnimationGroup = CreateFrame("Frame");
+		icon.scaleAnimationGroup:Hide();
+		icon.scaleAnimationGroup.counter = 0;
+		icon.scaleAnimationGroup.totalTime = 0;
+		icon.scaleAnimationGroup:SetScript("OnUpdate", function(self, elapsed)
+			self.counter = self.counter + elapsed;
+			self.totalTime = self.totalTime + elapsed;
+			if (self.counter > 1/30) then
+				if (self.totalTime < 0.5) then
+					icon:SetScale(1 + self.totalTime);
+				elseif (self.totalTime < 1) then
+					icon:SetScale(2 - self.totalTime);
+				else
+					icon:SetScale(1);
+					self.totalTime = 0;
+				end
+				self.counter = 0;
+			end
+		end);
+		icon.scaleAnimationGroup.Play = function(self)
+			icon:SetScale(1);
+			self:Show();
+		end
+		icon.scaleAnimationGroup.Stop = function(self)
+			self:Hide();
+			icon:SetScale(1);
+		end
+		addonTable.Print("Animation initialized");
 	end
 
 	local function AllocateIcon(frame)
@@ -540,7 +569,6 @@ do
 		local icon = CreateFrame("Frame", nil, frame.NAurasFrame);
 		AllocateIcon_SetAuraTooltip(icon);
 		AllocateIcon_SetIconPlace(frame, icon);
-		CreateAlphaAnimation(icon);
 		icon:SetSize(db.DefaultIconSize, db.DefaultIconSize);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
@@ -589,6 +617,7 @@ do
 	local function HideAnimation(icon)
 		if (icon.animationType ~= nil) then
 			icon.alphaAnimationGroup:Stop();
+			icon.scaleAnimationGroup:Stop();
 			icon.animationType = nil;
 		end
 	end
@@ -843,12 +872,26 @@ do
 
 	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS, ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 
 		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS, addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
-	local ICON_ANIMATION_TYPE_ALPHA = addonTable.ICON_ANIMATION_TYPE_ALPHA;
+	local ICON_ANIMATION_TYPE_ALPHA, ICON_ANIMATION_TYPE_SCALE = addonTable.ICON_ANIMATION_TYPE_ALPHA, addonTable.ICON_ANIMATION_TYPE_SCALE;
 	local animationMethods = {
 		[ICON_ANIMATION_TYPE_ALPHA] = function(icon)
 			if (icon.animationType ~= ICON_ANIMATION_TYPE_ALPHA) then
+				if (not icon.animationInitialized) then
+					CreateIconAnimation(icon);
+					icon.animationInitialized = true;
+				end
 				icon.alphaAnimationGroup:Play();
 				icon.animationType = ICON_ANIMATION_TYPE_ALPHA;
+			end
+		end,
+		[ICON_ANIMATION_TYPE_SCALE] = function(icon)
+			if (icon.animationType ~= ICON_ANIMATION_TYPE_SCALE) then
+				if (not icon.animationInitialized) then
+					CreateIconAnimation(icon);
+					icon.animationInitialized = true;
+				end
+				icon.scaleAnimationGroup:Play();
+				icon.animationType = ICON_ANIMATION_TYPE_SCALE;
 			end
 		end,
 	};
@@ -859,7 +902,7 @@ do
 			animationInfo[icon] = nil;
 		end
 		local dbEntry = spellInfo.dbEntry;
-		if (dbEntry and dbEntry.animationDisplayMode ~= ICON_ANIMATION_DISPLAY_MODE_NONE) then
+		if (dbEntry and dbEntry.animationDisplayMode ~= nil and dbEntry.animationDisplayMode ~= ICON_ANIMATION_DISPLAY_MODE_NONE) then
 			if (dbEntry.animationDisplayMode == ICON_ANIMATION_DISPLAY_MODE_ALWAYS) then -- okay, we should show animation and user wants to see it without time limit
 				animationMethods[dbEntry.animationType](icon);
 			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for animation, but aura is permanent

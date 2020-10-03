@@ -635,19 +635,21 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
 			ColorPickerFrame:Hide();
 			local function callback(restore)
-				local r, g, b;
+				local r, g, b, a;
 				if (restore) then
-					r, g, b = unpack(restore);
+					r, g, b, a = unpack(restore);
 				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
+					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
 				end
-				addonTable.db.TimerTextSoonToExpireColor = {r, g, b};
+				addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
 				colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor));
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.TimerTextSoonToExpireColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.TimerTextSoonToExpireColor) };
+			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextSoonToExpireColor);
+			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
+			ColorPickerFrame.hasOpacity = true;
+			ColorPickerFrame.opacity = colorA;
+			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
 			ColorPickerFrame:Show();
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextFiveSeconds);
@@ -666,19 +668,21 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextMinute:SetScript("OnClick", function()
 			ColorPickerFrame:Hide();
 			local function callback(restore)
-				local r, g, b;
+				local r, g, b, a;
 				if (restore) then
-					r, g, b = unpack(restore);
+					r, g, b, a = unpack(restore);
 				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
+					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
 				end
-				addonTable.db.TimerTextUnderMinuteColor = {r, g, b};
+				addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
 				colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor));
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.TimerTextUnderMinuteColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.TimerTextUnderMinuteColor) };
+			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextUnderMinuteColor);
+			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
+			ColorPickerFrame.hasOpacity = true;
+			ColorPickerFrame.opacity = colorA;
+			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
 			ColorPickerFrame:Show();
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextMinute);
@@ -697,19 +701,21 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextMore:SetScript("OnClick", function()
 			ColorPickerFrame:Hide();
 			local function callback(restore)
-				local r, g, b;
+				local r, g, b, a;
 				if (restore) then
-					r, g, b = unpack(restore);
+					r, g, b, a = unpack(restore);
 				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
+					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
 				end
-				addonTable.db.TimerTextLongerColor = {r, g, b};
+				addonTable.db.TimerTextLongerColor = {r, g, b, a};
 				colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor));
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.TimerTextLongerColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.TimerTextLongerColor) };
+			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextLongerColor);
+			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
+			ColorPickerFrame.hasOpacity = true;
+			ColorPickerFrame.opacity = colorA;
+			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
 			ColorPickerFrame:Show();
 		end);
 		table_insert(GUIFrame.Categories[index], colorPickerTimerTextMore);

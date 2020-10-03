@@ -211,6 +211,18 @@ local migrations = {
         local db = addonTable.db;
         db.IconScale = nil;
     end,
+    [12] = function()
+        local db = addonTable.db;
+        if (#db.TimerTextSoonToExpireColor == 3) then
+            db.TimerTextSoonToExpireColor[#db.TimerTextSoonToExpireColor+1] = 1;
+        end
+        if (#db.TimerTextUnderMinuteColor == 3) then
+            db.TimerTextUnderMinuteColor[#db.TimerTextUnderMinuteColor+1] = 1;
+        end
+        if (#db.TimerTextLongerColor == 3) then
+            db.TimerTextLongerColor[#db.TimerTextLongerColor+1] = 1;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

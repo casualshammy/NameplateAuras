@@ -187,6 +187,8 @@ do
 				IconAlpha = 1.0,
 				IconAlphaTarget = 1.0,
 				IconScaleTarget = 1.0,
+				TargetStrata = "HIGH",
+				NonTargetStrata = "MEDIUM",
 			},
 		};
 
@@ -415,9 +417,11 @@ do
 				if (unitGUID == UnitGUID("target")) then
 					nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
 					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
+					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
 				else
 					nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
 					nameplate.NAurasFrame:SetScale(1.0);
+					nameplate.NAurasFrame:SetFrameStrata(db.NonTargetStrata);
 				end
 			end
 		end
@@ -518,6 +522,7 @@ do
 		end
 	end
 
+	-- this method is called only if icon really need animation functionality
 	local function CreateIconAnimation(icon)
 		icon.alphaAnimationGroup = icon:CreateAnimationGroup();
 		icon.alphaAnimationGroup:SetLooping("BOUNCE");
@@ -554,7 +559,6 @@ do
 			self:Hide();
 			icon:SetScale(1);
 		end
-		addonTable.Print("Animation initialized");
 	end
 
 	local function AllocateIcon(frame)
@@ -573,9 +577,9 @@ do
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
 		icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
-		icon.border = icon:CreateTexture(nil, "OVERLAY");
-		icon.stacks = icon:CreateFontString(nil, "OVERLAY");
-		icon.cooldownText = icon:CreateFontString(nil, "OVERLAY");
+		icon.border = icon:CreateTexture(nil, "ARTWORK");
+		icon.stacks = icon:CreateFontString(nil, "ARTWORK");
+		icon.cooldownText = icon:CreateFontString(nil, "ARTWORK");
 		icon.cooldownFrame = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate");
 		icon.cooldownFrame:SetAllPoints(icon);
 		icon.cooldownFrame:SetReverse(true);

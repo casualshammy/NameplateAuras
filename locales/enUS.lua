@@ -190,6 +190,8 @@ L["options:spells:icon-animation-always"] = "Show animation all the time";
 L["options:spells:animation-type"] = "Animation type";
 L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Alpha";
 L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"] = "Scale";
+L["options:size-and-position:target-strata"] = "Layer of icons on target nameplate"
+L["options:size-and-position:non-target-strata"] = "Layer of icons on non-target nameplates"
 
 
 --@end-debug@

@@ -92,7 +92,7 @@ end
 local function GUICategory_1(index, value)
 
 	local buttonTestMode, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation, checkboxShowCooldownText, checkboxShowStacks;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
 
 	-- buttonTestMode
 	do
@@ -231,42 +231,6 @@ local function GUICategory_1(index, value)
 
 	end
 
-	-- // checkboxShowCooldownText
-	do
-		checkboxShowCooldownText = VGUI.CreateCheckBox();
-		checkboxShowCooldownText:SetText(L["options:general:show-cooldown-text"]);
-		checkboxShowCooldownText:SetOnClickHandler(function(this)
-			addonTable.db.ShowCooldownText = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
-		checkboxShowCooldownText:SetParent(GUIFrame);
-		checkboxShowCooldownText:SetPoint("TOPLEFT", checkboxShowCooldownAnimation, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkboxShowCooldownText);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
-			checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
-			addonTable.UpdateAllNameplates(true);
-		end);
-	end
-
-	-- // checkboxShowStacks
-	do
-		checkboxShowStacks = VGUI.CreateCheckBox();
-		checkboxShowStacks:SetText(L["options:general:show-stacks"]);
-		checkboxShowStacks:SetOnClickHandler(function(this)
-			addonTable.db.ShowStacks = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
-		checkboxShowStacks:SetParent(GUIFrame);
-		checkboxShowStacks:SetPoint("TOPLEFT", checkboxShowCooldownText, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
-			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
-			addonTable.UpdateAllNameplates(true);
-		end);
-	end
-
 end
 
 local function GUICategory_2(index, value)
@@ -297,7 +261,25 @@ local function GUICategory_Fonts(index, value)
 		[textAnchors[8]] = L["anchor-point:left"],
 		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
-	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea;
+	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea, checkboxShowCooldownText;
+
+	-- // checkboxShowCooldownText
+	do
+		checkboxShowCooldownText = VGUI.CreateCheckBox();
+		checkboxShowCooldownText:SetText(L["options:general:show-cooldown-text"]);
+		checkboxShowCooldownText:SetOnClickHandler(function(this)
+			addonTable.db.ShowCooldownText = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+		checkboxShowCooldownText:SetParent(GUIFrame);
+		checkboxShowCooldownText:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
+		table_insert(GUIFrame.Categories[index], checkboxShowCooldownText);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+			checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+			addonTable.UpdateAllNameplates(true);
+		end);
+	end
 
 	-- // dropdownFont
 	do
@@ -323,8 +305,8 @@ local function GUICategory_Fonts(index, value)
 
 		button:SetWidth(170);
 		button:SetHeight(24);
-		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
-		button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
+		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -48);
+		button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -48);
 		button:SetScript("OnClick", function(self, ...)
 			if (dropdownMenuFont:IsVisible()) then
 				dropdownMenuFont:Hide();
@@ -347,7 +329,7 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontScale = VGUI.CreateSlider();
 		sliderTimerFontScale:SetParent(GUIFrame);
 		sliderTimerFontScale:SetWidth(200);
-		sliderTimerFontScale:SetPoint("TOPLEFT", 300, -68);
+		sliderTimerFontScale:SetPoint("TOPLEFT", 300, -88);
 		sliderTimerFontScale.label:SetText(L["Font scale"]);
 		sliderTimerFontScale.slider:SetValueStep(0.1);
 		sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -390,7 +372,7 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontSize = VGUI.CreateSlider();
 		sliderTimerFontSize:SetParent(GUIFrame);
 		sliderTimerFontSize:SetWidth(200);
-		sliderTimerFontSize:SetPoint("TOPLEFT", 300, -68);
+		sliderTimerFontSize:SetPoint("TOPLEFT", 300, -88);
 		sliderTimerFontSize.label:SetText(L["Font size"]);
 		sliderTimerFontSize.slider:SetValueStep(1);
 		sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
@@ -443,7 +425,7 @@ local function GUICategory_Fonts(index, value)
 		end);
 		checkBoxUseRelativeFontSize:SetChecked(addonTable.db.TimerTextUseRelativeScale);
 		checkBoxUseRelativeFontSize:SetParent(GUIFrame);
-		checkBoxUseRelativeFontSize:SetPoint("TOPLEFT", 160, -80);
+		checkBoxUseRelativeFontSize:SetPoint("TOPLEFT", 160, -100);
 		table_insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxUseRelativeFontSize:SetChecked(addonTable.db.TimerTextUseRelativeScale);
@@ -469,7 +451,7 @@ local function GUICategory_Fonts(index, value)
 
 		local dropdownTimerTextAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerTextAnchor, 145);
-		dropdownTimerTextAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -125);
+		dropdownTimerTextAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -145);
 		local info = {};
 		dropdownTimerTextAnchor.initialize = function()
 			wipe(info);
@@ -499,7 +481,7 @@ local function GUICategory_Fonts(index, value)
 
 		local dropdownTimerTextAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownTimerTextAnchorIcon", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTimerTextAnchorIcon, 145);
-		dropdownTimerTextAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -125);
+		dropdownTimerTextAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -145);
 		local info = {};
 		dropdownTimerTextAnchorIcon.initialize = function()
 			wipe(info);
@@ -531,7 +513,7 @@ local function GUICategory_Fonts(index, value)
 		local sliderTimerTextXOffset = VGUI.CreateSlider();
 		sliderTimerTextXOffset:SetParent(GUIFrame);
 		sliderTimerTextXOffset:SetWidth(165);
-		sliderTimerTextXOffset:SetPoint("TOPLEFT", 160, -170);
+		sliderTimerTextXOffset:SetPoint("TOPLEFT", 160, -190);
 		sliderTimerTextXOffset.label:SetText(L["X offset"]);
 		sliderTimerTextXOffset.slider:SetValueStep(1);
 		sliderTimerTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -575,7 +557,7 @@ local function GUICategory_Fonts(index, value)
 		local sliderTimerTextYOffset = VGUI.CreateSlider();
 		sliderTimerTextYOffset:SetParent(GUIFrame);
 		sliderTimerTextYOffset:SetWidth(165);
-		sliderTimerTextYOffset:SetPoint("TOPLEFT", 335, -170);
+		sliderTimerTextYOffset:SetPoint("TOPLEFT", 335, -190);
 		sliderTimerTextYOffset.label:SetText(L["Y offset"]);
 		sliderTimerTextYOffset.slider:SetValueStep(1);
 		sliderTimerTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -626,7 +608,7 @@ local function GUICategory_Fonts(index, value)
 		});
 		timerTextColorArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		timerTextColorArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		timerTextColorArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -210);
+		timerTextColorArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -230);
 		timerTextColorArea:SetWidth(360);
 		timerTextColorArea:SetHeight(71);
 		table_insert(GUIFrame.Categories[index], timerTextColorArea);
@@ -749,7 +731,7 @@ local function GUICategory_Fonts(index, value)
 		});
 		tenthsOfSecondsArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		tenthsOfSecondsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		tenthsOfSecondsArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -285);
+		tenthsOfSecondsArea:SetPoint("TOPLEFT", GUIFrame.outline, "TOPRIGHT", 10, -305);
 		tenthsOfSecondsArea:SetWidth(360);
 		tenthsOfSecondsArea:SetHeight(71);
 		table_insert(GUIFrame.Categories[index], tenthsOfSecondsArea);
@@ -819,6 +801,25 @@ local function GUICategory_AuraStackFont(index, value)
 		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 
+	-- // checkboxShowStacks
+	do
+		local checkboxShowStacks = VGUI.CreateCheckBox();
+		checkboxShowStacks:SetText(L["options:general:show-stacks"]);
+		checkboxShowStacks:SetOnClickHandler(function(this)
+			addonTable.db.ShowStacks = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+		checkboxShowStacks:SetParent(GUIFrame);
+		checkboxShowStacks:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
+		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+			addonTable.UpdateAllNameplates(true);
+		end);
+	end
+
+
 	-- // dropdownStacksFont
 	do
 
@@ -843,8 +844,8 @@ local function GUICategory_AuraStackFont(index, value)
 
 		button:SetWidth(170);
 		button:SetHeight(24);
-		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
-		button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
+		button:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -48);
+		button:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -48);
 		button:SetScript("OnClick", function(self, ...)
 			if (dropdownMenuFont:IsVisible()) then
 				dropdownMenuFont:Hide();
@@ -867,7 +868,7 @@ local function GUICategory_AuraStackFont(index, value)
 		local sliderStacksFontScale = VGUI.CreateSlider();
 		sliderStacksFontScale:SetParent(GUIFrame);
 		sliderStacksFontScale:SetWidth(340);
-		sliderStacksFontScale:SetPoint("TOPLEFT", 160, -68);
+		sliderStacksFontScale:SetPoint("TOPLEFT", 160, -88);
 		sliderStacksFontScale.label:SetText(L["Font scale"]);
 		sliderStacksFontScale.slider:SetValueStep(0.1);
 		sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
@@ -909,7 +910,7 @@ local function GUICategory_AuraStackFont(index, value)
 
 		local dropdownStacksAnchor = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownStacksAnchor, 145);
-		dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -125);
+		dropdownStacksAnchor:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -145);
 		local info = {};
 		dropdownStacksAnchor.initialize = function()
 			wipe(info);
@@ -939,7 +940,7 @@ local function GUICategory_AuraStackFont(index, value)
 
 		local dropdownStacksAnchorIcon = CreateFrame("Frame", "NAuras.GUI.Fonts.DropdownStacksAnchorIcon", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownStacksAnchorIcon, 145);
-		dropdownStacksAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -125);
+		dropdownStacksAnchorIcon:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 315, -145);
 		local info = {};
 		dropdownStacksAnchorIcon.initialize = function()
 			wipe(info);
@@ -971,7 +972,7 @@ local function GUICategory_AuraStackFont(index, value)
 		local sliderStacksTextXOffset = VGUI.CreateSlider();
 		sliderStacksTextXOffset:SetParent(GUIFrame);
 		sliderStacksTextXOffset:SetWidth(165);
-		sliderStacksTextXOffset:SetPoint("TOPLEFT", 160, -170);
+		sliderStacksTextXOffset:SetPoint("TOPLEFT", 160, -190);
 		sliderStacksTextXOffset.label:SetText(L["X offset"]);
 		sliderStacksTextXOffset.slider:SetValueStep(1);
 		sliderStacksTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -1015,7 +1016,7 @@ local function GUICategory_AuraStackFont(index, value)
 		local sliderStacksTextYOffset = VGUI.CreateSlider();
 		sliderStacksTextYOffset:SetParent(GUIFrame);
 		sliderStacksTextYOffset:SetWidth(165);
-		sliderStacksTextYOffset:SetPoint("TOPLEFT", 335, -170);
+		sliderStacksTextYOffset:SetPoint("TOPLEFT", 335, -190);
 		sliderStacksTextYOffset.label:SetText(L["Y offset"]);
 		sliderStacksTextYOffset.slider:SetValueStep(1);
 		sliderStacksTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
@@ -1057,7 +1058,7 @@ local function GUICategory_AuraStackFont(index, value)
 
 		local colorPickerStacksTextColor = VGUI.CreateColorPicker();
 		colorPickerStacksTextColor:SetParent(GUIFrame);
-		colorPickerStacksTextColor:SetPoint("TOPLEFT", 165, -240);
+		colorPickerStacksTextColor:SetPoint("TOPLEFT", 165, -260);
 		colorPickerStacksTextColor:SetText(L["Text color"]);
 		colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(addonTable.db.StacksTextColor));
 		colorPickerStacksTextColor:SetScript("OnClick", function()
@@ -2906,6 +2907,74 @@ local function GUICategory_SizeAndPosition(index, value)
 		
 	end
 
+	local dropdownTargetStrata, dropdownNonTargetStrata;
+	local frameStratas = {
+		"BACKGROUND",
+		"LOW",
+		"MEDIUM",
+		"HIGH",
+		"DIALOG",
+		"FULLSCREEN",
+		"FULLSCREEN_DIALOG",
+		"TOOLTIP",
+	};
+
+	-- // dropdownTargetStrata
+	do
+		dropdownTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownTargetStrata, 300);
+		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -230);
+		local info = {};
+		dropdownTargetStrata.initialize = function()
+			wipe(info);
+			for _, strata in pairs(frameStratas) do
+				info.text = strata;
+				info.value = strata;
+				info.func = function(self)
+					addonTable.db.TargetStrata = self.value;
+					_G[dropdownTargetStrata:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.TargetStrata == info.value);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.TargetStrata);
+		dropdownTargetStrata.text = dropdownTargetStrata:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownTargetStrata.text:SetPoint("LEFT", 20, 20);
+		dropdownTargetStrata.text:SetText(L["options:size-and-position:target-strata"]);
+		table.insert(GUIFrame.Categories[index], dropdownTargetStrata);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.TargetStrata); end);
+	end
+
+	-- // dropdownNonTargetStrata
+	do
+		dropdownNonTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownNonTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownNonTargetStrata, 300);
+		dropdownNonTargetStrata:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -270);
+		local info = {};
+		dropdownNonTargetStrata.initialize = function()
+			wipe(info);
+			for _, strata in pairs(frameStratas) do
+				info.text = strata;
+				info.value = strata;
+				info.func = function(self)
+					addonTable.db.NonTargetStrata = self.value;
+					_G[dropdownNonTargetStrata:GetName().."Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+				end
+				info.checked = (addonTable.db.NonTargetStrata == info.value);
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.NonTargetStrata);
+		dropdownNonTargetStrata.text = dropdownNonTargetStrata:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownNonTargetStrata.text:SetPoint("LEFT", 20, 20);
+		dropdownNonTargetStrata.text:SetText(L["options:size-and-position:non-target-strata"]);
+		table.insert(GUIFrame.Categories[index], dropdownNonTargetStrata);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.NonTargetStrata); end);
+	end
+
 	-- // dropdownSortMode
 	do
 		local SortModesLocalization = {
@@ -2918,7 +2987,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 		local dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -240);
+		dropdownSortMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -320);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);
@@ -2959,7 +3028,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		});
 		scaleArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		scaleArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		scaleArea:SetPoint("TOPLEFT", 150, -280);
+		scaleArea:SetPoint("TOPLEFT", 150, -360);
 		scaleArea:SetWidth(360);
 		scaleArea:SetHeight(70);
 		table_insert(GUIFrame.Categories[index], scaleArea);
@@ -3015,6 +3084,8 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderScaleTarget:Show();
 
 	end
+
+	
 
 end
 

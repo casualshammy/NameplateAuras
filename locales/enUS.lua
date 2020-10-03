@@ -182,8 +182,6 @@ L["options:size-and-position:scale-target"] = "Scale of the icons on the namepla
 L["options:category:alpha"] = "Alpha";
 L["options:general:show-cooldown-text"] = "Show aura's remaining time";
 L["options:general:show-stacks"] = "Show aura's stacks"
-
-
 L["options:spells:icon-animation"] = "Icon animation";
 L["options:spells:icon-animation-threshold"] = "Show animation if aura's remaining time is less than";
 L["options:spells:icon-animation-always"] = "Show animation all the time";

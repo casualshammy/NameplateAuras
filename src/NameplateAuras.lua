@@ -189,6 +189,8 @@ do
 				IconScaleTarget = 1.0,
 				TargetStrata = "HIGH",
 				NonTargetStrata = "MEDIUM",
+				BorderType = addonTable.BORDER_TYPE_BUILTIN,
+				BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
 			},
 		};
 
@@ -595,7 +597,11 @@ do
 		else
 			icon.cooldownText:SetFont(SML:Fetch("font", db.Font), db.TimerTextSize, "OUTLINE");
 		end
-		icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
+		if (db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
+			icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
+		elseif (db.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
+			icon.border:SetTexture(db.BorderFilePath);
+		end
 		icon.border:SetVertexColor(1, 0.35, 0);
 		icon.border:SetAllPoints(icon);
 		icon.border:Hide();
@@ -680,6 +686,11 @@ do
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 						icon.stacks:ClearAllPoints();
 						icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
+						if (db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
+							icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
+						elseif (db.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
+							icon.border:SetTexture(db.BorderFilePath);
+						end
 						HideCDIcon(icon);
 					end
 					SetAlphaScaleForNameplate(nameplate);

@@ -134,7 +134,7 @@ L["Value must be a number"] = "Значение должно быть число
 L["X offset"] = "Смещение по X"
 L["Y offset"] = "Смещение по Y"
 L["Yes"] = "Да"
-L["options:general:test-mode"] = "Тестовый режим вкл/выкл";
+L["options:general:test-mode"] = "Тестовый режим";
 L["options:category:size-and-position"] = "Размер и место";
 L["options:apps:dispellable-spells"] = "Показывать ауры, которые можно развеять/украсть";
 L["options:apps:dispellable-spells:tooltip"] = [=[Показывать ауры, которые можно развеять/украсть, на неймплейтах врагов

@@ -132,7 +132,7 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["Yes"] = "Yes"
-L["options:general:test-mode"] = "Test mode on/off";
+L["options:general:test-mode"] = "Test mode";
 L["options:category:size-and-position"] = "Size & position";
 L["options:apps:dispellable-spells"] = "Show dispellable/stealable auras on enemy nameplates";
 L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies
@@ -190,6 +190,9 @@ L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Alpha";
 L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"] = "Scale";
 L["options:size-and-position:target-strata"] = "Layer of icons on target nameplate"
 L["options:size-and-position:non-target-strata"] = "Layer of icons on non-target nameplates"
-
+L["options:borders:border-file-path"] = "Border texture file path (starts from 'Interface\\')";
+L["options:borders:border-type"] = "Border type";
+L["options:borders:BORDER_TYPE_BUILTIN"] = "Built-in";
+L["options:borders:BORDER_TYPE_CUSTOM"] = "Custom";
 
 --@end-debug@

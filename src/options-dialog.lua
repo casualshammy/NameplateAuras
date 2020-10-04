@@ -91,22 +91,8 @@ end
 
 local function GUICategory_1(index, value)
 
-	local buttonTestMode, checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
+	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
-
-	-- buttonTestMode
-	do
-		buttonTestMode = VGUI.CreateButton();
-		buttonTestMode:SetParent(GUIFrame);
-		buttonTestMode:SetText(L["options:general:test-mode"]);
-		buttonTestMode:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -28);
-		buttonTestMode:SetPoint("TOPRIGHT", GUIFrame, "TOPRIGHT", -30, -28);
-		buttonTestMode:SetHeight(30);
-		buttonTestMode:SetScript("OnClick", function(self, ...)
-			addonTable.SwitchTestMode();
-		end);
-		table_insert(GUIFrame.Categories[index], buttonTestMode);
-	end
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -118,7 +104,7 @@ local function GUICategory_1(index, value)
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
-		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", buttonTestMode, "BOTTOMLEFT", 0, -10);
+		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", GUIFrame, 160, -20);
 		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
@@ -825,7 +811,6 @@ local function GUICategory_AuraStackFont(index, value)
 		end);
 	end
 
-
 	-- // dropdownStacksFont
 	do
 
@@ -1101,16 +1086,92 @@ end
 
 local function GUICategory_Borders(index, value)
 
-	local debuffArea;
+	local debuffArea, dropdownBorderType, editBoxBorderFilePath, sliderBorderThickness;
+	local SetControls;
+
+	-- // dropdownBorderType
+	do
+		local borderTypes = { 
+			[addonTable.BORDER_TYPE_BUILTIN] = L["options:borders:BORDER_TYPE_BUILTIN"],
+			[addonTable.BORDER_TYPE_CUSTOM] = L["options:borders:BORDER_TYPE_CUSTOM"],
+		};
+		dropdownBorderType = CreateFrame("Frame", "NAuras.GUI.Border.dropdownBorderType", GUIFrame, "UIDropDownMenuTemplate");
+		UIDropDownMenu_SetWidth(dropdownBorderType, 300);
+		dropdownBorderType:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 146, -30);
+		local info = {};
+		dropdownBorderType.initialize = function()
+			wipe(info);
+			for borderType, borderTypeL in pairs(borderTypes) do
+				info.text = borderTypeL;
+				info.value = borderType;
+				info.func = function(self)
+					addonTable.db.BorderType = self.value;
+					_G[dropdownBorderType:GetName() .. "Text"]:SetText(self:GetText());
+					addonTable.UpdateAllNameplates(true);
+					SetControls();
+				end
+				info.checked = borderType == addonTable.db.BorderType;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+		_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
+		dropdownBorderType.text = dropdownBorderType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownBorderType.text:SetPoint("LEFT", 20, 20);
+		dropdownBorderType.text:SetText(L["options:borders:border-type"]);
+
+		function SetControls()
+			if (addonTable.db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
+				editBoxBorderFilePath:Hide();
+				sliderBorderThickness:Show();
+			elseif (addonTable.db.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
+				editBoxBorderFilePath:Show();
+				sliderBorderThickness:Hide();
+			end
+		end
+
+		table_insert(GUIFrame.Categories[index], dropdownBorderType);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+			_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
+			addonTable.UpdateAllNameplates(true);
+			SetControls();
+		end);
+		
+	end
+
+	-- // editBoxBorderFilePath
+	do
+		editBoxBorderFilePath = CreateFrame("EditBox", nil, dropdownBorderType, "InputBoxTemplate");
+		editBoxBorderFilePath:SetAutoFocus(false);
+		editBoxBorderFilePath:SetFontObject(GameFontHighlightSmall);
+		editBoxBorderFilePath:SetPoint("TOPLEFT", dropdownBorderType, "BOTTOMLEFT", 20, -20);
+		editBoxBorderFilePath:SetPoint("TOPRIGHT", dropdownBorderType, "BOTTOMRIGHT", -20, -20);
+		editBoxBorderFilePath:SetHeight(20);
+		editBoxBorderFilePath:SetJustifyH("LEFT");
+		editBoxBorderFilePath:EnableMouse(true);
+		editBoxBorderFilePath:SetScript("OnEscapePressed", function() editBoxBorderFilePath:ClearFocus(); end);
+		editBoxBorderFilePath:SetScript("OnEnterPressed", function() editBoxBorderFilePath:ClearFocus(); end);
+		editBoxBorderFilePath:SetScript("OnTextChanged", function(self)
+			local inputText = self:GetText();
+			addonTable.db.BorderFilePath = inputText;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		local text = editBoxBorderFilePath:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("LEFT", 0, 15);
+		text:SetText(L["options:borders:border-file-path"]);
+		editBoxBorderFilePath:SetText(addonTable.db.BorderFilePath or "");
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			editBoxBorderFilePath:SetText(addonTable.db.BorderFilePath or "");
+		end);
+	end
 
 	-- // sliderBorderThickness
 	do
 
 		local minValue, maxValue = 1, 5;
-		local sliderBorderThickness = VGUI.CreateSlider();
-		sliderBorderThickness:SetParent(GUIFrame);
+		sliderBorderThickness = VGUI.CreateSlider();
+		sliderBorderThickness:SetParent(dropdownBorderType);
 		sliderBorderThickness:SetWidth(325);
-		sliderBorderThickness:SetPoint("TOPLEFT", 160, -30);
+		sliderBorderThickness:SetPoint("TOPLEFT", GUIFrame, 160, -70);
 		sliderBorderThickness.label:SetText(L["Border thickness"]);
 		sliderBorderThickness.slider:SetValueStep(1);
 		sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
@@ -1119,13 +1180,7 @@ local function GUICategory_Borders(index, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderBorderThickness.editbox:SetText(tostring(actualValue));
 			addonTable.db.BorderThickness = actualValue;
-			for nameplate in pairs(addonTable.Nameplates) do
-				if (nameplate.NAurasFrame) then
-					for _, icon in pairs(nameplate.NAurasIcons) do
-						icon.border:SetTexture(BORDER_TEXTURES[addonTable.db.BorderThickness]);
-					end
-				end
-			end
+			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
 		sliderBorderThickness.editbox:SetScript("OnEnterPressed", function(self, value)
@@ -1148,8 +1203,11 @@ local function GUICategory_Borders(index, value)
 		end);
 		sliderBorderThickness.lowtext:SetText(tostring(minValue));
 		sliderBorderThickness.hightext:SetText(tostring(maxValue));
-		table_insert(GUIFrame.Categories[index], sliderBorderThickness);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness)); sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
+			sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness);
+			addonTable.UpdateAllNameplates(true);
+		end);
 
 	end
 
@@ -1164,7 +1222,7 @@ local function GUICategory_Borders(index, value)
 		end);
 		checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
 		checkBoxBuffBorder:SetParent(GUIFrame);
-		checkBoxBuffBorder:SetPoint("TOPLEFT", 160, -90);
+		checkBoxBuffBorder:SetPoint("TOPLEFT", 160, -130);
 		checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(addonTable.db.BuffBordersColor));
 		checkBoxBuffBorder.ColorButton:SetScript("OnClick", function()
 			ColorPickerFrame:Hide();
@@ -1204,7 +1262,7 @@ local function GUICategory_Borders(index, value)
 		});
 		debuffArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		debuffArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		debuffArea:SetPoint("TOPLEFT", 150, -120);
+		debuffArea:SetPoint("TOPLEFT", 150, -160);
 		debuffArea:SetWidth(360);
 		debuffArea:SetHeight(110);
 		table_insert(GUIFrame.Categories[index], debuffArea);
@@ -1388,6 +1446,7 @@ local function GUICategory_Borders(index, value)
 
 	end
 
+	SetControls();
 end
 
 local function GUICategory_4(index, value)
@@ -3617,6 +3676,20 @@ local function InitializeGUI()
 			GUICategory_Alpha(index, value);
 		end
 	end
+
+	-- buttonTestMode
+	do
+		local buttonTestMode = VGUI.CreateButton();
+		buttonTestMode:SetParent(GUIFrame.outline);
+		buttonTestMode:SetText(L["options:general:test-mode"]);
+		buttonTestMode:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMLEFT", 4, 4);
+		buttonTestMode:SetPoint("BOTTOMRIGHT", GUIFrame.outline, "BOTTOMRIGHT", -4, 4);
+		buttonTestMode:SetHeight(30);
+		buttonTestMode:SetScript("OnClick", function(self, ...)
+			addonTable.SwitchTestMode();
+		end);
+	end
+
 	InitializeGUI_CreateSpellInfoCaches();
 	addonTable.GUIFrame = GUIFrame;
 end

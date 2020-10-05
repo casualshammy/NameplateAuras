@@ -9,3 +9,4 @@ LibSharedMedia-3.0
 LibStub
 AceComm-3.0
 /libs/LibCustomGlow
+/libs/LibDataBroker-1.1

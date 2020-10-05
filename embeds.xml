@@ -13,5 +13,6 @@
 <Script		file="libs\LibButtonGlow.lua"/>
 <Include	file="libs\LibRedDropdown-1.0\LibRedDropdown-1.0.xml"/>
 <Include	file="libs\LibCustomGlow\LibCustomGlow-1.0.xml"/>
+<Script		file="libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
 </Ui>
 

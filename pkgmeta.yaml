@@ -39,9 +39,12 @@ externals:
     libs/AceComm-3.0:
         url: https://repos.wowace.com/wow/ace3/trunk/AceComm-3.0
         tag: latest
-	libs/LibCustomGlow:
-		url: https://github.com/Stanzilla/LibCustomGlow.git
-		tag: latest
+    libs/LibCustomGlow:
+        url: https://github.com/Stanzilla/LibCustomGlow.git
+        tag: latest
+    libs/LibDataBroker-1.1:
+        url: https://repos.wowace.com/wow/libdatabroker-1-1
+        tag: latest
 
 ignore:
     - libs/LibRedDropdown-1.0/docs

@@ -1,4 +1,4 @@
-local _, addonTable = ...;
+local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
@@ -1701,7 +1701,7 @@ local function GUICategory_4(index, value)
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 		editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
-		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontDisable");
 		text:SetPoint("LEFT", 0, 0);
 		text:SetText(L["Add new spell: "]);
 		editboxAddSpell:SetScript("OnEditFocusGained", function() text:Hide(); end);
@@ -3798,5 +3798,20 @@ function addonTable.ShowGUI()
 		OnGUICategoryClick(GUIFrame.CategoryButtons[1]);
 	else
 		Print(L["Options are not available in combat!"]);
+	end
+end
+
+local LDB = LibStub("LibDataBroker-1.1");
+if (LDB ~= nil) then
+	local plugin = LDB:NewDataObject(addonName,
+		{
+			type = "data source",
+			text = "",
+			icon = [[Interface\AddOns\NameplateAuras\media\broker_logo.tga]],
+			tocname = addonName,
+		}
+	);
+	plugin.OnClick = function(display, button)
+		addonTable.ShowGUI()
 	end
 end

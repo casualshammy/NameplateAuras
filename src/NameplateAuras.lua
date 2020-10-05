@@ -138,7 +138,7 @@ do
 				TimerTextUseRelativeScale = true,
 				TimerTextSize = 20,
 				TimerTextAnchor = "CENTER",
-				TimerTextAnchorIcon = "UNKNOWN",
+				TimerTextAnchorIcon = "CENTER",
 				TimerTextXOffset = 0,
 				TimerTextYOffset = 0,
 				TimerTextSoonToExpireColor = { 1, 0.1, 0.1, 1 },
@@ -147,7 +147,7 @@ do
 				StacksFont = "NAuras_TeenBold",
 				StacksFontScale = 1,
 				StacksTextAnchor = "BOTTOMRIGHT",
-				StacksTextAnchorIcon = "UNKNOWN",
+				StacksTextAnchorIcon = "BOTTOMRIGHT",
 				StacksTextXOffset = -3,
 				StacksTextYOffset = 5,
 				StacksTextColor = { 1, 0.1, 0.1 },
@@ -219,13 +219,6 @@ do
 		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
-		-- // set default values
-		if (aceDB.profile.TimerTextAnchorIcon == aceDBDefaults.profile.TimerTextAnchorIcon) then
-			aceDB.profile.TimerTextAnchorIcon = aceDB.profile.TimerTextAnchor;
-		end
-		if (aceDB.profile.StacksTextAnchorIcon == aceDBDefaults.profile.StacksTextAnchorIcon) then
-			aceDB.profile.StacksTextAnchorIcon = aceDB.profile.StacksTextAnchor;
-		end
 		-- // creating a fast reference
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);

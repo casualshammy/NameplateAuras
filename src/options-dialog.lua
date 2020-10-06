@@ -3812,6 +3812,15 @@ if (LDB ~= nil) then
 		}
 	);
 	plugin.OnClick = function(display, button)
-		addonTable.ShowGUI()
+		addonTable.ShowGUI();
+		if (button == "RightButton") then
+			OnGUICategoryClick(GUIFrame.CategoryButtons[7]);
+		end
+	end
+	plugin.OnTooltipShow = function(tooltip)
+		tooltip:AddLine(addonName);
+		tooltip:AddLine(" ");
+		tooltip:AddLine("|cffeda55fLeftClick:|r open options window");
+		tooltip:AddLine("|cffeda55fRightClick:|r open spells settings");
 	end
 end

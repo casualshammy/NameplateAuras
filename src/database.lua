@@ -223,6 +223,34 @@ local migrations = {
             db.TimerTextLongerColor[#db.TimerTextLongerColor+1] = 1;
         end
     end,
+    [13] = function()
+        local db = addonTable.db;
+        if (db.DefaultIconSize ~= nil) then
+            db.DefaultIconSizeWidth = db.DefaultIconSize;
+            db.DefaultIconSizeHeight = db.DefaultIconSize;
+            db.DefaultIconSize = nil;
+        end
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.iconSize ~= nil) then
+                spellInfo.iconSizeWidth = spellInfo.iconSize;
+                spellInfo.iconSizeHeight = spellInfo.iconSize;
+                spellInfo.iconSize = nil;
+            end
+        end
+    end,
+    [14] = function()
+        local db = addonTable.db;
+        if (db.InterruptsIconSize ~= nil) then
+            db.InterruptsIconSizeWidth = db.InterruptsIconSize;
+            db.InterruptsIconSizeHeight = db.InterruptsIconSize;
+            db.InterruptsIconSize = nil;
+        end
+        if (db.Additions_DispellableSpells_IconSize ~= nil) then
+            db.DispelIconSizeWidth = db.Additions_DispellableSpells_IconSize;
+            db.DispelIconSizeHeight = db.Additions_DispellableSpells_IconSize;
+            db.Additions_DispellableSpells_IconSize = nil;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -259,7 +287,12 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.animationDisplayMode == nil) then
                 spellInfo.animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
             end
-            -- iconSize my be nil
+            if (spellInfo.iconSizeWidth == nil) then
+                spellInfo.iconSizeWidth = db.DefaultIconSizeWidth;
+            end
+            if (spellInfo.iconSizeHeight == nil) then
+                spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
+            end
             -- checkSpellID may be nil
             -- showGlow may be nil
             if (spellInfo.enabledState == "disabled") then

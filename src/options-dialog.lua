@@ -1503,7 +1503,6 @@ local function GUICategory_4(index, value)
 
 	local animationTypes = {
 		[addonTable.ICON_ANIMATION_TYPE_ALPHA] = L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"],
-		[addonTable.ICON_ANIMATION_TYPE_SCALE] = L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"],
 	};
 
 	local function GetButtonNameForSpell(spellInfo)

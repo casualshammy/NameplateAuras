@@ -16,14 +16,13 @@ local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,strin
 			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, ElapsedTimer, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
-	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, OnUpdate, SetAlphaScaleForNameplate;
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
+	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
 	UnitGUIDHasInterruptReduction			= { };
 	UnitGUIDHasAdditionalInterruptReduction	= { };
-	ElapsedTimer 							= 0;
 	Nameplates, NameplatesVisible 			= { }, { };
 	InPvPCombat								= false;
 	addonTable.Nameplates					= Nameplates;
@@ -280,18 +279,6 @@ do
 		addonTable.MigrateDB();
 		-- // import default spells
 		addonTable.ImportNewSpells();
-		-- // starting OnUpdate()
-		if (db.ShowCooldownText) then
-			EventFrame:SetScript("OnUpdate", function(self, elapsed)
-				ElapsedTimer = ElapsedTimer + elapsed;
-				if (ElapsedTimer >= 0.1) then
-					OnUpdate();
-					ElapsedTimer = 0;
-				end
-			end);
-		else
-			EventFrame:SetScript("OnUpdate", nil);
-		end
 		-- // COMBAT_LOG_EVENT_UNFILTERED
 		if (db.InterruptsEnabled) then
 			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
@@ -530,33 +517,21 @@ do
     	animation0:SetDuration(0.5);
 		animation0:SetOrder(1);
 
-		icon.scaleAnimationGroup = CreateFrame("Frame");
-		icon.scaleAnimationGroup:Hide();
-		icon.scaleAnimationGroup.counter = 0;
-		icon.scaleAnimationGroup.totalTime = 0;
-		icon.scaleAnimationGroup:SetScript("OnUpdate", function(self, elapsed)
-			self.counter = self.counter + elapsed;
-			self.totalTime = self.totalTime + elapsed;
-			if (self.counter > 1/30) then
-				if (self.totalTime < 0.5) then
-					icon:SetScale(1 + self.totalTime);
-				elseif (self.totalTime < 1) then
-					icon:SetScale(2 - self.totalTime);
-				else
-					icon:SetScale(1);
-					self.totalTime = 0;
-				end
-				self.counter = 0;
-			end
-		end);
-		icon.scaleAnimationGroup.Play = function(self)
-			icon:SetScale(1);
-			self:Show();
-		end
-		icon.scaleAnimationGroup.Stop = function(self)
-			self:Hide();
-			icon:SetScale(1);
-		end
+		-- icon.scaleAnimationGroup = icon:CreateAnimationGroup();
+		-- icon.scaleAnimationGroup:SetLooping("REPEAT");
+		-- local keys = { "texture", "cooldownFrame", "cooldownText", "border" };
+		-- for _, value in pairs(keys) do
+		-- 	local scale1 = icon.scaleAnimationGroup:CreateAnimation("Scale");
+		-- 	scale1:SetChildKey(value);
+		-- 	scale1:SetOrder(1)
+		-- 	scale1:SetDuration(0.5)
+		-- 	scale1:SetScale(1.5, 1.5);
+		-- 	local scale2 = icon.scaleAnimationGroup:CreateAnimation("Scale");
+		-- 	scale2:SetChildKey(value);
+		-- 	scale2:SetOrder(2)
+		-- 	scale2:SetDuration(0.5)
+		-- 	scale2:SetScale(2/3, 2/3);
+		-- end
 	end
 
 	local function AllocateIcon(frame)
@@ -625,7 +600,6 @@ do
 	local function HideAnimation(icon)
 		if (icon.animationType ~= nil) then
 			icon.alphaAnimationGroup:Stop();
-			icon.scaleAnimationGroup:Stop();
 			icon.animationType = nil;
 		end
 	end
@@ -684,17 +658,6 @@ do
 					end
 					SetAlphaScaleForNameplate(nameplate);
 				end
-			end
-			if (db.ShowCooldownText) then
-				EventFrame:SetScript("OnUpdate", function(self, elapsed)
-					ElapsedTimer = ElapsedTimer + elapsed;
-					if (ElapsedTimer >= 0.1) then
-						OnUpdate();
-						ElapsedTimer = 0;
-					end
-				end);
-			else
-				EventFrame:SetScript("OnUpdate", nil);
 			end
 		end
 		for nameplate in pairs(Nameplates) do
@@ -877,7 +840,7 @@ do
 
 	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS, ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 
 		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS, addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
-	local ICON_ANIMATION_TYPE_ALPHA, ICON_ANIMATION_TYPE_SCALE = addonTable.ICON_ANIMATION_TYPE_ALPHA, addonTable.ICON_ANIMATION_TYPE_SCALE;
+	local ICON_ANIMATION_TYPE_ALPHA = addonTable.ICON_ANIMATION_TYPE_ALPHA;
 	local animationMethods = {
 		[ICON_ANIMATION_TYPE_ALPHA] = function(icon)
 			if (icon.animationType ~= ICON_ANIMATION_TYPE_ALPHA) then
@@ -887,16 +850,6 @@ do
 				end
 				icon.alphaAnimationGroup:Play();
 				icon.animationType = ICON_ANIMATION_TYPE_ALPHA;
-			end
-		end,
-		[ICON_ANIMATION_TYPE_SCALE] = function(icon)
-			if (icon.animationType ~= ICON_ANIMATION_TYPE_SCALE) then
-				if (not icon.animationInitialized) then
-					CreateIconAnimation(icon);
-					icon.animationInitialized = true;
-				end
-				icon.scaleAnimationGroup:Play();
-				icon.animationType = ICON_ANIMATION_TYPE_SCALE;
 			end
 		end,
 	};
@@ -1030,24 +983,28 @@ do
 		end
 	end
 
-	function OnUpdate()
-		local currentTime = GetTime();
-		for frame in pairs(NameplatesVisible) do
-			local counter = 1;
-			if (AurasPerNameplate[frame]) then
-				for _, spellInfo in pairs(AurasPerNameplate[frame]) do
-					local last = spellInfo.expires - currentTime;
-					if (last > 0 or spellInfo.duration == 0) then
-						-- // getting reference to icon
-						local icon = frame.NAurasIcons[counter];
-						-- // setting text
-						icon:SetCooldown(last, spellInfo);
-						counter = counter + 1;
+	local function OnUpdate()
+		if (db.ShowCooldownText) then
+			local currentTime = GetTime();
+			for frame in pairs(NameplatesVisible) do
+				local counter = 1;
+				if (AurasPerNameplate[frame]) then
+					for _, spellInfo in pairs(AurasPerNameplate[frame]) do
+						local last = spellInfo.expires - currentTime;
+						if (last > 0 or spellInfo.duration == 0) then
+							-- // getting reference to icon
+							local icon = frame.NAurasIcons[counter];
+							-- // setting text
+							icon:SetCooldown(last, spellInfo);
+							counter = counter + 1;
+						end
 					end
 				end
 			end
 		end
+		CTimerAfter(0.1, OnUpdate);
 	end
+	CTimerAfter(0.1, OnUpdate);
 
 end
 

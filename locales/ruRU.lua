@@ -143,8 +143,6 @@ L["options:spells:icon-animation-threshold"] = "Показывать анима�
 L["options:spells:icon-animation-always"] = "Показывать анимацию всё время";
 L["options:spells:animation-type"] = "Тип анимации";
 L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Прозрачность";
-L["options:animation-type:ICON_ANIMATION_TYPE_SCALE"] = "Масштаб";
-
 L["options:size-and-position:target-strata"] = "Слой иконок на неймплейте цели"
 L["options:size-and-position:non-target-strata"] = "Слой иконок на остальных неймплейтах"
 L["options:borders:border-file-path"] = "Путь до файла текстуры границы (начинается с 'Interface\\')";

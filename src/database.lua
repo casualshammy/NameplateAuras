@@ -251,6 +251,14 @@ local migrations = {
             db.Additions_DispellableSpells_IconSize = nil;
         end
     end,
+    [15] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.animationType == 3) then -- ICON_ANIMATION_TYPE_SCALE
+                spellInfo.animationType = addonTable.ICON_ANIMATION_TYPE_ALPHA;
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

@@ -301,6 +301,8 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.iconSizeHeight == nil) then
                 spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
             end
+            -- useRelativeGlowTimer may be nil
+            -- useRelativeAnimationTimer may be nil
             -- checkSpellID may be nil
             -- showGlow may be nil
             if (spellInfo.enabledState == "disabled") then

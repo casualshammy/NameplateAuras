@@ -865,11 +865,19 @@ do
 				animationMethods[dbEntry.animationType](icon);
 			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for animation, but aura is permanent
 				HideAnimation(icon);
-			elseif (remainingAuraTime < dbEntry.animationTimer) then -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is less than user's limit
+			elseif (not dbEntry.useRelativeAnimationTimer and remainingAuraTime < dbEntry.animationTimer) then -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is less than user's limit
+				animationMethods[dbEntry.animationType](icon);
+			elseif (dbEntry.useRelativeAnimationTimer and (remainingAuraTime*100/spellInfo.duration) < dbEntry.animationTimer) then -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is less than user's limit
 				animationMethods[dbEntry.animationType](icon);
 			else -- // okay, user has limited time for animation, aura is not permanent and aura's remaining time is bigger than user's limit
 				HideAnimation(icon); -- // hide animation
-				animationInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.animationTimer, function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
+				if (not dbEntry.useRelativeAnimationTimer) then
+					animationInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.animationTimer, function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
+				else
+					animationInfo[icon] = CTimerNewTimer(
+						remainingAuraTime - dbEntry.animationTimer/100*spellInfo.duration, 
+						function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
+				end
 			end
 		else
 			HideAnimation(icon); -- // this aura doesn't require animation
@@ -887,11 +895,19 @@ do
 				glowMethods[dbEntry.glowType](icon, iconResized);
 			elseif (spellInfo.duration == 0) then -- // okay, user has limited time for glow, but aura is permanent
 				HideGlow(icon);
-			elseif (remainingAuraTime < dbEntry.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
+			elseif (not dbEntry.useRelativeGlowTimer and remainingAuraTime < dbEntry.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
+				glowMethods[dbEntry.glowType](icon, iconResized);
+			elseif (dbEntry.useRelativeGlowTimer and (remainingAuraTime*100/spellInfo.duration) < dbEntry.showGlow) then -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is less than user's limit
 				glowMethods[dbEntry.glowType](icon, iconResized);
 			else -- // okay, user has limited time for glow, aura is not permanent and aura's remaining time is bigger than user's limit
 				HideGlow(icon); -- // hide glow
-				glowInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.showGlow, function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
+				if (not dbEntry.useRelativeGlowTimer) then
+					glowInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.showGlow, function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
+				else
+					glowInfo[icon] = CTimerNewTimer(
+						remainingAuraTime - dbEntry.showGlow/100*spellInfo.duration, 
+						function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
+				end
 			end
 		else
 			HideGlow(icon); -- // this aura doesn't require glow

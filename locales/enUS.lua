@@ -152,5 +152,26 @@ L["options:size-and-position:icon-width"] = "Default icon width";
 L["options:size-and-position:icon-height"] = "Default icon height";
 L["options:spells:icon-width"] = "Icon width";
 L["options:spells:icon-height"] = "Icon height";
+L["options:spells:glow-relative"] = [[Use relative time]];
+L["options:spells:glow-relative:tooltip"] = 
+[[This option changes the meaning of slider on the left.
+
+If this option is checked, glow will appear when aura's remaining
+duration is less than the selected percent of maximum duration of this aura.
+It is useful, for example, if you want to know when you can safely
+re-apply your DoT spell without losing it's duration.
+
+If this option is unchecked, glow will appear when aura's remaining
+duration is less than absolute value of slider (in seconds)]];
+L["options:spells:animation-relative:tooltip"] = 
+[[This option changes the meaning of slider on the left.
+
+If this option is checked, animation will start when aura's remaining
+duration is less than the selected percent of maximum duration of this aura.
+It is useful, for example, if you want to know when you can safely
+re-apply your DoT spell without losing it's duration.
+
+If this option is unchecked, animation will start when aura's remaining
+duration is less than absolute value of slider (in seconds)]];
 
 --@end-debug@

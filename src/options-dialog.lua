@@ -1485,8 +1485,8 @@ local function GUICategory_4(index, value)
 	local controls = { };
 	local selectedSpell = 0;
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
-	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends,
-		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs,
+	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
+		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
@@ -1814,30 +1814,36 @@ local function GUICategory_4(index, value)
 			if (spellInfo.showGlow == nil) then
 				checkboxGlow:SetTriState(0);
 				sliderGlowThreshold:Hide();
+				checkboxGlowRelative:Hide();
 				dropdownGlowType:Hide();
 				areaGlow:SetHeight(40);
 			elseif (spellInfo.showGlow == GLOW_TIME_INFINITE) then
 				checkboxGlow:SetTriState(2);
 				sliderGlowThreshold:Hide();
+				checkboxGlowRelative:Hide();
 				areaGlow:SetHeight(80);
 			else
 				checkboxGlow:SetTriState(1);
 				sliderGlowThreshold.slider:SetValue(spellInfo.showGlow);
+				checkboxGlowRelative:SetChecked(spellInfo.useRelativeGlowTimer);
 				areaGlow:SetHeight(80);
 			end
 			_G[dropdownGlowType:GetName().."Text"]:SetText(glowTypes[spellInfo.glowType]);
 			if (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE) then
 				checkboxAnimation:SetTriState(0);
 				sliderAnimationThreshold:Hide();
+				checkboxAnimationRelative:Hide();
 				dropdownAnimationType:Hide();
 				areaAnimation:SetHeight(40);
 			elseif (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS) then
 				checkboxAnimation:SetTriState(2);
 				sliderAnimationThreshold:Hide();
+				checkboxAnimationRelative:Hide();
 				areaAnimation:SetHeight(80);
 			elseif (spellInfo.animationDisplayMode == addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD) then
 				checkboxAnimation:SetTriState(1);
 				sliderAnimationThreshold.slider:SetValue(spellInfo.animationTimer);
+				checkboxAnimationRelative:SetChecked(spellInfo.useRelativeAnimationTimer);
 				areaAnimation:SetHeight(80);
 			end
 			_G[dropdownAnimationType:GetName().."Text"]:SetText(animationTypes[spellInfo.animationType]);
@@ -2042,17 +2048,20 @@ local function GUICategory_4(index, value)
 			if (self:GetTriState() == 0) then
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = nil; -- // making addonTable.db smaller
 				sliderGlowThreshold:Hide();
+				checkboxGlowRelative:Hide();
 				dropdownGlowType:Hide();
 				areaGlow:SetHeight(40);
 			elseif (self:GetTriState() == 1) then
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = 5;
 				sliderGlowThreshold:Show();
+				checkboxGlowRelative:Show();
 				dropdownGlowType:Show();
 				sliderGlowThreshold.slider:SetValue(5);
 				areaGlow:SetHeight(80);
 			else
 				addonTable.db.CustomSpells2[selectedSpell].showGlow = GLOW_TIME_INFINITE;
 				sliderGlowThreshold:Hide();
+				checkboxGlowRelative:Hide();
 				dropdownGlowType:Show();
 				areaGlow:SetHeight(80);
 			end
@@ -2060,12 +2069,7 @@ local function GUICategory_4(index, value)
 		end);
 		checkboxGlow:SetParent(areaGlow);
 		checkboxGlow:SetPoint("TOPLEFT", 10, -10);
-		-- VGUI.SetTooltip(checkboxGlow, format(L["options:auras:enabled-state:tooltip"],
-			-- addonTable.ColorizeText(L["Disabled"], 1, 1, 1),
-			-- addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
-			-- addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
 		table_insert(controls, checkboxGlow);
-
 	end
 
 	-- // dropdownGlowType
@@ -2098,7 +2102,7 @@ local function GUICategory_4(index, value)
 	-- // sliderGlowThreshold
 	do
 
-		local minV, maxV = 1, 30;
+		local minV, maxV = 1, 100;
 		sliderGlowThreshold = VGUI.CreateSlider();
 		sliderGlowThreshold:SetParent(areaGlow);
 		sliderGlowThreshold:SetWidth(140);
@@ -2135,10 +2139,24 @@ local function GUICategory_4(index, value)
 				sliderGlowThreshold.editbox:ClearFocus();
 			end
 		end);
-		sliderGlowThreshold.lowtext:SetText("1");
-		sliderGlowThreshold.hightext:SetText("30");
+		sliderGlowThreshold.lowtext:SetText(tostring(minV));
+		sliderGlowThreshold.hightext:SetText(tostring(maxV));
 		table_insert(controls, sliderGlowThreshold);
 
+	end
+
+	-- // checkboxGlowRelative
+	do
+		checkboxGlowRelative = VGUI.CreateCheckBox();
+		checkboxGlowRelative:SetText(L["options:spells:glow-relative"]);
+		checkboxGlowRelative:SetOnClickHandler(function(this)
+			addonTable.db.CustomSpells2[selectedSpell].useRelativeGlowTimer = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		VGUI.SetTooltip(checkboxGlowRelative, L["options:spells:glow-relative:tooltip"]);
+		checkboxGlowRelative:SetParent(areaGlow);
+		checkboxGlowRelative:SetPoint("LEFT", sliderGlowThreshold, "RIGHT", 10, 0);
+		table_insert(controls, checkboxGlowRelative);
 	end
 
 	-- // areaAnimation
@@ -2173,17 +2191,20 @@ local function GUICategory_4(index, value)
 			if (self:GetTriState() == 0) then
 				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
 				sliderAnimationThreshold:Hide();
+				checkboxAnimationRelative:Hide();
 				dropdownAnimationType:Hide();
 				areaAnimation:SetHeight(40);
 			elseif (self:GetTriState() == 1) then
 				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
 				sliderAnimationThreshold:Show();
+				checkboxAnimationRelative:Show();
 				dropdownAnimationType:Show();
 				sliderAnimationThreshold.slider:SetValue(5);
 				areaAnimation:SetHeight(80);
 			else
 				addonTable.db.CustomSpells2[selectedSpell].animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS;
 				sliderAnimationThreshold:Hide();
+				checkboxAnimationRelative:Hide();
 				dropdownAnimationType:Show();
 				areaAnimation:SetHeight(80);
 			end
@@ -2224,7 +2245,7 @@ local function GUICategory_4(index, value)
 	-- // sliderAnimationThreshold
 	do
 
-		local minV, maxV = 1, 30;
+		local minV, maxV = 1, 100;
 		sliderAnimationThreshold = VGUI.CreateSlider();
 		sliderAnimationThreshold:SetParent(areaAnimation);
 		sliderAnimationThreshold:SetWidth(140);
@@ -2265,6 +2286,20 @@ local function GUICategory_4(index, value)
 		sliderAnimationThreshold.hightext:SetText(tostring(maxV));
 		table_insert(controls, sliderAnimationThreshold);
 
+	end
+
+	-- // checkboxAnimationRelative
+	do
+		checkboxAnimationRelative = VGUI.CreateCheckBox();
+		checkboxAnimationRelative:SetText(L["options:spells:glow-relative"]);
+		checkboxAnimationRelative:SetOnClickHandler(function(this)
+			addonTable.db.CustomSpells2[selectedSpell].useRelativeAnimationTimer = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		VGUI.SetTooltip(checkboxAnimationRelative, L["options:spells:animation-relative:tooltip"]);
+		checkboxAnimationRelative:SetParent(areaAnimation);
+		checkboxAnimationRelative:SetPoint("LEFT", sliderAnimationThreshold, "RIGHT", 10, 0);
+		table_insert(controls, checkboxAnimationRelative);
 	end
 
 	-- // areaAuraType

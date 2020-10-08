@@ -44,8 +44,8 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 	return {
 		["enabledState"] =				enabledState,
 		["auraType"] =					AURA_TYPE_ANY,
-		["iconSizeWidth"] =				db.DefaultIconSizeWidth,
-		["iconSizeHeight"] =			db.DefaultIconSizeHeight,
+		["iconSizeWidth"] =				addonTable.db.DefaultIconSizeWidth,
+		["iconSizeHeight"] =			addonTable.db.DefaultIconSizeHeight,
 		["spellName"] =					spellName,
 		["checkSpellID"] =				checkSpellID,
 		["showOnFriends"] =				true,

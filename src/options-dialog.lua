@@ -638,6 +638,7 @@ local function GUICategory_Fonts(index, value)
 				end
 				addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
 				colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor));
+				addonTable.UpdateAllNameplates(true);
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextSoonToExpireColor);
@@ -671,6 +672,7 @@ local function GUICategory_Fonts(index, value)
 				end
 				addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
 				colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor));
+				addonTable.UpdateAllNameplates(true);
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextUnderMinuteColor);
@@ -703,6 +705,7 @@ local function GUICategory_Fonts(index, value)
 				end
 				addonTable.db.TimerTextLongerColor = {r, g, b, a};
 				colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor));
+				addonTable.UpdateAllNameplates(true);
 			end
 			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
 			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextLongerColor);

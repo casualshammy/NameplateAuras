@@ -8,6 +8,7 @@ local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverla
 local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
 local LibCustomGlow = LibStub("LibCustomGlow-1.0");
+local LRD = LibStub("LibRedDropdown-1.0");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
@@ -327,14 +328,18 @@ do
 		end
 	};
 
+	local iconTooltip = LRD.CreateTooltip();
 	local function AllocateIcon_SetAuraTooltip(icon)
 		if (db.ShowAuraTooltip) then
 			icon:SetScript("OnEnter", function(self)
-				GameTooltip:SetOwner(self, "ANCHOR_CURSOR");
-				GameTooltip:SetHyperlink(GetSpellLink(icon.spellID));
-				GameTooltip:Show();
+				iconTooltip:ClearAllPoints();
+				iconTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0);
+				iconTooltip:SetSpellById(self.spellID);
+				iconTooltip:Show();
 			end);
-			icon:SetScript("OnLeave", function() GameTooltip:Hide(); end);
+			icon:SetScript("OnLeave", function(self)
+				iconTooltip:Hide();
+			end);
 		else
 			icon:SetScript("OnEnter", nil);
 			icon:SetScript("OnLeave", nil);
@@ -433,6 +438,7 @@ do
 		end
 	end
 
+	local colortype_long, colortype_medium, colortype_short = 1, 2, 3;
 	local function IconSetCooldown(icon, remainingTime, spellInfo)
 		if (db.ShowCooldownText) then
 			-- cooldown text
@@ -457,17 +463,21 @@ do
 			end
 
 			-- cooldown text color
-			local colorInfo = nil;
 			if (remainingTime >= 60 or spellInfo.duration == 0) then
-				colorInfo = db.TimerTextLongerColor;
+				if (icon.textColor ~= colortype_long) then
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextLongerColor));
+					icon.textColor = colortype_long;
+				end
 			elseif (remainingTime >= 5) then
-				colorInfo = db.TimerTextUnderMinuteColor;
+				if (icon.textColor ~= colortype_medium) then
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+					icon.textColor = colortype_medium;
+				end
 			else
-				colorInfo = db.TimerTextSoonToExpireColor;
-			end
-			if (icon.textColorInfo ~= colorInfo) then
-				icon.cooldownText:SetTextColor(unpack(colorInfo));
-				icon.textColorInfo = colorInfo;
+				if (icon.textColor ~= colortype_short) then
+					icon.cooldownText:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+					icon.textColor = colortype_short;
+				end
 			end
 		elseif (icon.text ~= "") then
 			icon.cooldownText:SetText("");
@@ -647,6 +657,7 @@ do
 						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex);
 						icon.cooldownText:ClearAllPoints();
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
+						icon.textColor = nil;
 						icon.stacks:ClearAllPoints();
 						icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 						if (db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then

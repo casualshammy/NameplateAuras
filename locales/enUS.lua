@@ -173,5 +173,6 @@ re-apply your DoT spell without losing it's duration.
 
 If this option is unchecked, animation will start when aura's remaining
 duration is less than absolute value of slider (in seconds)]];
+L["options:size-and-position:icon-zoom"] = "Icon zoom";
 
 --@end-debug@

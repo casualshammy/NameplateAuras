@@ -194,6 +194,7 @@ do
 				BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
 				DefaultIconSizeWidth = 45,
 				DefaultIconSizeHeight = 45,
+				IconZoom = 0.07,
 			},
 		};
 
@@ -559,7 +560,7 @@ do
 		icon:SetSize(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
-		icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93);
+		icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 		icon.border = icon:CreateTexture(nil, "ARTWORK");
 		icon.stacks = icon:CreateFontString(nil, "ARTWORK");
 		icon.cooldownText = icon:CreateFontString(nil, "ARTWORK");
@@ -655,6 +656,7 @@ do
 							icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((sizeMin / 4) * db.StacksFontScale), "OUTLINE");
 						end
 						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex);
+						icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 						icon.cooldownText:ClearAllPoints();
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 						icon.textColor = nil;

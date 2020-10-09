@@ -3018,8 +3018,8 @@ local function GUICategory_SizeAndPosition(index, value)
 
 		local sliderIconXOffset = VGUI.CreateSlider();
 		sliderIconXOffset:SetParent(GUIFrame);
-		sliderIconXOffset:SetWidth(247.5);
-		sliderIconXOffset:SetPoint("TOPLEFT", 160, -85);
+		sliderIconXOffset:SetWidth(170);
+		sliderIconXOffset:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 5, -73);
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
 		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -3060,8 +3060,8 @@ local function GUICategory_SizeAndPosition(index, value)
 
 		local sliderIconYOffset = VGUI.CreateSlider();
 		sliderIconYOffset:SetParent(GUIFrame);
-		sliderIconYOffset:SetWidth(247.5);
-		sliderIconYOffset:SetPoint("TOPLEFT", 437.5, -85);
+		sliderIconYOffset:SetWidth(170);
+		sliderIconYOffset:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -73);
 		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 		sliderIconYOffset.slider:SetValueStep(1);
 		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -3095,6 +3095,48 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.Categories[index], sliderIconYOffset);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset)); end);
 
+	end
+
+	-- // sliderIconZoom
+	do
+		local minV, maxV = 0, 0.3;
+		local sliderIconZoom = VGUI.CreateSlider();
+		sliderIconZoom:SetParent(GUIFrame);
+		sliderIconZoom:SetWidth(170);
+		sliderIconZoom:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", -5, -73);
+		sliderIconZoom.label:SetText(L["options:size-and-position:icon-zoom"]);
+		sliderIconZoom.slider:SetValueStep(0.01);
+		sliderIconZoom.slider:SetMinMaxValues(minV, maxV);
+		sliderIconZoom.slider:SetValue(addonTable.db.IconZoom);
+		sliderIconZoom.slider:SetScript("OnValueChanged", function(self, value)
+			local actualValue = tonumber(string_format("%.2f", value));
+			sliderIconZoom.editbox:SetText(tostring(actualValue));
+			addonTable.db.IconZoom = actualValue;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom));
+		sliderIconZoom.editbox:SetScript("OnEnterPressed", function(self, value)
+			if (sliderIconZoom.editbox:GetText() ~= "") then
+				local v = tonumber(sliderIconZoom.editbox:GetText());
+				if (v == nil) then
+					sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom));
+					Print(L["Value must be a number"]);
+				else
+					if (v > maxV) then
+						v = maxV;
+					end
+					if (v < minV) then
+						v = minV;
+					end
+					sliderIconZoom.slider:SetValue(v);
+				end
+				sliderIconZoom.editbox:ClearFocus();
+			end
+		end);
+		sliderIconZoom.lowtext:SetText(tostring(minV));
+		sliderIconZoom.hightext:SetText(tostring(maxV));
+		table_insert(GUIFrame.Categories[index], sliderIconZoom);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconZoom.slider:SetValue(addonTable.db.IconZoom); sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom)); end);
 	end
 
 	-- // dropdownFrameAnchorToNameplate

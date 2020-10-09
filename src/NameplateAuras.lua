@@ -12,9 +12,9 @@ local LRD = LibStub("LibRedDropdown-1.0");
 
 -- // upvalues
 local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
+			UnitReaction, UnitGUID, UnitIsFriend, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
 		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
+			UnitReaction, UnitGUID, UnitIsFriend, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
@@ -149,15 +149,15 @@ do
 				StacksTextAnchorIcon = "BOTTOMRIGHT",
 				StacksTextXOffset = -3,
 				StacksTextYOffset = 5,
-				StacksTextColor = { 1, 0.1, 0.1 },
+				StacksTextColor = { 1, 0.1, 0.1, 1 },
 				ShowBuffBorders = true,
-				BuffBordersColor = {0, 1, 0},
+				BuffBordersColor = {0, 1, 0, 1},
 				ShowDebuffBorders = true,
-				DebuffBordersMagicColor = { 0.1, 1, 1 },
-				DebuffBordersCurseColor = { 1, 0.1, 1 },
-				DebuffBordersDiseaseColor = { 1, 0.5, 0.1 },
-				DebuffBordersPoisonColor = { 0.1, 1, 0.1 },
-				DebuffBordersOtherColor = { 1, 0.1, 0.1 },
+				DebuffBordersMagicColor = { 0.1, 1, 1, 1 },
+				DebuffBordersCurseColor = { 1, 0.1, 1, 1 },
+				DebuffBordersDiseaseColor = { 1, 0.5, 0.1, 1 },
+				DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
+				DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
 				ShowAurasOnPlayerNameplate = false,
 				IconSpacing = 1,
 				IconAnchor = "LEFT",
@@ -466,17 +466,20 @@ do
 			-- cooldown text color
 			if (remainingTime >= 60 or spellInfo.duration == 0) then
 				if (icon.textColor ~= colortype_long) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextLongerColor));
+					local color = db.TimerTextLongerColor;
+					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
 					icon.textColor = colortype_long;
 				end
 			elseif (remainingTime >= 5) then
 				if (icon.textColor ~= colortype_medium) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextUnderMinuteColor));
+					local color = db.TimerTextUnderMinuteColor;
+					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
 					icon.textColor = colortype_medium;
 				end
 			else
 				if (icon.textColor ~= colortype_short) then
-					icon.cooldownText:SetTextColor(unpack(db.TimerTextSoonToExpireColor));
+					local color = db.TimerTextSoonToExpireColor;
+					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
 					icon.textColor = colortype_short;
 				end
 			end
@@ -589,14 +592,15 @@ do
 		icon.border:SetVertexColor(1, 0.35, 0);
 		icon.border:SetAllPoints(icon);
 		icon.border:Hide();
-		icon.stacks:SetTextColor(unpack(db.StacksTextColor));
+		local color = db.StacksTextColor;
+		icon.stacks:SetTextColor(color[1], color[2], color[3], color[4]);
 		icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
 		icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((math_min(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight) / 4) * db.StacksFontScale), "OUTLINE");
 		icon.stackcount = 0;
-		table_insert(addonTable.AllAuraIconFrames, icon);
+		addonTable.AllAuraIconFrames[#addonTable.AllAuraIconFrames+1] = icon;
 		frame.NAurasIconsCount = frame.NAurasIconsCount + 1;
 		frame.NAurasFrame:SetWidth(db.DefaultIconSizeWidth * frame.NAurasIconsCount);
-		table_insert(frame.NAurasIcons, icon);
+		frame.NAurasIcons[#frame.NAurasIcons+1] = icon;
 	end
 
 	local function HideGlow(icon)
@@ -662,6 +666,8 @@ do
 						icon.textColor = nil;
 						icon.stacks:ClearAllPoints();
 						icon.stacks:SetPoint(db.StacksTextAnchor, icon, db.StacksTextAnchorIcon, db.StacksTextXOffset, db.StacksTextYOffset);
+						local color = db.StacksTextColor;
+						icon.stacks:SetTextColor(color[1], color[2], color[3], color[4]);
 						if (db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
 							icon.border:SetTexture(BORDER_TEXTURES[db.BorderThickness]);
 						elseif (db.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
@@ -703,7 +709,8 @@ do
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
 			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
-				table_insert(AurasPerNameplate[frame], {
+				local tSize = #AurasPerNameplate[frame];
+				AurasPerNameplate[frame][tSize+1] = {
 					["duration"] = 0,
 					["expires"] = 0,
 					["stacks"] = 1,
@@ -714,17 +721,18 @@ do
 						["showGlow"] = GLOW_TIME_INFINITE,
 						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
 					},
-				});
+				};
 			end
 		end
 	end
 
 	local function ProcessAurasForNameplate_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
 		local foundInDB = false;
+		local tSize = #AurasPerNameplate[frame];
 		for _, dbEntry in pairs(db.CustomSpells2) do
 			if (auraName == dbEntry.spellName) then
 				if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
-					table_insert(AurasPerNameplate[frame], {
+					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
 						["stacks"] = auraStack,
@@ -733,14 +741,15 @@ do
 						["dispelType"] = auraDispelType,
 						["spellName"] = auraName,
 						["dbEntry"] = dbEntry,
-					});
+					};
+					tSize = tSize + 1;
 					foundInDB = true;
 				end
 			end
 		end
 		if (not foundInDB) then
 			if (db.AlwaysShowMyAuras and auraCaster == "player") then
-				table_insert(AurasPerNameplate[frame], {
+				AurasPerNameplate[frame][tSize+1] = {
 					["duration"] = auraDuration,
 					["expires"] = auraExpires,
 					["stacks"] = auraStack,
@@ -748,11 +757,12 @@ do
 					["type"] = auraType,
 					["dispelType"] = auraDispelType,
 					["spellName"] = auraName,
-				});
+				};
+				tSize = tSize + 1;
 			end
 			if (db.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
 				if (db.Additions_DispellableSpells_Blacklist[auraName] == nil) then
-					table_insert(AurasPerNameplate[frame], {
+					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
 						["stacks"] = auraStack,
@@ -765,7 +775,8 @@ do
 							["showGlow"] = GLOW_TIME_INFINITE,
 							["glowType"] = db.Additions_DispellableSpells_GlowType,
 						},
-					});
+					};
+					tSize = tSize + 1;
 				end
 			end
 		end
@@ -793,7 +804,8 @@ do
 		if (db.InterruptsEnabled) then
 			local interrupt = InterruptsPerUnitGUID[unitGUID];
 			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
-				table_insert(AurasPerNameplate[frame], interrupt);
+				local tSize = #AurasPerNameplate[frame];
+				AurasPerNameplate[frame][tSize+1] = interrupt;
 			end
 		end
 		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
@@ -803,7 +815,8 @@ do
 	local function UpdateNameplate_SetBorder(icon, spellInfo)
 		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
 			if (icon.borderState ~= spellInfo.type) then
-				icon.border:SetVertexColor(unpack(db.BuffBordersColor));
+				local color = db.BuffBordersColor;
+				icon.border:SetVertexColor(color[1], color[2], color[3], color[4]);
 				icon.border:Show();
 				icon.borderState = spellInfo.type;
 			end
@@ -811,7 +824,7 @@ do
 			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
 			if (icon.borderState ~= preciseType) then
 				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
-				icon.border:SetVertexColor(unpack(color));
+				icon.border:SetVertexColor(color[1], color[2], color[3], color[4]);
 				icon.border:Show();
 				icon.borderState = preciseType;
 			end
@@ -1265,7 +1278,7 @@ do
 			if (unitID ~= nil) then
 				wipe(auras);
 				for _, spellInfo in pairs(GetSpells()) do
-					table_insert(auras, spellInfo);
+					auras[#auras+1] = spellInfo;
 				end
 				UpdateNameplate(nameplate, unitID);
 			end

@@ -621,70 +621,40 @@ local function GUICategory_Fonts(index, value)
 
 	-- // colorPickerTimerTextFiveSeconds
 	do
-
 		local colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
 		colorPickerTimerTextFiveSeconds:SetParent(timerTextColorArea);
 		colorPickerTimerTextFiveSeconds:SetPoint("TOPLEFT", 10, -40);
 		colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
-		colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor));
-		colorPickerTimerTextFiveSeconds:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b, a;
-				if (restore) then
-					r, g, b, a = unpack(restore);
-				else
-					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
-				colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor));
-				addonTable.UpdateAllNameplates(true);
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextSoonToExpireColor);
-			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
-			ColorPickerFrame.hasOpacity = true;
-			ColorPickerFrame.opacity = colorA;
-			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.TimerTextSoonToExpireColor;
+		colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextFiveSeconds.func = function(self, r, g, b, a)
+			addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		colorPickerTimerTextFiveSeconds:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextFiveSeconds.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextSoonToExpireColor)); end);
-
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.TimerTextSoonToExpireColor;
+			colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 	end
 
 	-- // colorPickerTimerTextMinute
 	do
-
 		local colorPickerTimerTextMinute = VGUI.CreateColorPicker();
 		colorPickerTimerTextMinute:SetParent(timerTextColorArea);
 		colorPickerTimerTextMinute:SetPoint("TOPLEFT", 135, -40);
 		colorPickerTimerTextMinute:SetText(L["< 1min"]);
-		colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor));
-		colorPickerTimerTextMinute:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b, a;
-				if (restore) then
-					r, g, b, a = unpack(restore);
-				else
-					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
-				colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor));
-				addonTable.UpdateAllNameplates(true);
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextUnderMinuteColor);
-			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
-			ColorPickerFrame.hasOpacity = true;
-			ColorPickerFrame.opacity = colorA;
-			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.TimerTextUnderMinuteColor;
+		colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextMinute.func = function(self, r, g, b, a)
+			addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		colorPickerTimerTextMinute:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMinute.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextUnderMinuteColor)); end);
-
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.TimerTextUnderMinuteColor;
+			colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 	end
 
 	-- // colorPickerTimerTextMore
@@ -693,30 +663,17 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextMore:SetParent(timerTextColorArea);
 		colorPickerTimerTextMore:SetPoint("TOPLEFT", 260, -40);
 		colorPickerTimerTextMore:SetText(L["> 1min"]);
-		colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor));
-		colorPickerTimerTextMore:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b, a;
-				if (restore) then
-					r, g, b, a = unpack(restore);
-				else
-					a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.TimerTextLongerColor = {r, g, b, a};
-				colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor));
-				addonTable.UpdateAllNameplates(true);
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			local colorR, colorG, colorB, colorA = unpack(addonTable.db.TimerTextLongerColor);
-			ColorPickerFrame:SetColorRGB(colorR, colorG, colorB);
-			ColorPickerFrame.hasOpacity = true;
-			ColorPickerFrame.opacity = colorA;
-			ColorPickerFrame.previousValues = { colorR, colorG, colorB, colorA };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.TimerTextLongerColor;
+		colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextMore.func = function(self, r, g, b, a)
+			addonTable.db.TimerTextLongerColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		colorPickerTimerTextMore:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerTimerTextMore.colorSwatch:SetVertexColor(unpack(addonTable.db.TimerTextLongerColor)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.TimerTextLongerColor;
+			colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 	end
 
 	-- // tenthsOfSecondsArea
@@ -1081,38 +1038,20 @@ local function GUICategory_AuraStackFont(index, value)
 
 	-- // colorPickerStacksTextColor
 	do
-
 		local colorPickerStacksTextColor = VGUI.CreateColorPicker();
 		colorPickerStacksTextColor:SetParent(auraTextArea);
 		colorPickerStacksTextColor:SetPoint("TOPLEFT", dropdownStacksAnchor, "BOTTOMLEFT", 20, -20);
 		colorPickerStacksTextColor:SetText(L["Text color"]);
-		colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(addonTable.db.StacksTextColor));
-		colorPickerStacksTextColor:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.StacksTextColor = {r, g, b};
-				colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(addonTable.db.StacksTextColor));
-				for nameplate in pairs(addonTable.Nameplates) do
-					if (nameplate.NAurasFrame) then
-						for _, icon in pairs(nameplate.NAurasIcons) do
-							icon.stacks:SetTextColor(unpack(addonTable.db.StacksTextColor));
-						end
-					end
-				end
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.StacksTextColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.StacksTextColor) };
-			ColorPickerFrame:Show();
+		local t = addonTable.db.StacksTextColor;
+		colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerStacksTextColor.func = function(self, r, g, b, a)
+			addonTable.db.StacksTextColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.StacksTextColor;
+			colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
 		end);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerStacksTextColor.colorSwatch:SetVertexColor(unpack(addonTable.db.StacksTextColor)); end);
 		colorPickerStacksTextColor:Show();
 	end
 
@@ -1286,34 +1225,21 @@ local function GUICategory_Borders(index, value)
 
 	-- // colorPickerDebuffMagic
 	do
-
 		local colorPickerDebuffMagic = VGUI.CreateColorPicker();
 		colorPickerDebuffMagic:SetParent(debuffArea);
 		colorPickerDebuffMagic:SetPoint("TOPLEFT", 15, -45);
 		colorPickerDebuffMagic:SetText(L["Magic"]);
-		colorPickerDebuffMagic:SetColor(unpack(addonTable.db.DebuffBordersMagicColor));
-		colorPickerDebuffMagic:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.DebuffBordersMagicColor = {r, g, b};
-				colorPickerDebuffMagic:SetColor(unpack(addonTable.db.DebuffBordersMagicColor));
-				addonTable.UpdateAllNameplates();
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.DebuffBordersMagicColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.DebuffBordersMagicColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.DebuffBordersMagicColor;
+		colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerDebuffMagic.func = function(self, r, g, b, a)
+			addonTable.db.DebuffBordersMagicColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffMagic:SetColor(unpack(addonTable.db.DebuffBordersMagicColor)); end);
-
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.DebuffBordersMagicColor;
+			colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 	end
 
 	-- // colorPickerDebuffCurse
@@ -1323,28 +1249,17 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffCurse:SetParent(debuffArea);
 		colorPickerDebuffCurse:SetPoint("TOPLEFT", 135, -45);
 		colorPickerDebuffCurse:SetText(L["Curse"]);
-		colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersCurseColor));
-		colorPickerDebuffCurse:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.DebuffBordersCurseColor = {r, g, b};
-				colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersCurseColor));
-				addonTable.UpdateAllNameplates();
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.DebuffBordersCurseColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.DebuffBordersCurseColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.DebuffBordersCurseColor;
+		colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerDebuffCurse.func = function(self, r, g, b, a)
+			addonTable.db.DebuffBordersCurseColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffCurse.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersCurseColor)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.DebuffBordersCurseColor;
+			colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 
 	end
 
@@ -1355,28 +1270,17 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffDisease:SetParent(debuffArea);
 		colorPickerDebuffDisease:SetPoint("TOPLEFT", 255, -45);
 		colorPickerDebuffDisease:SetText(L["Disease"]);
-		colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersDiseaseColor));
-		colorPickerDebuffDisease:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.DebuffBordersDiseaseColor = {r, g, b};
-				colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersDiseaseColor));
-				addonTable.UpdateAllNameplates();
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.DebuffBordersDiseaseColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.DebuffBordersDiseaseColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.DebuffBordersDiseaseColor;
+		colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerDebuffDisease.func = function(self, r, g, b, a)
+			addonTable.db.DebuffBordersDiseaseColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffDisease.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersDiseaseColor)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.DebuffBordersDiseaseColor;
+			colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 
 	end
 
@@ -1387,61 +1291,37 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffPoison:SetParent(debuffArea);
 		colorPickerDebuffPoison:SetPoint("TOPLEFT", 375, -45);
 		colorPickerDebuffPoison:SetText(L["Poison"]);
-		colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersPoisonColor));
-		colorPickerDebuffPoison:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.DebuffBordersPoisonColor = {r, g, b};
-				colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersPoisonColor));
-				addonTable.UpdateAllNameplates();
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.DebuffBordersPoisonColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.DebuffBordersPoisonColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.DebuffBordersPoisonColor;
+		colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerDebuffPoison.func = function(self, r, g, b, a)
+			addonTable.db.DebuffBordersPoisonColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffPoison.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersPoisonColor)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.DebuffBordersPoisonColor;
+			colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 
 	end
 
 	-- // colorPickerDebuffOther
 	do
-
 		local colorPickerDebuffOther = VGUI.CreateColorPicker();
 		colorPickerDebuffOther:SetParent(debuffArea);
 		colorPickerDebuffOther:SetPoint("TOPLEFT", 15, -70);
 		colorPickerDebuffOther:SetText(L["Other"]);
-		colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersOtherColor));
-		colorPickerDebuffOther:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.DebuffBordersOtherColor = {r, g, b};
-				colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersOtherColor));
-				addonTable.UpdateAllNameplates();
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.DebuffBordersOtherColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.DebuffBordersOtherColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.DebuffBordersOtherColor;
+		colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerDebuffOther.func = function(self, r, g, b, a)
+			addonTable.db.DebuffBordersOtherColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() colorPickerDebuffOther.colorSwatch:SetVertexColor(unpack(addonTable.db.DebuffBordersOtherColor)); end);
-
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t = addonTable.db.DebuffBordersOtherColor;
+			colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 	end
 
 	-- // checkBoxBuffBorder
@@ -1456,28 +1336,18 @@ local function GUICategory_Borders(index, value)
 		checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
 		checkBoxBuffBorder:SetParent(GUIFrame);
 		checkBoxBuffBorder:SetPoint("TOPLEFT", debuffArea, "BOTTOMLEFT", 0, -10);
-		checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(addonTable.db.BuffBordersColor));
-		checkBoxBuffBorder.ColorButton:SetScript("OnClick", function()
-			ColorPickerFrame:Hide();
-			local function callback(restore)
-				local r, g, b;
-				if (restore) then
-					r, g, b = unpack(restore);
-				else
-					r, g, b = ColorPickerFrame:GetColorRGB();
-				end
-				addonTable.db.BuffBordersColor = {r, g, b};
-				checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(addonTable.db.BuffBordersColor));
-				addonTable.UpdateAllNameplates(true);
-			end
-			ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = callback, callback, callback;
-			ColorPickerFrame:SetColorRGB(unpack(addonTable.db.BuffBordersColor));
-			ColorPickerFrame.hasOpacity = false;
-			ColorPickerFrame.previousValues = { unpack(addonTable.db.BuffBordersColor) };
-			ColorPickerFrame:Show();
-		end);
+		local t = addonTable.db.BuffBordersColor;
+		checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
+		checkBoxBuffBorder.ColorButton.func = function(self, r, g, b, a)
+			addonTable.db.BuffBordersColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
 		table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders); checkBoxBuffBorder.ColorButton.colorSwatch:SetVertexColor(unpack(addonTable.db.BuffBordersColor)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
+			local t = addonTable.db.BuffBordersColor;
+			checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
+		end);
 
 	end
 

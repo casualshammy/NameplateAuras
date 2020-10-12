@@ -195,6 +195,7 @@ do
 				DefaultIconSizeWidth = 45,
 				DefaultIconSizeHeight = 45,
 				IconZoom = 0.07,
+				CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
 			},
 		};
 
@@ -236,6 +237,7 @@ do
 		InitializeDB();
 		-- // ...
 		ReloadDB();
+		addonTable.CompileSortFunction();
 		-- // starting listening for events
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
@@ -302,12 +304,13 @@ end
 ----- Nameplates
 --------------------------------------------------------------------------------------------------
 do
-
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
+	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
 	local glowInfo = { };
 	local animationInfo = { };
+	local defaultCustomSortFunction = function(aura1, aura2) return aura1.spellName < aura2.spellName; end;
 	local AuraSortFunctions;
 	AuraSortFunctions = {
 		[AURA_SORT_MODE_EXPIRETIME] = function(item1, item2)
@@ -326,8 +329,39 @@ do
 				return (item1.type == AURA_TYPE_DEBUFF) and true or false;
 			end
 			return AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME](item1, item2);
-		end
+		end,
+		[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction,
 	};
+
+	function addonTable.CompileSortFunction()
+		-- local sortAura = { 
+		-- 	["expiretime"] = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME],
+		-- 	["iconsize"] = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE],
+		-- 	["auratype_expiretime"] = AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE],
+		-- };
+		-- local exec_env = setmetatable({}, { __index =
+		-- 	function(t, k)
+		-- 		if (k == "sortAura") then
+		-- 			return sortAura;
+		-- 		else
+		-- 			return _G[k];
+		-- 		end
+		-- 	end
+		-- });
+		local script = db.CustomSortMethod;
+		script = "return " .. script;
+		local func, errorMsg = loadstring(script);
+		if (not func) then
+			addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
+			AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction;
+		else
+  			--setfenv(func, exec_env);
+  			local success, sortFunc = pcall(assert(func));
+			if (success) then
+				AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = sortFunc;
+  			end
+		end
+	end
 
 	local iconTooltip = LRD.CreateTooltip();
 	local function AllocateIcon_SetAuraTooltip(icon)

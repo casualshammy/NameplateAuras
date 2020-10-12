@@ -174,5 +174,20 @@ re-apply your DoT spell without losing it's duration.
 If this option is unchecked, animation will start when aura's remaining
 duration is less than absolute value of slider (in seconds)]];
 L["options:size-and-position:icon-zoom"] = "Icon zoom";
+L["options:size-and-position:custom-sorting:tooltip"] = 
+[[Rules:
+  - code must be an unnamed function with 2 arguments. These arguments are tables, representing auras to compare
+  - code must return 'true' if first aura should be placed in front of second aura, and vice versa
+  - sorting is done quite often, so don't make sorting function too heavy
+  - don't modify content of aura's tables unless you REALLY know what you are doing
+  - double-check any code you got from strangers
+Aura's table content:
+  - .duration - contains duration of aura in seconds (number)
+  - .expires - time when aura will finish (you can compare it with GetTime(), number)
+  - .stacks - number of stacks (number)
+  - .spellID - ID of aura
+  - .spellName - name of aura
+]];
+L["icon-sort-mode:custom"] = "Custom";
 
 --@end-debug@

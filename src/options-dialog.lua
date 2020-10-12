@@ -53,6 +53,9 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
 		["showGlow"] =					nil,
 		["glowType"] =					addonTable.GLOW_TYPE_AUTOUSE,
+		["animationType"] =				addonTable.ICON_ANIMATION_TYPE_ALPHA,
+		["animationTimer"] =			10,
+		["animationDisplayMode"] =		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE,
 	};
 end
 
@@ -1478,6 +1481,7 @@ local function GUICategory_4(index, value)
 					button2 = NO,
 					OnAccept = function()
 						wipe(addonTable.db.CustomSpells2);
+						selectSpell:Click();
 						addonTable.UpdateAllNameplates(true);
 					end,
 					timeout = 0,
@@ -1787,6 +1791,7 @@ local function GUICategory_4(index, value)
 			end
 			table_sort(t, function(item1, item2) return item1.text < item2.text end);
 			dropdownMenuSpells:SetList(t);
+			dropdownMenuSpells:SetWidth(400);
 			dropdownMenuSpells:SetParent(button);
 			dropdownMenuSpells:ClearAllPoints();
 			dropdownMenuSpells:SetPoint("TOP", button, "BOTTOM", 0, 0);
@@ -2047,7 +2052,6 @@ local function GUICategory_4(index, value)
 		areaAnimation:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		areaAnimation:SetPoint("TOPLEFT", areaGlow, "BOTTOMLEFT", 0, 0);
 		areaAnimation:SetPoint("TOPRIGHT", areaGlow, "BOTTOMRIGHT", 0, 0);
-		--areaAnimation:SetWidth(340);
 		areaAnimation:SetHeight(80);
 		table_insert(controls, areaAnimation);
 	end
@@ -3209,14 +3213,23 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.NonTargetStrata); end);
 	end
 
-	local dropdownSortMode;
+	local dropdownSortMode, buttonCustomSortFunction;
 	do
 		local SortModesLocalization = {
-			[AURA_SORT_MODE_NONE] =				L["icon-sort-mode:none"],
-			[AURA_SORT_MODE_EXPIRETIME] =		L["icon-sort-mode:by-expire-time"],
-			[AURA_SORT_MODE_ICONSIZE] =			L["icon-sort-mode:by-icon-size"],
-			[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["icon-sort-mode:by-aura-type+by-expire-time"],
+			[AURA_SORT_MODE_NONE] =					L["icon-sort-mode:none"],
+			[AURA_SORT_MODE_EXPIRETIME] =			L["icon-sort-mode:by-expire-time"],
+			[AURA_SORT_MODE_ICONSIZE] =				L["icon-sort-mode:by-icon-size"],
+			[AURA_SORT_MODE_AURATYPE_EXPIRE] =		L["icon-sort-mode:by-aura-type+by-expire-time"],
+			[addonTable.AURA_SORT_MODE_CUSTOM] =	L["icon-sort-mode:custom"],
 		};
+
+		local function UpdateButton()
+			if (addonTable.db.SortMode == addonTable.AURA_SORT_MODE_CUSTOM) then
+				buttonCustomSortFunction:Show();
+			else
+				buttonCustomSortFunction:Hide();
+			end
+		end
 
 		dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
@@ -3231,6 +3244,7 @@ local function GUICategory_SizeAndPosition(index, value)
 					addonTable.db.SortMode = self.value;
 					_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
+					UpdateButton();
 				end
 				info.checked = (addonTable.db.SortMode == info.value);
 				UIDropDownMenu_AddButton(info);
@@ -3243,7 +3257,83 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.Categories[index], dropdownSortMode);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
 
+		local LuaEditor = VGUI.CreateLuaEditor();
+		LuaEditor.Editor:SetCallback("OnEnterPressed", function()
+			addonTable.db.CustomSortMethod = LuaEditor.Editor:GetText();
+			addonTable.CompileSortFunction();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		LuaEditor.Editor:SetCallback("OnTextChanged", function()
+			local script = LuaEditor.Editor:GetText();
+			script = "return " .. script;
+			local func, errorMsg = loadstring(script);
+			if (func ~= nil) then
+				LuaEditor:SetStatusText("");
+			else
+				LuaEditor:SetStatusText(errorMsg);
+			end
+		end);
+
+		local LuaEditorTooltip = VGUI.CreateTooltip();
+		LuaEditorTooltip:SetParent(LuaEditor.frame);
+		LuaEditorTooltip:SetPoint("TOPLEFT", LuaEditor.frame, "BOTTOMLEFT", 0, 0);
+		LuaEditorTooltip:SetPoint("TOPRIGHT", LuaEditor.frame, "BOTTOMRIGHT", 0, 0);
+		LuaEditorTooltip.text:ClearAllPoints();
+		LuaEditorTooltip.text:SetPoint("TOPLEFT", 10, -10);
+		LuaEditorTooltip.text:SetPoint("TOPRIGHT", -10, -10);
+		LuaEditorTooltip.text:SetJustifyH("LEFT");
+		LuaEditorTooltip.text:SetText(L["options:size-and-position:custom-sorting:tooltip"]);
+		LuaEditorTooltip:SetScript("OnSizeChanged", function()
+			LuaEditorTooltip:SetHeight(LuaEditorTooltip.text:GetStringHeight() + 20);
+		end);
+		LuaEditorTooltip:SetHeight(LuaEditorTooltip.text:GetStringHeight() + 20);
+		LuaEditorTooltip:Show();
+
+		buttonCustomSortFunction = VGUI.CreateButton();
+		buttonCustomSortFunction:SetParent(dropdownSortMode);
+		buttonCustomSortFunction:SetText("Lua -->>");
+		buttonCustomSortFunction:SetWidth(60);
+		buttonCustomSortFunction:SetHeight(22);
+		buttonCustomSortFunction:SetPoint("LEFT", dropdownSortMode, "RIGHT", 0, 3);
+		buttonCustomSortFunction:SetScript("OnClick", function()
+			LuaEditor.Editor:SetText(addonTable.db.CustomSortMethod);
+			LuaEditor:Show();
+		end);
+		UpdateButton();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			UpdateButton();
+		end);
+
 	end
+
+	-- do
+	-- 	local SortModesLocalization = {
+	-- 		[AURA_SORT_MODE_NONE] =				L["icon-sort-mode:none"],
+	-- 		[AURA_SORT_MODE_EXPIRETIME] =		L["icon-sort-mode:by-expire-time"],
+	-- 		[AURA_SORT_MODE_ICONSIZE] =			L["icon-sort-mode:by-icon-size"],
+	-- 		[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["icon-sort-mode:by-aura-type+by-expire-time"],
+	-- 	};
+
+	-- 	dropdownSortMode = VGUI.CreateDropdown();
+	-- 	dropdownSortMode:SetParent(GUIFrame);
+	-- 	dropdownSortMode:SetSize(300, 24);
+	-- 	dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -270);
+
+	-- 	local t = { };
+	-- 	for sortMode, sortModeL in pairs(SortModesLocalization) do
+	-- 		local entry = { };
+	-- 		entry.text = sortModeL;
+	-- 		entry.func = function(self)
+	-- 			addonTable.db.SortMode = sortMode;
+	-- 			addonTable.UpdateAllNameplates(true);
+	-- 		end
+	-- 		entry.selected = (addonTable.db.SortMode == sortMode);
+	-- 		t[#t+1] = entry;
+	-- 	end
+	-- 	dropdownSortMode:SetList(t);
+
+	-- 	table_insert(GUIFrame.Categories[index], dropdownSortMode);
+	-- end
 
 	local scaleArea, sliderScale, sliderScaleTarget;
 
@@ -3843,7 +3933,8 @@ local function InitializeGUI()
 
 	local header = GUIFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight");
 	header:SetFont(GameFontNormal:GetFont(), 22, "THICKOUTLINE");
-	header:SetPoint("CENTER", GUIFrame, "CENTER", 0, 230);
+	header:SetPoint("BOTTOM", GUIFrame, "TOP", 0, 0);
+	header:SetJustifyH("CENTER");
 	header:SetText("NameplateAuras");
 
 	GUIFrame.outline = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
@@ -3866,15 +3957,14 @@ local function InitializeGUI()
 	GUIFrame.ControlsFrame:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -12, 12);
 	GUIFrame.ControlsFrame:Hide();
 
-	local closeButton = CreateFrame("Button", "NAuras.GUI.CloseButton", GUIFrame, "UIPanelButtonTemplate");
-	closeButton:SetWidth(24);
-	closeButton:SetHeight(24);
-	closeButton:SetPoint("TOPRIGHT", 0, 22);
+	local closeButton = VGUI.CreateButton();-- CreateFrame("Button", nil, GUIFrame, "UIPanelButtonTemplate");
+	closeButton:SetParent(GUIFrame);
+	closeButton:SetText("Close");
+	closeButton:SetWidth(60);
+	closeButton:SetHeight(20);
+	closeButton:SetPoint("BOTTOMRIGHT", GUIFrame, "TOPRIGHT", -4, 0);
 	closeButton:SetScript("OnClick", function() GUIFrame:Hide(); end);
-	closeButton.text = closeButton:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-	closeButton.text:SetPoint("CENTER", closeButton, "CENTER", 1, -1);
-	closeButton.text:SetText("X");
-
+	
 	GUIFrame.Categories = {};
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
@@ -3975,7 +4065,11 @@ if (LDB ~= nil) then
 	);
 	plugin.OnClick = function(display, button)
 		if (button == "LeftButton") then
-			addonTable.ShowGUI();
+			if (GUIFrame ~= nil and GUIFrame:IsShown()) then
+				GUIFrame:Hide();
+			else
+				addonTable.ShowGUI();
+			end
 		elseif (button == "RightButton") then
 			addonTable.SwitchTestMode();
 		end

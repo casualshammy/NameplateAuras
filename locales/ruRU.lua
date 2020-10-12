@@ -175,5 +175,6 @@ L["options:spells:animation-relative:tooltip"] =
 Если эта опция выключена, то анимация будет появляться когда оставшееся
 время ауры меньше, чем абсолютное значение на слайдере (в секундах).]];
 L["options:size-and-position:icon-zoom"] = "Увеличение иконок";
+L["icon-sort-mode:custom"] = "Пользовательский";
 
 --@end-debug@

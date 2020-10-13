@@ -1835,7 +1835,7 @@ local function GUICategory_4(index, value)
 		VGUI.SetTooltip(checkboxEnabled, format(L["options:auras:enabled-state:tooltip"],
 			addonTable.ColorizeText(L["Disabled"], 1, 1, 1),
 			addonTable.ColorizeText(L["options:auras:enabled-state-mineonly"], 0, 1, 1),
-			addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)));
+			addonTable.ColorizeText(L["options:auras:enabled-state-all"], 0, 1, 0)), "LEFT");
 		table_insert(controls, checkboxEnabled);
 
 	end
@@ -3258,36 +3258,36 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
 
 		local LuaEditor = VGUI.CreateLuaEditor();
-		LuaEditor.Editor:SetCallback("OnEnterPressed", function()
-			addonTable.db.CustomSortMethod = LuaEditor.Editor:GetText();
+		LuaEditor:SetOnAcceptHandler(function(self)
+			addonTable.db.CustomSortMethod = self:GetText();
 			addonTable.CompileSortFunction();
 			addonTable.UpdateAllNameplates(true);
 		end);
-		LuaEditor.Editor:SetCallback("OnTextChanged", function()
-			local script = LuaEditor.Editor:GetText();
+		LuaEditor:SetOnTextChangedHandler(function(self)
+			local script = self:GetText();
 			script = "return " .. script;
 			local func, errorMsg = loadstring(script);
 			if (func ~= nil) then
-				LuaEditor:SetStatusText("");
+				self:SetStatusText("");
 			else
-				LuaEditor:SetStatusText(errorMsg);
+				self:SetStatusText(errorMsg);
 			end
 		end);
 
 		local LuaEditorTooltip = VGUI.CreateTooltip();
-		LuaEditorTooltip:SetParent(LuaEditor.frame);
-		LuaEditorTooltip:SetPoint("TOPLEFT", LuaEditor.frame, "BOTTOMLEFT", 0, 0);
-		LuaEditorTooltip:SetPoint("TOPRIGHT", LuaEditor.frame, "BOTTOMRIGHT", 0, 0);
-		LuaEditorTooltip.text:ClearAllPoints();
-		LuaEditorTooltip.text:SetPoint("TOPLEFT", 10, -10);
-		LuaEditorTooltip.text:SetPoint("TOPRIGHT", -10, -10);
-		LuaEditorTooltip.text:SetJustifyH("LEFT");
-		LuaEditorTooltip.text:SetText(L["options:size-and-position:custom-sorting:tooltip"]);
-		LuaEditorTooltip:SetScript("OnSizeChanged", function()
-			LuaEditorTooltip:SetHeight(LuaEditorTooltip.text:GetStringHeight() + 20);
+		LuaEditorTooltip:SetParent(LuaEditor);
+		LuaEditorTooltip:SetPoint("TOPLEFT", LuaEditor, "BOTTOMLEFT", 0, 0);
+		LuaEditorTooltip:SetPoint("TOPRIGHT", LuaEditor, "BOTTOMRIGHT", 0, 0);
+		LuaEditorTooltip:GetTextObject():SetFontObject(GameFontNormal);
+		LuaEditorTooltip:GetTextObject():SetJustifyH("LEFT");
+		LuaEditorTooltip:SetText(L["options:size-and-position:custom-sorting:tooltip"]);
+		LuaEditor:SetInfoButton(true, function()
+			if (LuaEditorTooltip:IsShown()) then
+				LuaEditorTooltip:Hide();
+			else
+				LuaEditorTooltip:Show();
+			end
 		end);
-		LuaEditorTooltip:SetHeight(LuaEditorTooltip.text:GetStringHeight() + 20);
-		LuaEditorTooltip:Show();
 
 		buttonCustomSortFunction = VGUI.CreateButton();
 		buttonCustomSortFunction:SetParent(dropdownSortMode);
@@ -3296,7 +3296,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		buttonCustomSortFunction:SetHeight(22);
 		buttonCustomSortFunction:SetPoint("LEFT", dropdownSortMode, "RIGHT", 0, 3);
 		buttonCustomSortFunction:SetScript("OnClick", function()
-			LuaEditor.Editor:SetText(addonTable.db.CustomSortMethod);
+			LuaEditor:SetText(addonTable.db.CustomSortMethod);
 			LuaEditor:Show();
 		end);
 		UpdateButton();

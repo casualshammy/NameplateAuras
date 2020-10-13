@@ -334,20 +334,19 @@ do
 	};
 
 	function addonTable.CompileSortFunction()
-		-- local sortAura = { 
-		-- 	["expiretime"] = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME],
-		-- 	["iconsize"] = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE],
-		-- 	["auratype_expiretime"] = AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE],
-		-- };
-		-- local exec_env = setmetatable({}, { __index =
-		-- 	function(t, k)
-		-- 		if (k == "sortAura") then
-		-- 			return sortAura;
-		-- 		else
-		-- 			return _G[k];
-		-- 		end
-		-- 	end
-		-- });
+		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME];
+		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE];
+		local exec_env = setmetatable({}, { __index =
+			function(t, k)
+				if (k == "sort_time") then
+					return sort_time;
+				elseif (k == "sort_size") then
+					return sort_size;
+				else
+					return _G[k];
+				end
+			end
+		});
 		local script = db.CustomSortMethod;
 		script = "return " .. script;
 		local func, errorMsg = loadstring(script);
@@ -355,7 +354,7 @@ do
 			addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
 			AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction;
 		else
-  			--setfenv(func, exec_env);
+  			setfenv(func, exec_env);
   			local success, sortFunc = pcall(assert(func));
 			if (success) then
 				AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = sortFunc;

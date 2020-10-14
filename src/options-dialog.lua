@@ -3863,6 +3863,16 @@ local function GUICategory_Dispel(index, value)
 
 end
 
+local function DeleteUnexistantSpells()
+    local db = addonTable.db;
+	for index, spellInfo in pairs(db.CustomSpells2) do
+		if (AllSpellIDsAndIconsByName[spellInfo.spellName] == nil) then
+			addonTable.Print(("Spell with name '%s' is not found (deleted from game?)"):format(spellInfo.spellName));
+			db.CustomSpells2[index] = nil;
+		end
+	end
+end
+
 local function InitializeGUI_CreateSpellInfoCaches()
 	GUIFrame:HookScript("OnShow", function()
 		local scanAllSpells = coroutine.create(function()
@@ -3882,6 +3892,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 				end
 				coroutine.yield();
 			end
+			DeleteUnexistantSpells();
 			addonTable.OnSpellInfoCachesReady();
 		end);
 		CoroutineProcessor:Queue("scanAllSpells", scanAllSpells);

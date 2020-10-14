@@ -274,8 +274,6 @@ local migrations = {
             end
         end
     end,
-
-    
 };
 
 local function FillInMissingEntriesIsSpells()

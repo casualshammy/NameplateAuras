@@ -259,6 +259,21 @@ local migrations = {
             end
         end
     end,
+    [16] = function()
+        local db = addonTable.db;
+        if (#db.StacksTextColor == 3) then
+            db.StacksTextColor[#db.StacksTextColor+1] = 1;
+        end
+    end,
+    [17] = function()
+        local db = addonTable.db;
+        local values = { "DebuffBordersMagicColor", "DebuffBordersCurseColor", "DebuffBordersDiseaseColor", "DebuffBordersPoisonColor", "DebuffBordersOtherColor", "BuffBordersColor" };
+        for _, value in pairs(values) do
+            if (#db[value] == 3) then
+                db[value][4] = 1;
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

@@ -40,10 +40,11 @@ L["Magic"] = "Magic"
 L["Options are not available in combat!"] = "Options are not available in combat!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
 This aura have a bright glow and default size]=]
-L["options:auras:enabled-state:tooltip"] = [=[Enables/disables aura
+L["options:auras:enabled-state:tooltip"] = 
+[=[%s: aura will not be shown
 
-%s: aura will not be shown
 %s: aura will be shown if you've cast it
+
 %s: show all auras]=]
 L["options:auras:enabled-state-all"] = "Enabled, show all auras"
 L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
@@ -52,8 +53,7 @@ L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
 L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
 L["options:category:apps"] = "Apps"
 L["options:category:interrupts"] = "Interrupts"
-L["options:general:always-show-my-auras:tooltip"] = [=[This is top priority filter. If you enable this feature,
-your auras will be shown regardless of other filters]=]
+L["options:general:always-show-my-auras:tooltip"] = "This is top priority filter. If you enable this feature, your auras will be shown regardless of other filters"
 L["options:general:hide-blizz-frames"] = "Hide Blizzard's aura frames (except player)"
 L["options:general:hide-player-blizz-frame"] = "Hide Blizzard's aura frames on player"
 L["options:general:show-aura-tooltip"] = "Show aura name when mouse is over auras icon"
@@ -95,8 +95,7 @@ L["Y offset"] = "Y offset"
 L["options:general:test-mode"] = "Test mode";
 L["options:category:size-and-position"] = "Size & position";
 L["options:apps:dispellable-spells"] = "Show dispellable/stealable auras on enemy nameplates";
-L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies
-These auras have a dim glow and default size]=]
+L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies. These auras have a dim glow and default size]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
 L["options:category:dispel"] = "Purge/steal";
 L["options:glow-type"] = "Glow type";
@@ -156,22 +155,35 @@ L["options:spells:glow-relative"] = [[Use relative time]];
 L["options:spells:glow-relative:tooltip"] = 
 [[This option changes the meaning of slider on the left.
 
-If this option is checked, glow will appear when aura's remaining
-duration is less than the selected percent of maximum duration of this aura.
-It is useful, for example, if you want to know when you can safely
-re-apply your DoT spell without losing it's duration.
+If this option is checked, glow will appear when aura's remaining duration is less than the selected percent of maximum duration of this aura. It is useful, for example, if you want to know when you can safely re-apply your DoT spell without losing it's duration.
 
-If this option is unchecked, glow will appear when aura's remaining
-duration is less than absolute value of slider (in seconds)]];
+If this option is unchecked, glow will appear when aura's remaining duration is less than absolute value of slider (in seconds)]];
 L["options:spells:animation-relative:tooltip"] = 
 [[This option changes the meaning of slider on the left.
 
-If this option is checked, animation will start when aura's remaining
-duration is less than the selected percent of maximum duration of this aura.
-It is useful, for example, if you want to know when you can safely
-re-apply your DoT spell without losing it's duration.
+If this option is checked, animation will start when aura's remaining duration is less than the selected percent of maximum duration of this aura. It is useful, for example, if you want to know when you can safely re-apply your DoT spell without losing it's duration.
 
-If this option is unchecked, animation will start when aura's remaining
-duration is less than absolute value of slider (in seconds)]];
+If this option is unchecked, animation will start when aura's remaining duration is less than absolute value of slider (in seconds)]];
+L["options:size-and-position:icon-zoom"] = "Icon zoom";
+L["options:size-and-position:custom-sorting:tooltip"] = 
+[[Rules:
+  - code must be an unnamed function with 2 arguments. These arguments are tables, representing auras to compare
+  - this function must return 'true' if the first aura should be placed before the second aura, and vice versa
+  - sorting is done quite often, so don't make sorting function too heavy
+  - don't modify content of aura's table unless you REALLY know what you are doing
+  - double-check any code you got from strangers
+
+Aura's table content:
+  - .duration - contains duration of aura in seconds. If aura is permanent, value of this field is 0. (type: number)
+  - .expires - time when aura will finish. You can compare it with GetTime(). If aura is permanent, value of this field is 0. (type: number)
+  - .stacks - number of stacks (type: number)
+  - .spellID - ID of aura (type: number)
+  - .spellName - name of aura (type: string)
+
+Built-in sorting functions:
+  - sort_time(aura1, aura2) - sort by aura's remaining time
+  - sort_size(aura1, aura2) - sort by icon's size
+]];
+L["icon-sort-mode:custom"] = "Custom";
 
 --@end-debug@

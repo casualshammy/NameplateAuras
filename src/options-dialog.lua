@@ -1405,6 +1405,25 @@ local function GUICategory_4(index, value)
 		return spellID, textureID;
 	end
 
+	function addonTable.GetCurrentlyEditingSpell()
+		if (spellArea:IsVisible()) then
+			if (selectedSpell ~= nil and selectedSpell > 0) then
+				local spellID;
+				local spell = addonTable.db.CustomSpells2[selectedSpell];
+				if (spell.checkSpellID ~= nil and #spell.checkSpellID > 0) then
+					spellID = next(spell.checkSpellID);
+				else
+					spellID = next(AllSpellIDsAndIconsByName[spell.spellName]);
+				end
+				return spell, spellID;
+			else
+				return nil;
+			end
+		else
+			return nil;
+		end
+	end
+
 	-- // enable & disable all spells buttons
 	do
 

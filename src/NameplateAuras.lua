@@ -1248,7 +1248,7 @@ do
 		if (GetTime() - spellsLastTimeUpdated >= intervalBetweenRefreshes) then
 			spellsLastTimeUpdated = GetTime();
 		end
-		return {
+		local t = {
 			{
 				["duration"] = intervalBetweenRefreshes-3,
 				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
@@ -1301,8 +1301,23 @@ do
 					["glowType"] = db.Additions_DispellableSpells_GlowType,
 				},
 			},
-
 		};
+		if (addonTable.GetCurrentlyEditingSpell ~= nil) then
+			local dbEntry, spellID = addonTable.GetCurrentlyEditingSpell();
+			if (dbEntry ~= nil and spellID ~= nil) then
+				t[#t+1] = {
+					["duration"] = intervalBetweenRefreshes,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
+					["stacks"] = 5,
+					["spellID"] = spellID,
+					["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF,
+					["dispelType"] = "Magic",
+					["spellName"] = SpellNameByID[spellID],
+					["dbEntry"] = dbEntry,
+				};
+			end
+		end
+		return t;
 	end
 
 	local function Ticker_OnTick()

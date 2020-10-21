@@ -976,9 +976,10 @@ do
 	local function UpdateNameplate_SetIconSize(dbEntry, icon)
 		local spellWidth, spellHeight;
 		if (dbEntry ~= nil) then
-			spellWidth, spellHeight = dbEntry.iconSizeWidth, dbEntry.iconSizeHeight;
+			spellWidth = dbEntry.iconSizeWidth or db.DefaultIconSizeWidth;
+			spellHeight = dbEntry.iconSizeHeight or db.DefaultIconSizeHeight;
 		else
-			spellWidth, spellHeight = db.DefaultIconSizeWidth, db.DefaultIconSizeHeight
+			spellWidth, spellHeight = db.DefaultIconSizeWidth, db.DefaultIconSizeHeight;
 		end
 		local iconResized = false;
 		if (spellWidth ~= icon.sizeWidth or spellHeight ~= icon.sizeHeight) then

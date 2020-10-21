@@ -185,5 +185,7 @@ Built-in sorting functions:
   - sort_size(aura1, aura2) - sort by icon's size
 ]];
 L["icon-sort-mode:custom"] = "Custom";
+L["options:size-and-position:keep-aspect-ratio"] = "Keep aspect ratio of textures";
+L["options:size-and-position:keep-aspect-ratio:tooltip"] = "If this option is checked and icon width and height are not equal, then texture of spell will be cropped in that way to save original image proportions";
 
 --@end-debug@

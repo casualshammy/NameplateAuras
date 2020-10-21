@@ -596,7 +596,6 @@ do
 		icon:SetSize(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
-		icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 		icon.border = icon:CreateTexture(nil, "ARTWORK");
 		icon.stacks = icon:CreateFontString(nil, "ARTWORK");
 		icon.cooldownText = icon:CreateFontString(nil, "ARTWORK");
@@ -693,7 +692,6 @@ do
 							icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((sizeMin / 4) * db.StacksFontScale), "OUTLINE");
 						end
 						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex);
-						icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 						icon.cooldownText:ClearAllPoints();
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 						icon.textColor = nil;
@@ -998,6 +996,25 @@ do
 		return spellWidth, spellHeight;
 	end
 
+	local function UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight)
+		local xOffset, yOffset = db.IconZoom, db.IconZoom;
+		if (db.KeepAspectRatio) then
+			local aspectRatio = spellWidth / spellHeight;
+			local freeSpace = 0.5 - db.IconZoom;
+			if (aspectRatio > 1) then
+				yOffset = db.IconZoom + (freeSpace - freeSpace*(1/aspectRatio));
+			elseif (aspectRatio < 1) then
+				xOffset = db.IconZoom + (freeSpace - freeSpace*aspectRatio);
+			end
+		end
+		if (icon.textureXOffset ~= xOffset or icon.textureYOffset ~= yOffset) then
+			icon.texture:SetTexCoord(xOffset, 1-xOffset, yOffset, 1-yOffset);
+			icon.textureXOffset = xOffset;
+			icon.textureYOffset = yOffset;
+			--print("icon.texture:SetTexCoord");
+		end
+	end
+
 	function UpdateNameplate(frame, unitGUID)
 		local counter = 1;
 		local maxIconWidth = 0;
@@ -1025,6 +1042,7 @@ do
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
 					local spellWidth, spellHeight = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
+					UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight);
 					maxIconWidth = math_max(maxIconWidth, spellWidth);
 					maxIconHeight = math_max(maxIconHeight, spellHeight);
 					totalWidth = totalWidth + icon.sizeWidth + db.IconSpacing;

@@ -2767,7 +2767,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		[frameAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 
-
 	-- // sliderIconSize
 	do
 
@@ -3032,12 +3031,30 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconZoom.slider:SetValue(addonTable.db.IconZoom); sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom)); end);
 	end
 
+	-- // checkboxKeepAspectRatio
+	do
+		local checkboxKeepAspectRatio = VGUI.CreateCheckBox();
+		checkboxKeepAspectRatio:SetText(L["options:size-and-position:keep-aspect-ratio"]);
+		VGUI.SetTooltip(checkboxKeepAspectRatio, L["options:size-and-position:keep-aspect-ratio:tooltip"]);
+		checkboxKeepAspectRatio:SetOnClickHandler(function(this)
+			addonTable.db.KeepAspectRatio = this:GetChecked();
+			addonTable.UpdateAllNameplates();
+		end);
+		checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+		checkboxKeepAspectRatio:SetParent(GUIFrame);
+		checkboxKeepAspectRatio:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -120);
+		table_insert(GUIFrame.Categories[index], checkboxKeepAspectRatio);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+		end);
+	end
+
 	-- // dropdownFrameAnchorToNameplate
 	do
 					
 		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 220);
-		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -140);
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -160);
 		local info = {};
 		dropdownFrameAnchorToNameplate.initialize = function()
 			wipe(info);
@@ -3066,7 +3083,7 @@ local function GUICategory_SizeAndPosition(index, value)
 	do
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 220);
-		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -140);
+		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -160);
 		local info = {};
 		dropdownFrameAnchor.initialize = function()
 			wipe(info);
@@ -3102,7 +3119,7 @@ local function GUICategory_SizeAndPosition(index, value)
 			[anchors[3]] = L["options:size-and-position:icon-align:center"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 220);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -180);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -200);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -3139,7 +3156,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		};
 		local dropdownIconGrowDirection = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.DropdownIconGrowDirection", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconGrowDirection, 220);
-		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -180);
+		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -200);
 		local info = {};
 		dropdownIconGrowDirection.initialize = function()
 			wipe(info);
@@ -3180,7 +3197,7 @@ local function GUICategory_SizeAndPosition(index, value)
 	do
 		dropdownTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTargetStrata, 220);
-		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -220);
+		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -240);
 		local info = {};
 		dropdownTargetStrata.initialize = function()
 			wipe(info);
@@ -3208,7 +3225,7 @@ local function GUICategory_SizeAndPosition(index, value)
 	do
 		dropdownNonTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownNonTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownNonTargetStrata, 220);
-		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -220);
+		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -240);
 		local info = {};
 		dropdownNonTargetStrata.initialize = function()
 			wipe(info);
@@ -3252,7 +3269,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 		dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -270);
+		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -290);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);
@@ -3324,35 +3341,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		end);
 
 	end
-
-	-- do
-	-- 	local SortModesLocalization = {
-	-- 		[AURA_SORT_MODE_NONE] =				L["icon-sort-mode:none"],
-	-- 		[AURA_SORT_MODE_EXPIRETIME] =		L["icon-sort-mode:by-expire-time"],
-	-- 		[AURA_SORT_MODE_ICONSIZE] =			L["icon-sort-mode:by-icon-size"],
-	-- 		[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["icon-sort-mode:by-aura-type+by-expire-time"],
-	-- 	};
-
-	-- 	dropdownSortMode = VGUI.CreateDropdown();
-	-- 	dropdownSortMode:SetParent(GUIFrame);
-	-- 	dropdownSortMode:SetSize(300, 24);
-	-- 	dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -270);
-
-	-- 	local t = { };
-	-- 	for sortMode, sortModeL in pairs(SortModesLocalization) do
-	-- 		local entry = { };
-	-- 		entry.text = sortModeL;
-	-- 		entry.func = function(self)
-	-- 			addonTable.db.SortMode = sortMode;
-	-- 			addonTable.UpdateAllNameplates(true);
-	-- 		end
-	-- 		entry.selected = (addonTable.db.SortMode == sortMode);
-	-- 		t[#t+1] = entry;
-	-- 	end
-	-- 	dropdownSortMode:SetList(t);
-
-	-- 	table_insert(GUIFrame.Categories[index], dropdownSortMode);
-	-- end
 
 	local scaleArea, sliderScale, sliderScaleTarget;
 

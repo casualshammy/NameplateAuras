@@ -628,14 +628,14 @@ local function GUICategory_Fonts(index)
 		colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
 		local t = addonTable.db.TimerTextSoonToExpireColor;
 		colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextFiveSeconds.func = function(self, r, g, b, a)
+		colorPickerTimerTextFiveSeconds.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextFiveSeconds:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextSoonToExpireColor;
-			colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextSoonToExpireColor;
+			colorPickerTimerTextFiveSeconds:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -647,14 +647,14 @@ local function GUICategory_Fonts(index)
 		colorPickerTimerTextMinute:SetText(L["< 1min"]);
 		local t = addonTable.db.TimerTextUnderMinuteColor;
 		colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextMinute.func = function(self, r, g, b, a)
+		colorPickerTimerTextMinute.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMinute:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextUnderMinuteColor;
-			colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextUnderMinuteColor;
+			colorPickerTimerTextMinute:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -666,14 +666,14 @@ local function GUICategory_Fonts(index)
 		colorPickerTimerTextMore:SetText(L["> 1min"]);
 		local t = addonTable.db.TimerTextLongerColor;
 		colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextMore.func = function(self, r, g, b, a)
+		colorPickerTimerTextMore.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextLongerColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMore:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextLongerColor;
-			colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextLongerColor;
+			colorPickerTimerTextMore:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -744,7 +744,7 @@ local function GUICategory_Fonts(index)
 
 end
 
-local function GUICategory_AuraStackFont(index, value)
+local function GUICategory_AuraStackFont(index)
 	local dropdownMenuFont = VGUI.CreateDropdownMenu();
 	local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local textAnchorsLocalization = {
@@ -777,18 +777,18 @@ local function GUICategory_AuraStackFont(index, value)
 		checkboxShowStacks:SetParent(GUIFrame);
 		checkboxShowStacks:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
 		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkboxShowStacks:SetScript("OnShow", function(self)
+		checkboxShowStacks:SetScript("OnShow", function()
 			if (addonTable.db.ShowStacks) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
 			end
 		end);
-		checkboxShowStacks:SetScript("OnHide", function(self)
+		checkboxShowStacks:SetScript("OnHide", function()
 			auraTextArea:Hide();
 		end);
 	end
@@ -818,7 +818,7 @@ local function GUICategory_AuraStackFont(index, value)
 		buttonFont:SetParent(auraTextArea);
 		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.StacksFont);
 
-		for idx, font in next, SML:List("font") do
+		for _, font in next, SML:List("font") do
 			table_insert(fonts, {
 				["text"] = font,
 				["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
@@ -836,7 +836,7 @@ local function GUICategory_AuraStackFont(index, value)
 		buttonFont:SetHeight(24);
 		buttonFont:SetPoint("TOPLEFT", auraTextArea, "TOPLEFT", 10, -10);
 		buttonFont:SetPoint("TOPRIGHT", auraTextArea, "TOPRIGHT", -10, -10);
-		buttonFont:SetScript("OnClick", function(self, ...)
+		buttonFont:SetScript("OnClick", function(self)
 			if (dropdownMenuFont:IsVisible()) then
 				dropdownMenuFont:Hide();
 			else
@@ -1045,13 +1045,13 @@ local function GUICategory_AuraStackFont(index, value)
 		colorPickerStacksTextColor:SetText(L["Text color"]);
 		local t = addonTable.db.StacksTextColor;
 		colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerStacksTextColor.func = function(self, r, g, b, a)
+		colorPickerStacksTextColor.func = function(_, r, g, b, a)
 			addonTable.db.StacksTextColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.StacksTextColor;
-			colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.StacksTextColor;
+			colorPickerStacksTextColor:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 		colorPickerStacksTextColor:Show();
 	end

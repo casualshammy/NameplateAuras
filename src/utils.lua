@@ -1,6 +1,6 @@
 -- luacheck: no max line length
 -- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN GetSpellTexture DEFAULT_CHAT_FRAME
--- luacheck: globals OKAY YES NO ReloadUI
+-- luacheck: globals OKAY YES NO ReloadUI GetSpellInfo GetPlayerInfoByGUID
 
 local _, addonTable = ...;
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");

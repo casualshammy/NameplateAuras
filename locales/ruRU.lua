@@ -1,3 +1,5 @@
+-- luacheck: no max line length
+
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "ruRU"); -- luacheck: ignore
 L = L or {}
 --[===[@non-debug@

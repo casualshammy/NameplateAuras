@@ -1,24 +1,22 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub
--- luacheck: globals UIParent
--- luacheck: globals CreateFrame
+-- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth
+-- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
+-- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown
 
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer,   strsplit =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
+local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter =
+		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After;
 
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
 	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
@@ -26,18 +24,13 @@ do
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
-	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
-	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
-	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor;
+local Print, msg, table_count, SpellTextureByID, SpellNameByID, CoroutineProcessor;
 do
-
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor =
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID, addonTable.CoroutineProcessor;
-
+	Print, msg, table_count, SpellTextureByID, SpellNameByID, CoroutineProcessor =
+		addonTable.Print, addonTable.msg, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.CoroutineProcessor;
 end
 
 
@@ -65,12 +58,12 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 end
 
 local function ShowGUICategory(index)
-	for i, v in pairs(GUIFrame.Categories) do
-		for k, l in pairs(v) do
+	for _, v in pairs(GUIFrame.Categories) do
+		for _, l in pairs(v) do
 			l:Hide();
 		end
 	end
-	for i, v in pairs(GUIFrame.Categories[index]) do
+	for _, v in pairs(GUIFrame.Categories[index]) do
 		v:Show();
 	end
 end

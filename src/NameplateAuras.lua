@@ -1,3 +1,9 @@
+-- luacheck: no max line length
+-- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff
+-- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
+-- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
+-- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
+
 local _, addonTable = ...;
 
 local buildTimestamp = "DEVELOPER COPY";
@@ -5,9 +11,6 @@ local buildTimestamp = "DEVELOPER COPY";
 buildTimestamp = "@project-version@";
 --@end-non-debug@]===]
 
--- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff UnitDebuff UnitReaction UnitGUID UnitIsFriend
--- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo IsAddOnLoaded InterfaceOptionsFrameCancel
--- luacheck: no max line length
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
@@ -15,9 +18,9 @@ local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
 
 -- // upvalues
-local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, 
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff,
 			UnitReaction, UnitGUID,  table_sort,  IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, 
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff,
 			UnitReaction, UnitGUID,  table.sort,  IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 
 -- // variables
@@ -251,10 +254,10 @@ do
 			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
 		-- // adding slash command
-		SLASH_NAMEPLATEAURAS1 = '/nauras';
-		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
+		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
+		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
 			if (msg == "ver") then
-				local c = UNKNOWN;
+				local c;
 				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
 					c = "INSTANCE_CHAT";
 				elseif (IsInRaid()) then
@@ -309,7 +312,7 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
-	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
+	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM =
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
 	local glowInfo = { };
@@ -341,7 +344,7 @@ do
 		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME];
 		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE];
 		local exec_env = setmetatable({}, { __index =
-			function(t, k)
+			function(t, k) -- luacheck: ignore
 				if (k == "sort_time") then
 					return sort_time;
 				elseif (k == "sort_size") then
@@ -358,11 +361,11 @@ do
 			addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
 			AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction;
 		else
-  			setfenv(func, exec_env);
-  			local success, sortFunc = pcall(assert(func));
+			setfenv(func, exec_env);
+			local success, sortFunc = pcall(assert(func));
 			if (success) then
 				AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = sortFunc;
-  			end
+			end
 		end
 	end
 
@@ -375,7 +378,7 @@ do
 				iconTooltip:SetSpellById(self.spellID);
 				iconTooltip:Show();
 			end);
-			icon:SetScript("OnLeave", function(self)
+			icon:SetScript("OnLeave", function()
 				iconTooltip:Hide();
 			end);
 		else
@@ -401,19 +404,19 @@ do
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMLEFT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPLEFT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPRIGHT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_CENTER] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "LEFT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "RIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOM",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOP",
-		}, 
+		},
 	};
 
 	local iconAlignsOther = {
@@ -422,19 +425,19 @@ do
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMLEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMLEFT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMRIGHT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_CENTER] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "RIGHT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "LEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOP",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOM",
-		}, 
+		},
 	};
 
 	function SetAlphaScaleForNameplate(nameplate)
@@ -480,7 +483,7 @@ do
 	local function IconSetCooldown(icon, remainingTime, spellInfo)
 		if (db.ShowCooldownText) then
 			-- cooldown text
-			local text = nil;
+			local text;
 			if (remainingTime > 3600 or spellInfo.duration == 0) then
 				text = "";
 			elseif (remainingTime >= 60) then
@@ -564,8 +567,8 @@ do
 		icon.alphaAnimationGroup:SetLooping("BOUNCE");
 		local animation0 = icon.alphaAnimationGroup:CreateAnimation("Alpha");
 		animation0:SetFromAlpha(1);
-    	animation0:SetToAlpha(0);
-    	animation0:SetDuration(0.5);
+		animation0:SetToAlpha(0);
+		animation0:SetDuration(0.5);
 		animation0:SetOrder(1);
 	end
 
@@ -706,7 +709,7 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
+	local function ProcessAurasForNameplate_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)
 		if (dbEntry ~= nil) then
 			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
 				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
@@ -724,7 +727,7 @@ do
 		return false;
 	end
 
-	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend)
+	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame)
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
 			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
@@ -750,7 +753,7 @@ do
 		local tSize = #AurasPerNameplate[frame];
 		for _, dbEntry in pairs(db.CustomSpells2) do
 			if (auraName == dbEntry.spellName) then
-				if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+				if (ProcessAurasForNameplate_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
 					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
@@ -795,7 +798,6 @@ do
 							["glowType"] = db.Additions_DispellableSpells_GlowType,
 						},
 					};
-					tSize = tSize + 1;
 				end
 			end
 		end
@@ -827,7 +829,7 @@ do
 				AurasPerNameplate[frame][tSize+1] = interrupt;
 			end
 		end
-		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
+		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame);
 		UpdateNameplate(frame, unitGUID);
 	end
 
@@ -883,8 +885,8 @@ do
 		end,
 	};
 
-	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS, ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 
-		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS, addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
+	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS =
+		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS;
 	local ICON_ANIMATION_TYPE_ALPHA = addonTable.ICON_ANIMATION_TYPE_ALPHA;
 	local animationMethods = {
 		[ICON_ANIMATION_TYPE_ALPHA] = function(icon)
@@ -899,7 +901,7 @@ do
 		end,
 	};
 
-	local function UpdateNameplate_SetAnimation(icon, iconResized, remainingAuraTime, spellInfo)
+	local function UpdateNameplate_SetAnimation(icon, remainingAuraTime, spellInfo)
 		if (animationInfo[icon]) then
 			animationInfo[icon]:Cancel(); -- // cancel delayed animation
 			animationInfo[icon] = nil;
@@ -920,7 +922,7 @@ do
 					animationInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.animationTimer, function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
 				else
 					animationInfo[icon] = CTimerNewTimer(
-						remainingAuraTime - dbEntry.animationTimer/100*spellInfo.duration, 
+						remainingAuraTime - dbEntry.animationTimer/100*spellInfo.duration,
 						function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
 				end
 			end
@@ -981,7 +983,7 @@ do
 			icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((sizeMin / 4) * db.StacksFontScale), "OUTLINE");
 			iconResized = true;
 		end
-		return spellWidth, spellHeight;
+		return spellWidth, spellHeight, iconResized;
 	end
 
 	local function UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight)
@@ -1012,8 +1014,6 @@ do
 			local currentTime = GetTime();
 			if (db.SortMode ~= AURA_SORT_MODE_NONE) then table_sort(AurasPerNameplate[frame], AuraSortFunctions[db.SortMode]); end
 			for _, spellInfo in pairs(AurasPerNameplate[frame]) do
-				local spellName = SpellNameByID[spellInfo.spellID];
-				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
 				if (last > 0 or spellInfo.duration == 0) then
 					if (counter > frame.NAurasIconsCount) then
@@ -1028,7 +1028,7 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					local spellWidth, spellHeight = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
+					local spellWidth, spellHeight, iconResized = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
 					UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight);
 					maxIconWidth = math_max(maxIconWidth, spellWidth);
 					maxIconHeight = math_max(maxIconHeight, spellHeight);
@@ -1036,7 +1036,7 @@ do
 					totalHeight = totalHeight + icon.sizeHeight + db.IconSpacing;
 					-- // glow
 					UpdateNameplate_SetGlow(icon, iconResized, last, spellInfo);
-					UpdateNameplate_SetAnimation(icon, iconResized, last, spellInfo);
+					UpdateNameplate_SetAnimation(icon, last, spellInfo);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end

@@ -1,3 +1,8 @@
+-- luacheck: no max line length
+-- luacheck: globals LibStub
+-- luacheck: globals UIParent
+-- luacheck: globals CreateFrame
+
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");

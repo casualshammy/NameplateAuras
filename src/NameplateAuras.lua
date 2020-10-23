@@ -952,7 +952,7 @@ do
 					glowInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.showGlow, function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
 				else
 					glowInfo[icon] = CTimerNewTimer(
-						remainingAuraTime - dbEntry.showGlow/100*spellInfo.duration, 
+						remainingAuraTime - dbEntry.showGlow/100*spellInfo.duration,
 						function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
 				end
 			end

@@ -1,4 +1,4 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "ruRU");
+local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "ruRU"); -- luacheck: ignore
 L = L or {}
 --[===[@non-debug@
 @localization(locale="ruRU", format="lua_additive_table", handle-unlocalized="english", table-name="L")@
@@ -43,7 +43,7 @@ L["Magic"] = "Магия"
 L["Options are not available in combat!"] = "Настройки недоступны в бою!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Показывать специальную иконку над неймлэйтами Взрывных Сфер (М+ Взрывной)
 Эта иконка будет иметь размер по умолчанию и будет подсвечена]=]
-L["options:auras:enabled-state:tooltip"] = 
+L["options:auras:enabled-state:tooltip"] =
 [=[%s: аура не будет показываться
 
 %s: аура будет показываться только если вы применили ее
@@ -153,13 +153,13 @@ L["options:size-and-position:icon-height"] = "Высота иконок (по у
 L["options:spells:icon-width"] = "Ширина иконки";
 L["options:spells:icon-height"] = "Высота иконки";
 L["options:spells:glow-relative"] = [[Относительное время]];
-L["options:spells:glow-relative:tooltip"] = 
+L["options:spells:glow-relative:tooltip"] =
 [[Эта опция изменяет смысл слайдера слева.
 
 Если эта опция включена, то свечение будет появляться когда оставшееся время ауры меньше, чем выбранный процент от максимальной длительности ауры. Это может быть полезно если, например, вы хотите знать, когда можно безопасно переприменить ДоТ-заклинание без потери его длительности.
 
 Если эта опция выключена, то свечение будет появляться когда оставшееся время ауры меньше, чем абсолютное значение на слайдере (в секундах).]];
-L["options:spells:animation-relative:tooltip"] = 
+L["options:spells:animation-relative:tooltip"] =
 [[Эта опция изменяет смысл слайдера слева.
 
 Если эта опция включена, то анимация будет появляться когда оставшееся время ауры меньше, чем выбранный процент от максимальной длительности ауры. Это может быть полезно если, например, вы хотите знать, когда можно безопасно переприменить ДоТ-заклинание без потери его длительности.

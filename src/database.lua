@@ -4,13 +4,13 @@
 local _, addonTable = ...;
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, 
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
 	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED,
 	GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE = 
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	CONST_SPELL_PVP_MODES_UNDEFINED = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
@@ -19,10 +19,8 @@ end
 -- // utilities
 local Print, msgWithQuestion, table_count, SpellNameByID, table_insert;
 do
-
-	Print, msgWithQuestion, table_count, SpellNameByID, table_insert = 
+	Print, msgWithQuestion, table_count, SpellNameByID, table_insert =
 		addonTable.Print, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellNameByID, table.insert;
-	
 end
 
 local migrations = {
@@ -159,7 +157,7 @@ local migrations = {
     end,
     [6] = function()
         local db = addonTable.db;
-        local iconAligh = { 
+        local iconAligh = {
             ["TOPLEFT"] = addonTable.ICON_ALIGN_TOP_RIGHT,
             ["LEFT"] = addonTable.ICON_ALIGN_CENTER,
             ["BOTTOMLEFT"] = addonTable.ICON_ALIGN_BOTTOM_LEFT,

@@ -1,14 +1,10 @@
+-- luacheck: no max line length
+-- luacheck: globals GetSpellInfo
+
 local _, addonTable = ...;
-local L = addonTable.L;
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
-do
-
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID = 
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
-	
-end
+local SpellNameByID = addonTable.SpellNameByID;
 
 addonTable.Interrupts = {
 	[1766] = 5,	-- Kick (Rogue)

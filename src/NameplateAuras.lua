@@ -1,9 +1,13 @@
 local _, addonTable = ...;
+
+local buildTimestamp = "DEVELOPER COPY";
 --[===[@non-debug@
-local buildTimestamp = "@project-version@";
+buildTimestamp = "@project-version@";
 --@end-non-debug@]===]
 
-local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
+-- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff UnitDebuff UnitReaction UnitGUID UnitIsFriend
+-- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo IsAddOnLoaded InterfaceOptionsFrameCancel
+-- luacheck: no max line length
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
@@ -11,13 +15,13 @@ local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
 
 -- // upvalues
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, 
+			UnitReaction, UnitGUID,  table_sort,  IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, 
+			UnitReaction, UnitGUID,  table.sort,  IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat,
 	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate;
 do
 	AurasPerNameplate 						= { };
@@ -47,11 +51,11 @@ do
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
+local Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
 do
 
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
+	Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
+		addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
 
 end
 
@@ -213,7 +217,7 @@ do
 					desc = nil,
 					func = function()
 						addonTable.ShowGUI();
-						if (GUIFrame) then
+						if (addonTable.GUIFrame) then
 							InterfaceOptionsFrameCancel:Click();
 						end
 					end,
@@ -290,8 +294,8 @@ do
 			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
 		-- //
-		if (GUIFrame) then
-			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
+		if (addonTable.GUIFrame) then
+			for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
 				func();
 			end
 		end
@@ -563,22 +567,6 @@ do
     	animation0:SetToAlpha(0);
     	animation0:SetDuration(0.5);
 		animation0:SetOrder(1);
-
-		-- icon.scaleAnimationGroup = icon:CreateAnimationGroup();
-		-- icon.scaleAnimationGroup:SetLooping("REPEAT");
-		-- local keys = { "texture", "cooldownFrame", "cooldownText", "border" };
-		-- for _, value in pairs(keys) do
-		-- 	local scale1 = icon.scaleAnimationGroup:CreateAnimation("Scale");
-		-- 	scale1:SetChildKey(value);
-		-- 	scale1:SetOrder(1)
-		-- 	scale1:SetDuration(0.5)
-		-- 	scale1:SetScale(1.5, 1.5);
-		-- 	local scale2 = icon.scaleAnimationGroup:CreateAnimation("Scale");
-		-- 	scale2:SetChildKey(value);
-		-- 	scale2:SetOrder(2)
-		-- 	scale2:SetDuration(0.5)
-		-- 	scale2:SetScale(2/3, 2/3);
-		-- end
 	end
 
 	local function AllocateIcon(frame)
@@ -1011,7 +999,6 @@ do
 			icon.texture:SetTexCoord(xOffset, 1-xOffset, yOffset, 1-yOffset);
 			icon.textureXOffset = xOffset;
 			icon.textureYOffset = yOffset;
-			--print("icon.texture:SetTexCoord");
 		end
 	end
 

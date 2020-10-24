@@ -1319,7 +1319,7 @@ local function GUICategory_Borders(index)
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersOtherColor;
+			local t1 = addonTable.db.DebuffBordersOtherColor;
 			colorPickerDebuffOther:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
@@ -1338,15 +1338,15 @@ local function GUICategory_Borders(index)
 		checkBoxBuffBorder:SetPoint("TOPLEFT", debuffArea, "BOTTOMLEFT", 0, -10);
 		local t = addonTable.db.BuffBordersColor;
 		checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
-		checkBoxBuffBorder.ColorButton.func = function(self, r, g, b, a)
+		checkBoxBuffBorder.ColorButton.func = function(_, r, g, b, a)
 			addonTable.db.BuffBordersColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
-			local t = addonTable.db.BuffBordersColor;
-			checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.BuffBordersColor;
+			checkBoxBuffBorder.ColorButton:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -3106,7 +3106,7 @@ local function GUICategory_SizeAndPosition(index)
 	-- // dropdownIconAnchor
 	do
 		local anchors = { addonTable.ICON_ALIGN_BOTTOM_LEFT, addonTable.ICON_ALIGN_TOP_RIGHT, addonTable.ICON_ALIGN_CENTER }; -- // if you change this, don't forget to change 'symmetricAnchors'
-		local anchorsLocalization = { 
+		local anchorsLocalization = {
 			[anchors[1]] = L["options:size-and-position:icon-align:bottom-left"],
 			[anchors[2]] = L["options:size-and-position:icon-align:top-right"],
 			[anchors[3]] = L["options:size-and-position:icon-align:center"] };
@@ -3138,7 +3138,7 @@ local function GUICategory_SizeAndPosition(index)
 
 	-- // dropdownIconGrowDirection
 	do
-		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT, 
+		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT,
 			addonTable.ICON_GROW_DIRECTION_UP, addonTable.ICON_GROW_DIRECTION_DOWN };
 		local growDirectionsL = {
 			[growDirections[1]] = L["icon-grow-direction:right"],
@@ -3333,7 +3333,7 @@ local function GUICategory_SizeAndPosition(index)
 
 	end
 
-	local scaleArea, sliderScale, sliderScaleTarget;
+	local scaleArea, sliderScaleTarget;
 
 	-- // scaleArea
 	do
@@ -3408,7 +3408,7 @@ local function GUICategory_SizeAndPosition(index)
 
 end
 
-local function GUICategory_Alpha(index, value)
+local function GUICategory_Alpha(index)
 	local alphaArea, sliderAlpha, sliderAlphaTarget;
 
 	-- // alphaArea
@@ -3534,7 +3534,7 @@ local function GUICategory_Alpha(index, value)
 
 end
 
-local function GUICategory_Dispel(index, value)
+local function GUICategory_Dispel(index)
 	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, dropdownGlowType, controlArea, sizeArea, sliderDispelIconSizeHeight, sliderDispelIconSizeWidth;
 	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
 
@@ -3708,7 +3708,7 @@ local function GUICategory_Dispel(index, value)
 
 	-- // dropdownGlowType
 	do
-		local glowTypes = { 
+		local glowTypes = {
 			[addonTable.GLOW_TYPE_NONE] = L["options:glow-type:GLOW_TYPE_NONE"],
 			[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
 			[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
@@ -3759,7 +3759,7 @@ local function GUICategory_Dispel(index, value)
 					table_insert(t, {
 						text = spellName,
 						icon = SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])],
-						onCloseButtonClick = function(buttonInfo)
+						onCloseButtonClick = function()
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
 							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
@@ -3774,7 +3774,7 @@ local function GUICategory_Dispel(index, value)
 				dispellableSpellsBlacklistMenu.searchBox:SetText("");
 			end
 		end);
-		dispellableSpellsBlacklist:SetScript("OnHide", function(self) dispellableSpellsBlacklistMenu:Hide(); end);
+		dispellableSpellsBlacklist:SetScript("OnHide", function() dispellableSpellsBlacklistMenu:Hide(); end);
 		dispellableSpellsBlacklist:Disable();
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() dispellableSpellsBlacklist:Enable(); end);
 		GUIFrame:HookScript("OnHide", function() dispellableSpellsBlacklist:Disable(); end);
@@ -3788,14 +3788,14 @@ local function GUICategory_Dispel(index, value)
 		addButton:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() / 3);
 		addButton:SetHeight(24);
 		addButton:SetPoint("TOPRIGHT", dispellableSpellsBlacklistMenu, "BOTTOMRIGHT", 0, -8);
-		addButton:SetScript("OnClick", function(button)
+		addButton:SetScript("OnClick", function()
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
 				local spellExist = false;
 				if (AllSpellIDsAndIconsByName[text]) then
 					spellExist = true;
 				else
-					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+					for _spellName in pairs(AllSpellIDsAndIconsByName) do
 						if (string_lower(_spellName) == string_lower(text)) then
 							text = _spellName;
 							spellExist = true;
@@ -3904,7 +3904,7 @@ end
 local function InitializeGUI()
 	GUIFrame = CreateFrame("Frame", "NAuras.GUIFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate");
 	GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
-	GUIFrame:SetScript("OnEvent", function(self, event, ...)
+	GUIFrame:SetScript("OnEvent", function(self, event)
 		if (event == "PLAYER_REGEN_DISABLED") then
 			if (self:IsVisible()) then
 				self:Hide();
@@ -3973,7 +3973,7 @@ local function InitializeGUI()
 	closeButton:SetHeight(20);
 	closeButton:SetPoint("BOTTOMRIGHT", GUIFrame, "TOPRIGHT", -4, 0);
 	closeButton:SetScript("OnClick", function() GUIFrame:Hide(); end);
-	
+
 	GUIFrame.Categories = {};
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
@@ -4027,9 +4027,7 @@ local function InitializeGUI()
 		buttonTestMode:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMLEFT", 4, 4);
 		buttonTestMode:SetPoint("BOTTOMRIGHT", GUIFrame.outline, "BOTTOMRIGHT", -4, 4);
 		buttonTestMode:SetHeight(30);
-		buttonTestMode:SetScript("OnClick", function(self, ...)
-			addonTable.SwitchTestMode();
-		end);
+		buttonTestMode:SetScript("OnClick", addonTable.SwitchTestMode);
 	end
 
 	-- profiles button
@@ -4040,7 +4038,7 @@ local function InitializeGUI()
 		button:SetHeight(30);
 		button:SetPoint("BOTTOMLEFT", buttonTestMode, "TOPLEFT", 0, 0);
 		button:SetPoint("BOTTOMRIGHT", buttonTestMode, "TOPRIGHT", 0, 0);
-		button:SetScript("OnClick", function(self, ...)
+		button:SetScript("OnClick", function()
 			LibStub("AceConfigDialog-3.0"):Open("NameplateAuras.profiles");
 			GUIFrame:Hide();
 		end);
@@ -4072,7 +4070,7 @@ if (LDB ~= nil) then
 			tocname = addonName,
 		}
 	);
-	plugin.OnClick = function(display, button)
+	plugin.OnClick = function(_, button)
 		if (button == "LeftButton") then
 			if (GUIFrame ~= nil and GUIFrame:IsShown()) then
 				GUIFrame:Hide();

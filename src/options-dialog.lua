@@ -1,15 +1,15 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth
+-- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
 -- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
--- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer
+-- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer GetSpellInfo
 
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 
-local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter =
-		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After;
+local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
+		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
 
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
@@ -1058,14 +1058,14 @@ local function GUICategory_AuraStackFont(index)
 
 end
 
-local function GUICategory_Borders(index, value)
+local function GUICategory_Borders(index)
 
 	local debuffArea, dropdownBorderType, editBoxBorderFilePath, sliderBorderThickness;
 	local SetControls;
 
 	-- // dropdownBorderType
 	do
-		local borderTypes = { 
+		local borderTypes = {
 			[addonTable.BORDER_TYPE_BUILTIN] = L["options:borders:BORDER_TYPE_BUILTIN"],
 			[addonTable.BORDER_TYPE_CUSTOM] = L["options:borders:BORDER_TYPE_CUSTOM"],
 		};
@@ -1104,12 +1104,11 @@ local function GUICategory_Borders(index, value)
 		end
 
 		table_insert(GUIFrame.Categories[index], dropdownBorderType);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
 			addonTable.UpdateAllNameplates(true);
 			SetControls();
 		end);
-		
 	end
 
 	-- // editBoxBorderFilePath
@@ -1232,14 +1231,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffMagic:SetText(L["Magic"]);
 		local t = addonTable.db.DebuffBordersMagicColor;
 		colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffMagic.func = function(self, r, g, b, a)
+		colorPickerDebuffMagic.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersMagicColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersMagicColor;
-			colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersMagicColor;
+			colorPickerDebuffMagic:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -1252,14 +1251,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffCurse:SetText(L["Curse"]);
 		local t = addonTable.db.DebuffBordersCurseColor;
 		colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffCurse.func = function(self, r, g, b, a)
+		colorPickerDebuffCurse.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersCurseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersCurseColor;
-			colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersCurseColor;
+			colorPickerDebuffCurse:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1273,14 +1272,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffDisease:SetText(L["Disease"]);
 		local t = addonTable.db.DebuffBordersDiseaseColor;
 		colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffDisease.func = function(self, r, g, b, a)
+		colorPickerDebuffDisease.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersDiseaseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersDiseaseColor;
-			colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersDiseaseColor;
+			colorPickerDebuffDisease:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1294,14 +1293,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffPoison:SetText(L["Poison"]);
 		local t = addonTable.db.DebuffBordersPoisonColor;
 		colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffPoison.func = function(self, r, g, b, a)
+		colorPickerDebuffPoison.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersPoisonColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersPoisonColor;
-			colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersPoisonColor;
+			colorPickerDebuffPoison:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1314,14 +1313,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffOther:SetText(L["Other"]);
 		local t = addonTable.db.DebuffBordersOtherColor;
 		colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffOther.func = function(self, r, g, b, a)
+		colorPickerDebuffOther.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersOtherColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			local t = addonTable.db.DebuffBordersOtherColor;
-			colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
+			colorPickerDebuffOther:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -1355,13 +1354,13 @@ local function GUICategory_Borders(index, value)
 	SetControls();
 end
 
-local function GUICategory_4(index, value)
+local function GUICategory_4(index)
 	local controls = { };
 	local selectedSpell = 0;
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
-	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
+	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
-		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
+		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1434,8 +1433,8 @@ local function GUICategory_4(index, value)
 		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
 		enableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for index in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_ALL;
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_ALL;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1464,8 +1463,8 @@ local function GUICategory_4(index, value)
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for index in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_DISABLED;
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_DISABLED;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1595,11 +1594,11 @@ local function GUICategory_4(index, value)
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 		editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
-		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontDisable");
-		text:SetPoint("LEFT", 0, 0);
-		text:SetText(L["options:spells:add-new-spell"]);
-		editboxAddSpell:SetScript("OnEditFocusGained", function() text:Hide(); end);
-		editboxAddSpell:SetScript("OnEditFocusLost", function() text:Show(); end);
+		local editboxText = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontDisable");
+		editboxText:SetPoint("LEFT", 0, 0);
+		editboxText:SetText(L["options:spells:add-new-spell"]);
+		editboxAddSpell:SetScript("OnEditFocusGained", function() editboxText:Hide(); end);
+		editboxAddSpell:SetScript("OnEditFocusLost", function() editboxText:Show(); end);
 		hooksecurefunc("ChatEdit_InsertLink", function(link)
 			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
 				local spellName = string.match(link, "%[\"?(.-)\"?%]");
@@ -1618,18 +1617,17 @@ local function GUICategory_4(index, value)
 		buttonAddSpell:SetHeight(20);
 		buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 		buttonAddSpell:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
-		buttonAddSpell:SetScript("OnClick", function(self, ...)
+		buttonAddSpell:SetScript("OnClick", function()
 			local text = editboxAddSpell:GetText();
 			local customSpellID = nil;
 			if (tonumber(text) ~= nil) then
 				customSpellID = tonumber(text);
 				text = SpellNameByID[tonumber(text)] or "";
 			end
-			local spellID;
 			-- if user entered name of spell
 			if (customSpellID == nil) then
 				if (AllSpellIDsAndIconsByName[text] == nil) then
-					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+					for _spellName in pairs(AllSpellIDsAndIconsByName) do
 						if (string_lower(_spellName) == string_lower(text)) then
 							text = _spellName;
 						end
@@ -1667,12 +1665,12 @@ local function GUICategory_4(index, value)
 			end
 			selectedSpell = buttonInfo.indexInDB;
 			selectSpell.Text:SetText(buttonInfo.text);
-			selectSpell:SetScript("OnEnter", function(self, ...)
+			selectSpell:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
 				GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
 				GameTooltip:Show();
 			end);
-			selectSpell:SetScript("OnLeave", function(self, ...) GameTooltip:Hide(); end);
+			selectSpell:SetScript("OnLeave", function() GameTooltip:Hide(); end);
 			selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
 			selectSpell.icon:Show();
 			sliderSpellIconSizeWidth.slider:SetValue(spellInfo.iconSizeWidth);
@@ -1772,12 +1770,12 @@ local function GUICategory_4(index, value)
 		selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
 		selectSpell:SetScript("OnClick", function(button)
 			local t = { };
-			for index, spellInfo in pairs(addonTable.db.CustomSpells2) do
+			for spellIndex, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				table_insert(t, {
 					icon = select(2, GetIDAndTextureForSpell(spellInfo)),
 					text = GetButtonNameForSpell(spellInfo),
 					info = spellInfo,
-					indexInDB = index,
+					indexInDB = spellIndex,
 					onEnter = function(self)
 						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 						GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
@@ -1818,7 +1816,7 @@ local function GUICategory_4(index, value)
 			ResetSelectSpell();
 			HideGameTooltip();
 		end);
-		selectSpell:SetScript("OnHide", function(self)
+		selectSpell:SetScript("OnHide", function()
 			ResetSelectSpell();
 			dropdownMenuSpells:Hide();
 		end);
@@ -2413,7 +2411,7 @@ local function GUICategory_4(index, value)
 		editboxSpellID:SetBackdropColor(0, 0, 0, 0.5);
 		editboxSpellID:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 		editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
-		editboxSpellID:SetScript("OnEnterPressed", function(self, value)
+		editboxSpellID:SetScript("OnEnterPressed", function(self)
 			local text = self:GetText();
 			local t = StringToTableKeys(text);
 			addonTable.db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
@@ -2437,7 +2435,7 @@ local function GUICategory_4(index, value)
 		buttonDeleteSpell:SetHeight(20);
 		buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
 		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
-		buttonDeleteSpell:SetScript("OnClick", function(self, ...)
+		buttonDeleteSpell:SetScript("OnClick", function()
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
 			addonTable.UpdateAllNameplates(false);
 			selectSpell.Text:SetText(L["Click to select spell"]);
@@ -2452,7 +2450,7 @@ local function GUICategory_4(index, value)
 
 end
 
-local function GUICategory_Interrupts(index, value)
+local function GUICategory_Interrupts(index)
 
 	local interruptOptionsArea, checkBoxInterrupts, checkBoxUseSharedIconTexture, checkBoxEnableOnlyInPvPMode, sizeArea, sliderInterruptIconSizeWidth, sliderInterruptIconSizeHeight;
 
@@ -2666,7 +2664,7 @@ local function GUICategory_Interrupts(index, value)
 
 	-- // dropdownGlowType
 	do
-		local glowTypes = { 
+		local glowTypes = {
 			[addonTable.GLOW_TYPE_NONE] = L["options:glow-type:GLOW_TYPE_NONE"],
 			[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
 			[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
@@ -2702,7 +2700,7 @@ local function GUICategory_Interrupts(index, value)
 
 end
 
-local function GUICategory_Additions(index, value)
+local function GUICategory_Additions(index)
 	local area1, checkBoxExplosiveOrbs;
 
 	-- // area1
@@ -2750,7 +2748,7 @@ local function GUICategory_Additions(index, value)
 
 end
 
-local function GUICategory_SizeAndPosition(index, value)
+local function GUICategory_SizeAndPosition(index)
 	local dropdownFrameAnchorToNameplate;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
@@ -3049,7 +3047,6 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	-- // dropdownFrameAnchorToNameplate
 	do
-					
 		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 220);
 		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -160);
@@ -3074,7 +3071,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]); end);
-		
 	end
 
 	-- // dropdownFrameAnchor
@@ -3109,7 +3105,6 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	-- // dropdownIconAnchor
 	do
-
 		local anchors = { addonTable.ICON_ALIGN_BOTTOM_LEFT, addonTable.ICON_ALIGN_TOP_RIGHT, addonTable.ICON_ALIGN_CENTER }; -- // if you change this, don't forget to change 'symmetricAnchors'
 		local anchorsLocalization = { 
 			[anchors[1]] = L["options:size-and-position:icon-align:bottom-left"],
@@ -3139,7 +3134,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownIconAnchor.text:SetText(L["options:size-and-position:icon-align"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]); end);
-
 	end
 
 	-- // dropdownIconGrowDirection
@@ -3176,7 +3170,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownIconGrowDirection.text:SetText(L["options:general:icon-grow-direction"]);
 		table.insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]); end);
-		
 	end
 
 	local dropdownTargetStrata, dropdownNonTargetStrata;

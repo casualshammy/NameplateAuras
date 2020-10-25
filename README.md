@@ -1,4 +1,4 @@
-### ***This repository does not contain required libs (e.g. Ace3). You can get the latest release [here](https://wow.curseforge.com/projects/nameplateauras/files)***
+### ***This repository does not contain required libs (e.g. Ace3)! Either download release here on github or get the latest release [here](https://www.curseforge.com/wow/addons/nameplateauras/files)***
 
 ## About
 

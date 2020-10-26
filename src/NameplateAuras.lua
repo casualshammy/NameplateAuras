@@ -1249,81 +1249,110 @@ do
 	local intervalBetweenRefreshes = 13;
 	local ticker = nil;
 	local spellsLastTimeUpdated = GetTime() - intervalBetweenRefreshes;
+	local testTable;
 
 	local function GetSpells()
 		if (GetTime() - spellsLastTimeUpdated >= intervalBetweenRefreshes) then
 			spellsLastTimeUpdated = GetTime();
 		end
-		local t = {
-			{
-				["duration"] = intervalBetweenRefreshes-3,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
-				["stacks"] = 2,
-				["spellID"] = 139,
-				["type"] = AURA_TYPE_BUFF,
-				["spellName"] = SpellNameByID[139],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 45,
-					["iconSizeHeight"] = 45,
+		if (testTable == nil) then
+			testTable = {
+				{
+					["duration"] = intervalBetweenRefreshes-3,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
+					["stacks"] = 2,
+					["spellID"] = 139,
+					["type"] = AURA_TYPE_BUFF,
+					["spellName"] = SpellNameByID[139],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 45,
+						["iconSizeHeight"] = 45,
+					},
 				},
-			},
-			{
-				["duration"] = intervalBetweenRefreshes*20,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
-				["stacks"] = 1,
-				["spellID"] = 215336,
-				["type"] = AURA_TYPE_BUFF,
-				["spellName"] = SpellNameByID[215336],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 30,
-					["iconSizeHeight"] = 30,
+				{
+					["duration"] = intervalBetweenRefreshes*20,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
+					["stacks"] = 1,
+					["spellID"] = 215336,
+					["type"] = AURA_TYPE_BUFF,
+					["spellName"] = SpellNameByID[215336],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 30,
+						["iconSizeHeight"] = 30,
+					},
 				},
-			},
-			{
-				["duration"] = intervalBetweenRefreshes*2,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
-				["stacks"] = 3,
-				["spellID"] = 188389,
-				["type"] = AURA_TYPE_DEBUFF,
-				["dispelType"] = "Magic",
-				["spellName"] = SpellNameByID[188389],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 40,
-					["iconSizeHeight"] = 40,
+				{
+					["duration"] = intervalBetweenRefreshes*2,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
+					["stacks"] = 3,
+					["spellID"] = 188389,
+					["type"] = AURA_TYPE_DEBUFF,
+					["dispelType"] = "Magic",
+					["spellName"] = SpellNameByID[188389],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 40,
+						["iconSizeHeight"] = 40,
+					},
 				},
-			},
-			{
-				["duration"] = 0,
-				["expires"] = 0,
-				["stacks"] = 10,
-				["spellID"] = 100407,
-				["type"] = AURA_TYPE_DEBUFF,
-				["dispelType"] = "Curse",
-				["spellName"] = SpellNameByID[100407],
-				["dbEntry"] = {
-					["iconSizeWidth"] = db.DefaultIconSizeWidth,
-					["iconSizeHeight"] = db.DefaultIconSizeHeight,
-					["showGlow"] = GLOW_TIME_INFINITE,
-					["glowType"] = db.Additions_DispellableSpells_GlowType,
+				{
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 10,
+					["spellID"] = 100407,
+					["type"] = AURA_TYPE_DEBUFF,
+					["dispelType"] = "Curse",
+					["spellName"] = SpellNameByID[100407],
+					["dbEntry"] = {
+						["iconSizeWidth"] = db.DefaultIconSizeWidth,
+						["iconSizeHeight"] = db.DefaultIconSizeHeight,
+						["showGlow"] = GLOW_TIME_INFINITE,
+						["glowType"] = db.Additions_DispellableSpells_GlowType,
+					},
 				},
-			},
-		};
+			};
+		else
+			testTable[1]["duration"] = intervalBetweenRefreshes-3;
+			testTable[1]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3;
+
+			testTable[2]["duration"] = intervalBetweenRefreshes*20;
+			testTable[2]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20;
+
+			testTable[3]["duration"] = intervalBetweenRefreshes*2;
+			testTable[3]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2;
+
+			testTable[4]["dbEntry"]["iconSizeWidth"] = db.DefaultIconSizeWidth;
+			testTable[4]["dbEntry"]["iconSizeHeight"] = db.DefaultIconSizeHeight;
+			testTable[4]["dbEntry"]["glowType"] = db.Additions_DispellableSpells_GlowType;
+		end
 		if (addonTable.GetCurrentlyEditingSpell ~= nil) then
 			local dbEntry, spellID = addonTable.GetCurrentlyEditingSpell();
 			if (dbEntry ~= nil and spellID ~= nil) then
-				t[#t+1] = {
-					["duration"] = intervalBetweenRefreshes,
-					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
-					["stacks"] = 5,
-					["spellID"] = spellID,
-					["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF,
-					["dispelType"] = "Magic",
-					["spellName"] = SpellNameByID[spellID],
-					["dbEntry"] = dbEntry,
-				};
+				if (testTable[5] == nil) then
+					testTable[5] = {
+						["duration"] = intervalBetweenRefreshes,
+						["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
+						["stacks"] = 5,
+						["spellID"] = spellID,
+						["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF,
+						["dispelType"] = "Magic",
+						["spellName"] = SpellNameByID[spellID],
+						["dbEntry"] = dbEntry,
+					};
+				else
+					testTable[5]["duration"] = intervalBetweenRefreshes;
+					testTable[5]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes;
+					testTable[5]["spellID"] = spellID;
+					testTable[5]["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
+					testTable[5]["spellName"] = SpellNameByID[spellID];
+					testTable[5]["dbEntry"] = dbEntry;
+				end
+			else
+				testTable[5] = nil;
 			end
+		else
+			testTable[5] = nil;
 		end
-		return t;
+		return testTable;
 	end
 
 	local function Ticker_OnTick()

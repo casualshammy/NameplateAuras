@@ -1497,6 +1497,7 @@ local function GUICategory_4(index)
 					button2 = NO,
 					OnAccept = function()
 						wipe(addonTable.db.CustomSpells2);
+						addonTable.RebuildSpellCache();
 						selectSpell:Click();
 						addonTable.UpdateAllNameplates(true);
 					end,
@@ -1638,6 +1639,7 @@ local function GUICategory_4(index)
 				local spellName = text;
 				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
 				table_insert(addonTable.db.CustomSpells2, newSpellInfo);
+				addonTable.RebuildSpellCache();
 				selectSpell:Click();
 				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(newSpellInfo));
 				if (btn ~= nil) then btn:Click(); end
@@ -2437,6 +2439,7 @@ local function GUICategory_4(index)
 		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
 		buttonDeleteSpell:SetScript("OnClick", function()
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
+			addonTable.RebuildSpellCache();
 			addonTable.UpdateAllNameplates(false);
 			selectSpell.Text:SetText(L["Click to select spell"]);
 			selectSpell.icon:SetTexture(nil);
@@ -3867,6 +3870,7 @@ local function DeleteUnexistantSpells()
 		if (AllSpellIDsAndIconsByName[spellInfo.spellName] == nil) then
 			addonTable.Print(("Spell with name '%s' is not found (deleted from game?)"):format(spellInfo.spellName));
 			db.CustomSpells2[index] = nil;
+			addonTable.RebuildSpellCache();
 		end
 	end
 end

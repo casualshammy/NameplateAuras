@@ -245,6 +245,7 @@ do
 		-- // ...
 		ReloadDB();
 		addonTable.CompileSortFunction();
+		addonTable.RebuildSpellCache();
 		-- // starting listening for events
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
@@ -258,10 +259,10 @@ do
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
 			if (msg == "ver") then
 				local c;
-				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
-					c = "INSTANCE_CHAT";
-				elseif (IsInRaid()) then
-					c = "RAID";
+				if (IsInRaid() and GetNumGroupMembers() > 0) then
+					c = IsPartyLFG() and "INSTANCE_CHAT" or "RAID";
+				elseif (not IsInRaid() and GetNumSubgroupMembers() > 0) then
+					c = IsPartyLFG() and "INSTANCE_CHAT" or "PARTY";
 				else
 					c = "GUILD";
 				end
@@ -339,6 +340,17 @@ do
 		end,
 		[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction,
 	};
+
+	local spellCache = { };
+	function addonTable.RebuildSpellCache()
+		wipe(spellCache);
+		for _, dbEntry in pairs(db.CustomSpells2) do
+			if (spellCache[dbEntry.spellName] == nil) then
+				spellCache[dbEntry.spellName] = { };
+			end
+			spellCache[dbEntry.spellName][#spellCache[dbEntry.spellName]+1] = dbEntry;
+		end
+	end
 
 	function addonTable.CompileSortFunction()
 		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME];
@@ -709,7 +721,7 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcessAurasForNameplate_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)
+	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)
 		if (dbEntry ~= nil) then
 			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
 				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
@@ -727,7 +739,7 @@ do
 		return false;
 	end
 
-	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame)
+	local function ProcAurasForNmplt_Additions(unitGUID, frame)
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
 			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
@@ -748,12 +760,13 @@ do
 		end
 	end
 
-	local function ProcessAurasForNameplate_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
+	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
 		local foundInDB = false;
 		local tSize = #AurasPerNameplate[frame];
-		for _, dbEntry in pairs(db.CustomSpells2) do
-			if (auraName == dbEntry.spellName) then
-				if (ProcessAurasForNameplate_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+		local cache = spellCache[auraName];
+		if (cache ~= nil) then
+			for _, dbEntry in pairs(cache) do
+				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
 					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
@@ -811,11 +824,11 @@ do
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
 				end
 				if (buffName == nil and debuffName == nil) then
 					break;
@@ -829,7 +842,7 @@ do
 				AurasPerNameplate[frame][tSize+1] = interrupt;
 			end
 		end
-		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame);
+		ProcAurasForNmplt_Additions(unitGUID, frame);
 		UpdateNameplate(frame, unitGUID);
 	end
 

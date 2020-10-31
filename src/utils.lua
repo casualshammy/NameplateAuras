@@ -1,12 +1,14 @@
+-- luacheck: no max line length
+-- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN GetSpellTexture DEFAULT_CHAT_FRAME
+-- luacheck: globals OKAY YES NO ReloadUI GetSpellInfo GetPlayerInfoByGUID
+
 local _, addonTable = ...;
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer,   strsplit =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
+local _G, pairs, select, WorldFrame, string_format = _G, pairs, select, WorldFrame, format;
+local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID = GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID;
 
 addonTable.SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
@@ -45,18 +47,18 @@ end
 
 function addonTable.deepcopy(object)
 	local lookup_table = {}
-	local function _copy(object)
-		if type(object) ~= "table" then
-			return object
-		elseif lookup_table[object] then
-			return lookup_table[object]
+	local function _copy(another_object)
+		if type(another_object) ~= "table" then
+			return another_object;
+		elseif lookup_table[another_object] then
+			return lookup_table[another_object];
 		end
-		local new_table = {}
-		lookup_table[object] = new_table
-		for index, value in pairs(object) do
-			new_table[_copy(index)] = _copy(value)
+		local new_table = { };
+		lookup_table[another_object] = new_table;
+		for index, value in pairs(another_object) do
+			new_table[_copy(index)] = _copy(value);
 		end
-		return setmetatable(new_table, getmetatable(object));
+		return setmetatable(new_table, getmetatable(another_object));
 	end
 	return _copy(object);
 end
@@ -120,7 +122,7 @@ end
 
 function addonTable.table_count(t)
 	local count = 0;
-	for i in pairs(t) do
+	for _ in pairs(t) do
 		count = count + 1;
 	end
 	return count;
@@ -137,7 +139,7 @@ do
 	addonTable.CoroutineProcessor.update = {};
 	addonTable.CoroutineProcessor.size = 0;
 
-	function addonTable.CoroutineProcessor.Queue(self, name, func)
+	function addonTable.CoroutineProcessor.Queue(_, name, func)
 		if (not name) then
 			name = string_format("NIL%d", addonTable.CoroutineProcessor.size + 1);
 		end
@@ -148,7 +150,7 @@ do
 		end
 	end
 
-	function addonTable.CoroutineProcessor.DeleteFromQueue(self, name)
+	function addonTable.CoroutineProcessor.DeleteFromQueue(_, name)
 		if (addonTable.CoroutineProcessor.update[name]) then
 			addonTable.CoroutineProcessor.update[name] = nil;
 			addonTable.CoroutineProcessor.size = addonTable.CoroutineProcessor.size - 1;
@@ -159,7 +161,7 @@ do
 	end
 
 	addonTable.CoroutineProcessor.frame:Hide();
-	addonTable.CoroutineProcessor.frame:SetScript("OnUpdate", function(self, elapsed)
+	addonTable.CoroutineProcessor.frame:SetScript("OnUpdate", function()
 		local start = debugprofilestop();
 		local hasData = true;
 		while (debugprofilestop() - start < 16 and hasData) do
@@ -167,7 +169,7 @@ do
 			for name, func in pairs(addonTable.CoroutineProcessor.update) do
 				hasData = true;
 				if (coroutine.status(func) ~= "dead") then
-					local err, ret1, ret2 = assert(coroutine.resume(func));
+					assert(coroutine.resume(func));
 				else
 					addonTable.CoroutineProcessor:DeleteFromQueue(name);
 				end

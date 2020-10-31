@@ -1,17 +1,13 @@
+-- luacheck: no max line length
+-- luacheck: globals GetSpellInfo
+
 local _, addonTable = ...;
-local L = addonTable.L;
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
-do
-
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID = 
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
-	
-end
+local SpellNameByID = addonTable.SpellNameByID;
 
 addonTable.Interrupts = {
-	[1766] = 5,	-- Kick (Rogue)
+	[1766] = 5,		-- Kick (Rogue)
 	[2139] = 6, 	-- Counterspell (Mage)
 	[6552] = 4, 	-- Pummel (Warrior)
 	[19647] = 6, 	-- Spell Lock (Warlock)
@@ -30,7 +26,6 @@ addonTable.Interrupts = {
 	[187707] = 3,	-- Muzzle (Hunter)
 	[212619] = 6,	-- Call Felhunter (Warlock)
 	[231665] = 3,	-- Avengers Shield (Paladin)
-	[91802] = 2,	-- Shambling Rush
 };
 
 addonTable.TalentsReducingInterruptTime = {
@@ -59,31 +54,31 @@ addonTable.DefaultSpells2 = {
 		[51514] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[51514] }, -- // Hex
 		[6358] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[6358] },
 		[33786] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[33786] },
-		[5782] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[5782] }, 
-		[5484] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[5484] }, 
-		[45438] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[45438] }, 
-		[642] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[642] }, 
-		[8122] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[8122] }, 
-		[23335] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[23335] }, 
-		[23333] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[23333] }, 
-		[34976] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[34976] }, 
-		[2094] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[2094] }, 
-		[33206] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[33206] }, 
-		[47585] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[47585] }, 
+		[5782] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[5782] },
+		[5484] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[5484] },
+		[45438] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[45438] },
+		[642] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[642] },
+		[8122] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[8122] },
+		[23335] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[23335] },
+		[23333] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[23333] },
+		[34976] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[34976] },
+		[2094] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[2094] },
+		[33206] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[33206] },
+		[47585] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[47585] },
 		[87204] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[87204] },
-		[108416] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[108416] }, 
-		[104773] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[104773] }, 
-		[871] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[871] }, 
-		[19263] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[19263] }, 
-		[61336] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[61336] }, 
-		[31230] =	{ ["enabledState"] = "all", ["auraType"] = "buff",		  ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[31230] }, 
-		[6940] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[6940] }, 
-		[31821] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[31821] }, 
-		[48707] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[48707] }, 
-		[108271] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[108271] }, 
+		[108416] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[108416] },
+		[104773] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[104773] },
+		[871] =		{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[871] },
+		[19263] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[19263] },
+		[61336] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[61336] },
+		[31230] =	{ ["enabledState"] = "all", ["auraType"] = "buff",		  ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[31230] },
+		[6940] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[6940] },
+		[31821] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[31821] },
+		[48707] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[48707] },
+		[108271] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[108271] },
 		[53480] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[53480] },
-		[15286] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[15286] }, 
-		[122783] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[122783] }, 
+		[15286] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[15286] },
+		[122783] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[122783] },
 		[122278] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[122278] },
 		[115078] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[115078] },
 		[125174] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[125174] },

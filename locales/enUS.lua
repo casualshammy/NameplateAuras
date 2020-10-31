@@ -1,4 +1,6 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "enUS", true);
+-- luacheck: no max line length
+
+local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "enUS", true); -- luacheck: ignore
 L = L or {}
 --[===[@non-debug@
 @localization(locale="enUS", format="lua_additive_table", handle-unlocalized="english", table-name="L")@
@@ -40,7 +42,7 @@ L["Magic"] = "Magic"
 L["Options are not available in combat!"] = "Options are not available in combat!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
 This aura have a bright glow and default size]=]
-L["options:auras:enabled-state:tooltip"] = 
+L["options:auras:enabled-state:tooltip"] =
 [=[%s: aura will not be shown
 
 %s: aura will be shown if you've cast it
@@ -152,20 +154,20 @@ L["options:size-and-position:icon-height"] = "Default icon height";
 L["options:spells:icon-width"] = "Icon width";
 L["options:spells:icon-height"] = "Icon height";
 L["options:spells:glow-relative"] = [[Use relative time]];
-L["options:spells:glow-relative:tooltip"] = 
+L["options:spells:glow-relative:tooltip"] =
 [[This option changes the meaning of slider on the left.
 
 If this option is checked, glow will appear when aura's remaining duration is less than the selected percent of maximum duration of this aura. It is useful, for example, if you want to know when you can safely re-apply your DoT spell without losing it's duration.
 
 If this option is unchecked, glow will appear when aura's remaining duration is less than absolute value of slider (in seconds)]];
-L["options:spells:animation-relative:tooltip"] = 
+L["options:spells:animation-relative:tooltip"] =
 [[This option changes the meaning of slider on the left.
 
 If this option is checked, animation will start when aura's remaining duration is less than the selected percent of maximum duration of this aura. It is useful, for example, if you want to know when you can safely re-apply your DoT spell without losing it's duration.
 
 If this option is unchecked, animation will start when aura's remaining duration is less than absolute value of slider (in seconds)]];
 L["options:size-and-position:icon-zoom"] = "Icon zoom";
-L["options:size-and-position:custom-sorting:tooltip"] = 
+L["options:size-and-position:custom-sorting:tooltip"] =
 [[Rules:
   - code must be an unnamed function with 2 arguments. These arguments are tables, representing auras to compare
   - this function must return 'true' if the first aura should be placed before the second aura, and vice versa
@@ -185,5 +187,7 @@ Built-in sorting functions:
   - sort_size(aura1, aura2) - sort by icon's size
 ]];
 L["icon-sort-mode:custom"] = "Custom";
+L["options:size-and-position:keep-aspect-ratio"] = "Keep aspect ratio of textures";
+L["options:size-and-position:keep-aspect-ratio:tooltip"] = "If this option is checked and icon width and height are not equal, then texture of spell will be cropped in that way to save original image proportions";
 
 --@end-debug@

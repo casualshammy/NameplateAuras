@@ -1,19 +1,22 @@
+-- luacheck: no max line length
+-- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
+-- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
+-- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer GetSpellInfo
+
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_insert, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, math_max, CTimerNewTimer,   strsplit =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.insert, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, math.max, C_Timer.NewTimer, strsplit;
+local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
+		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
 
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
 	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
@@ -21,18 +24,13 @@ do
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
-	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
-	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
-	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor;
+local Print, msg, table_count, SpellTextureByID, SpellNameByID, CoroutineProcessor;
 do
-
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, CoroutineProcessor =
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID, addonTable.CoroutineProcessor;
-
+	Print, msg, table_count, SpellTextureByID, SpellNameByID, CoroutineProcessor =
+		addonTable.Print, addonTable.msg, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.CoroutineProcessor;
 end
 
 
@@ -60,17 +58,17 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 end
 
 local function ShowGUICategory(index)
-	for i, v in pairs(GUIFrame.Categories) do
-		for k, l in pairs(v) do
+	for _, v in pairs(GUIFrame.Categories) do
+		for _, l in pairs(v) do
 			l:Hide();
 		end
 	end
-	for i, v in pairs(GUIFrame.Categories[index]) do
+	for _, v in pairs(GUIFrame.Categories[index]) do
 		v:Show();
 	end
 end
 
-local function OnGUICategoryClick(self, ...)
+local function OnGUICategoryClick(self)
 	GUIFrame.CategoryButtons[GUIFrame.ActiveCategory].text:SetTextColor(1, 0.82, 0);
 	GUIFrame.CategoryButtons[GUIFrame.ActiveCategory]:UnlockHighlight();
 	GUIFrame.ActiveCategory = self.index;
@@ -93,7 +91,7 @@ local function CreateGUICategory()
 	return b;
 end
 
-local function GUICategory_1(index, value)
+local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
@@ -223,7 +221,7 @@ local function GUICategory_1(index, value)
 
 end
 
-local function GUICategory_Fonts(index, value)
+local function GUICategory_Fonts(index)
 	local dropdownMenuFont = VGUI.CreateDropdownMenu();
 	local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local textAnchorsLocalization = {
@@ -238,7 +236,7 @@ local function GUICategory_Fonts(index, value)
 		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea, checkboxShowCooldownText, auraTextArea, buttonFont, checkBoxUseRelativeFontSize, sliderTimerTextXOffset;
-	local dropdownTimerTextAnchor, sliderTimerTextYOffset;
+	local dropdownTimerTextAnchor;
 
 	-- // checkboxShowCooldownText
 	do
@@ -257,18 +255,18 @@ local function GUICategory_Fonts(index, value)
 		checkboxShowCooldownText:SetParent(GUIFrame);
 		checkboxShowCooldownText:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownText);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkboxShowCooldownText:SetScript("OnShow", function(self)
+		checkboxShowCooldownText:SetScript("OnShow", function()
 			if (addonTable.db.ShowCooldownText) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
 			end
 		end);
-		checkboxShowCooldownText:SetScript("OnHide", function(self)
+		checkboxShowCooldownText:SetScript("OnHide", function()
 			auraTextArea:Hide();
 		end);
 	end
@@ -298,7 +296,7 @@ local function GUICategory_Fonts(index, value)
 		buttonFont:SetParent(auraTextArea);
 		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.Font);
 
-		for idx, font in next, SML:List("font") do
+		for _, font in next, SML:List("font") do
 			table_insert(fonts, {
 				["text"] = font,
 				["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
@@ -315,7 +313,7 @@ local function GUICategory_Fonts(index, value)
 		buttonFont:SetHeight(24);
 		buttonFont:SetPoint("TOPLEFT", auraTextArea, "TOPLEFT", 10, -10);
 		buttonFont:SetPoint("TOPRIGHT", auraTextArea, "TOPRIGHT", -10, -10);
-		buttonFont:SetScript("OnClick", function(self, ...)
+		buttonFont:SetScript("OnClick", function(self)
 			if (dropdownMenuFont:IsVisible()) then
 				dropdownMenuFont:Hide();
 			else
@@ -350,7 +348,7 @@ local function GUICategory_Fonts(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxUseRelativeFontSize:SetChecked(addonTable.db.TimerTextUseRelativeScale);
 		end);
-		checkBoxUseRelativeFontSize:SetScript("OnShow", function(self)
+		checkBoxUseRelativeFontSize:SetScript("OnShow", function()
 			if (addonTable.db.TimerTextUseRelativeScale) then
 				sliderTimerFontScale:Show();
 				sliderTimerFontSize:Hide();
@@ -359,7 +357,7 @@ local function GUICategory_Fonts(index, value)
 				sliderTimerFontSize:Show();
 			end
 		end);
-		checkBoxUseRelativeFontSize:SetScript("OnHide", function(self)
+		checkBoxUseRelativeFontSize:SetScript("OnHide", function()
 			sliderTimerFontScale:Hide();
 			sliderTimerFontSize:Hide();
 		end);
@@ -377,14 +375,14 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontScale.slider:SetValueStep(0.1);
 		sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
 		sliderTimerFontScale.slider:SetValue(addonTable.db.FontScale);
-		sliderTimerFontScale.slider:SetScript("OnValueChanged", function(self, value)
+		sliderTimerFontScale.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderTimerFontScale.editbox:SetText(tostring(actualValue));
 			addonTable.db.FontScale = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.FontScale));
-		sliderTimerFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderTimerFontScale.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerFontScale.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerFontScale.editbox:GetText());
 				if (v == nil) then
@@ -421,14 +419,14 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerTextXOffset.slider:SetValueStep(1);
 		sliderTimerTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
 		sliderTimerTextXOffset.slider:SetValue(addonTable.db.TimerTextXOffset);
-		sliderTimerTextXOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderTimerTextXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextXOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.TimerTextXOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset));
-		sliderTimerTextXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderTimerTextXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerTextXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerTextXOffset.editbox:GetText());
 				if (v == nil) then
@@ -466,14 +464,14 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerTextYOffset.slider:SetValueStep(1);
 		sliderTimerTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
 		sliderTimerTextYOffset.slider:SetValue(addonTable.db.TimerTextYOffset);
-		sliderTimerTextYOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderTimerTextYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextYOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.TimerTextYOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset));
-		sliderTimerTextYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderTimerTextYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerTextYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerTextYOffset.editbox:GetText());
 				if (v == nil) then
@@ -511,14 +509,14 @@ local function GUICategory_Fonts(index, value)
 		sliderTimerFontSize.slider:SetValueStep(1);
 		sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
 		sliderTimerFontSize.slider:SetValue(addonTable.db.TimerTextSize);
-		sliderTimerFontSize.slider:SetScript("OnValueChanged", function(self, value)
+		sliderTimerFontSize.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerFontSize.editbox:SetText(tostring(actualValue));
 			addonTable.db.TimerTextSize = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.TimerTextSize));
-		sliderTimerFontSize.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderTimerFontSize.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerFontSize.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerFontSize.editbox:GetText());
 				if (v == nil) then
@@ -630,14 +628,14 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
 		local t = addonTable.db.TimerTextSoonToExpireColor;
 		colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextFiveSeconds.func = function(self, r, g, b, a)
+		colorPickerTimerTextFiveSeconds.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextFiveSeconds:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextSoonToExpireColor;
-			colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextSoonToExpireColor;
+			colorPickerTimerTextFiveSeconds:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -649,14 +647,14 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextMinute:SetText(L["< 1min"]);
 		local t = addonTable.db.TimerTextUnderMinuteColor;
 		colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextMinute.func = function(self, r, g, b, a)
+		colorPickerTimerTextMinute.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMinute:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextUnderMinuteColor;
-			colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextUnderMinuteColor;
+			colorPickerTimerTextMinute:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -668,14 +666,14 @@ local function GUICategory_Fonts(index, value)
 		colorPickerTimerTextMore:SetText(L["> 1min"]);
 		local t = addonTable.db.TimerTextLongerColor;
 		colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerTimerTextMore.func = function(self, r, g, b, a)
+		colorPickerTimerTextMore.func = function(_, r, g, b, a)
 			addonTable.db.TimerTextLongerColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMore:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.TimerTextLongerColor;
-			colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.TimerTextLongerColor;
+			colorPickerTimerTextMore:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -708,13 +706,13 @@ local function GUICategory_Fonts(index, value)
 		sliderDisplayTenthsOfSeconds.slider:SetValueStep(0.1);
 		sliderDisplayTenthsOfSeconds.slider:SetMinMaxValues(minValue, maxValue);
 		sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.MinTimeToShowTenthsOfSeconds);
-		sliderDisplayTenthsOfSeconds.slider:SetScript("OnValueChanged", function(self, value)
+		sliderDisplayTenthsOfSeconds.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(actualValue));
 			addonTable.db.MinTimeToShowTenthsOfSeconds = actualValue;
 		end);
 		sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds));
-		sliderDisplayTenthsOfSeconds.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderDisplayTenthsOfSeconds.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
@@ -746,7 +744,7 @@ local function GUICategory_Fonts(index, value)
 
 end
 
-local function GUICategory_AuraStackFont(index, value)
+local function GUICategory_AuraStackFont(index)
 	local dropdownMenuFont = VGUI.CreateDropdownMenu();
 	local textAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local textAnchorsLocalization = {
@@ -779,18 +777,18 @@ local function GUICategory_AuraStackFont(index, value)
 		checkboxShowStacks:SetParent(GUIFrame);
 		checkboxShowStacks:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
 		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkboxShowStacks:SetScript("OnShow", function(self)
+		checkboxShowStacks:SetScript("OnShow", function()
 			if (addonTable.db.ShowStacks) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
 			end
 		end);
-		checkboxShowStacks:SetScript("OnHide", function(self)
+		checkboxShowStacks:SetScript("OnHide", function()
 			auraTextArea:Hide();
 		end);
 	end
@@ -820,7 +818,7 @@ local function GUICategory_AuraStackFont(index, value)
 		buttonFont:SetParent(auraTextArea);
 		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.StacksFont);
 
-		for idx, font in next, SML:List("font") do
+		for _, font in next, SML:List("font") do
 			table_insert(fonts, {
 				["text"] = font,
 				["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
@@ -838,7 +836,7 @@ local function GUICategory_AuraStackFont(index, value)
 		buttonFont:SetHeight(24);
 		buttonFont:SetPoint("TOPLEFT", auraTextArea, "TOPLEFT", 10, -10);
 		buttonFont:SetPoint("TOPRIGHT", auraTextArea, "TOPRIGHT", -10, -10);
-		buttonFont:SetScript("OnClick", function(self, ...)
+		buttonFont:SetScript("OnClick", function(self)
 			if (dropdownMenuFont:IsVisible()) then
 				dropdownMenuFont:Hide();
 			else
@@ -863,14 +861,14 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksFontScale.slider:SetValueStep(0.1);
 		sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
 		sliderStacksFontScale.slider:SetValue(addonTable.db.StacksFontScale);
-		sliderStacksFontScale.slider:SetScript("OnValueChanged", function(self, value)
+		sliderStacksFontScale.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderStacksFontScale.editbox:SetText(tostring(actualValue));
 			addonTable.db.StacksFontScale = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.StacksFontScale));
-		sliderStacksFontScale.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderStacksFontScale.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksFontScale.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksFontScale.editbox:GetText());
 				if (v == nil) then
@@ -907,14 +905,14 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksTextXOffset.slider:SetValueStep(1);
 		sliderStacksTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
 		sliderStacksTextXOffset.slider:SetValue(addonTable.db.StacksTextXOffset);
-		sliderStacksTextXOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderStacksTextXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextXOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.StacksTextXOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset));
-		sliderStacksTextXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderStacksTextXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksTextXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksTextXOffset.editbox:GetText());
 				if (v == nil) then
@@ -951,14 +949,14 @@ local function GUICategory_AuraStackFont(index, value)
 		sliderStacksTextYOffset.slider:SetValueStep(1);
 		sliderStacksTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
 		sliderStacksTextYOffset.slider:SetValue(addonTable.db.StacksTextYOffset);
-		sliderStacksTextYOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderStacksTextYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextYOffset.editbox:SetText(tostring(actualValue));
 			addonTable.db.StacksTextYOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset));
-		sliderStacksTextYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderStacksTextYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksTextYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksTextYOffset.editbox:GetText());
 				if (v == nil) then
@@ -1047,27 +1045,27 @@ local function GUICategory_AuraStackFont(index, value)
 		colorPickerStacksTextColor:SetText(L["Text color"]);
 		local t = addonTable.db.StacksTextColor;
 		colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerStacksTextColor.func = function(self, r, g, b, a)
+		colorPickerStacksTextColor.func = function(_, r, g, b, a)
 			addonTable.db.StacksTextColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.StacksTextColor;
-			colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.StacksTextColor;
+			colorPickerStacksTextColor:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 		colorPickerStacksTextColor:Show();
 	end
 
 end
 
-local function GUICategory_Borders(index, value)
+local function GUICategory_Borders(index)
 
 	local debuffArea, dropdownBorderType, editBoxBorderFilePath, sliderBorderThickness;
 	local SetControls;
 
 	-- // dropdownBorderType
 	do
-		local borderTypes = { 
+		local borderTypes = {
 			[addonTable.BORDER_TYPE_BUILTIN] = L["options:borders:BORDER_TYPE_BUILTIN"],
 			[addonTable.BORDER_TYPE_CUSTOM] = L["options:borders:BORDER_TYPE_CUSTOM"],
 		};
@@ -1106,12 +1104,11 @@ local function GUICategory_Borders(index, value)
 		end
 
 		table_insert(GUIFrame.Categories[index], dropdownBorderType);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() 
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
 			addonTable.UpdateAllNameplates(true);
 			SetControls();
 		end);
-		
 	end
 
 	-- // editBoxBorderFilePath
@@ -1153,14 +1150,14 @@ local function GUICategory_Borders(index, value)
 		sliderBorderThickness.slider:SetValueStep(1);
 		sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
 		sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness);
-		sliderBorderThickness.slider:SetScript("OnValueChanged", function(self, value)
+		sliderBorderThickness.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderBorderThickness.editbox:SetText(tostring(actualValue));
 			addonTable.db.BorderThickness = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
-		sliderBorderThickness.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderBorderThickness.editbox:SetScript("OnEnterPressed", function()
 			if (sliderBorderThickness.editbox:GetText() ~= "") then
 				local v = tonumber(sliderBorderThickness.editbox:GetText());
 				if (v == nil) then
@@ -1234,14 +1231,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffMagic:SetText(L["Magic"]);
 		local t = addonTable.db.DebuffBordersMagicColor;
 		colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffMagic.func = function(self, r, g, b, a)
+		colorPickerDebuffMagic.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersMagicColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersMagicColor;
-			colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersMagicColor;
+			colorPickerDebuffMagic:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -1254,14 +1251,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffCurse:SetText(L["Curse"]);
 		local t = addonTable.db.DebuffBordersCurseColor;
 		colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffCurse.func = function(self, r, g, b, a)
+		colorPickerDebuffCurse.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersCurseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersCurseColor;
-			colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersCurseColor;
+			colorPickerDebuffCurse:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1275,14 +1272,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffDisease:SetText(L["Disease"]);
 		local t = addonTable.db.DebuffBordersDiseaseColor;
 		colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffDisease.func = function(self, r, g, b, a)
+		colorPickerDebuffDisease.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersDiseaseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersDiseaseColor;
-			colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersDiseaseColor;
+			colorPickerDebuffDisease:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1296,14 +1293,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffPoison:SetText(L["Poison"]);
 		local t = addonTable.db.DebuffBordersPoisonColor;
 		colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffPoison.func = function(self, r, g, b, a)
+		colorPickerDebuffPoison.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersPoisonColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersPoisonColor;
-			colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersPoisonColor;
+			colorPickerDebuffPoison:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1316,14 +1313,14 @@ local function GUICategory_Borders(index, value)
 		colorPickerDebuffOther:SetText(L["Other"]);
 		local t = addonTable.db.DebuffBordersOtherColor;
 		colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
-		colorPickerDebuffOther.func = function(self, r, g, b, a)
+		colorPickerDebuffOther.func = function(_, r, g, b, a)
 			addonTable.db.DebuffBordersOtherColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t = addonTable.db.DebuffBordersOtherColor;
-			colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.DebuffBordersOtherColor;
+			colorPickerDebuffOther:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
@@ -1341,15 +1338,15 @@ local function GUICategory_Borders(index, value)
 		checkBoxBuffBorder:SetPoint("TOPLEFT", debuffArea, "BOTTOMLEFT", 0, -10);
 		local t = addonTable.db.BuffBordersColor;
 		checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
-		checkBoxBuffBorder.ColorButton.func = function(self, r, g, b, a)
+		checkBoxBuffBorder.ColorButton.func = function(_, r, g, b, a)
 			addonTable.db.BuffBordersColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
-			local t = addonTable.db.BuffBordersColor;
-			checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
+			local t1 = addonTable.db.BuffBordersColor;
+			checkBoxBuffBorder.ColorButton:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
 	end
@@ -1357,13 +1354,13 @@ local function GUICategory_Borders(index, value)
 	SetControls();
 end
 
-local function GUICategory_4(index, value)
+local function GUICategory_4(index)
 	local controls = { };
 	local selectedSpell = 0;
 	local dropdownMenuSpells = VGUI.CreateDropdownMenu();
-	local spellArea, editboxAddSpell, buttonAddSpell, dropdownSelectSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
+	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
-		areaMaxAuraDurationFilter, sliderMaxAuraDurationFilter, dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
+		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1436,8 +1433,8 @@ local function GUICategory_4(index, value)
 		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
 		enableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for index in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_ALL;
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_ALL;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1466,8 +1463,8 @@ local function GUICategory_4(index, value)
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
-				for index in pairs(addonTable.db.CustomSpells2) do
-					addonTable.db.CustomSpells2[index].enabledState = CONST_SPELL_MODE_DISABLED;
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_DISABLED;
 				end
 				addonTable.UpdateAllNameplates(false);
 				selectSpell:Click();
@@ -1500,6 +1497,7 @@ local function GUICategory_4(index, value)
 					button2 = NO,
 					OnAccept = function()
 						wipe(addonTable.db.CustomSpells2);
+						addonTable.RebuildSpellCache();
 						selectSpell:Click();
 						addonTable.UpdateAllNameplates(true);
 					end,
@@ -1597,11 +1595,11 @@ local function GUICategory_4(index, value)
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
 		editboxAddSpell:SetScript("OnEnterPressed", function() buttonAddSpell:Click(); end);
-		local text = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontDisable");
-		text:SetPoint("LEFT", 0, 0);
-		text:SetText(L["options:spells:add-new-spell"]);
-		editboxAddSpell:SetScript("OnEditFocusGained", function() text:Hide(); end);
-		editboxAddSpell:SetScript("OnEditFocusLost", function() text:Show(); end);
+		local editboxText = editboxAddSpell:CreateFontString(nil, "ARTWORK", "GameFontDisable");
+		editboxText:SetPoint("LEFT", 0, 0);
+		editboxText:SetText(L["options:spells:add-new-spell"]);
+		editboxAddSpell:SetScript("OnEditFocusGained", function() editboxText:Hide(); end);
+		editboxAddSpell:SetScript("OnEditFocusLost", function() editboxText:Show(); end);
 		hooksecurefunc("ChatEdit_InsertLink", function(link)
 			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
 				local spellName = string.match(link, "%[\"?(.-)\"?%]");
@@ -1620,18 +1618,17 @@ local function GUICategory_4(index, value)
 		buttonAddSpell:SetHeight(20);
 		buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 		buttonAddSpell:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
-		buttonAddSpell:SetScript("OnClick", function(self, ...)
+		buttonAddSpell:SetScript("OnClick", function()
 			local text = editboxAddSpell:GetText();
 			local customSpellID = nil;
 			if (tonumber(text) ~= nil) then
 				customSpellID = tonumber(text);
 				text = SpellNameByID[tonumber(text)] or "";
 			end
-			local spellID;
 			-- if user entered name of spell
 			if (customSpellID == nil) then
 				if (AllSpellIDsAndIconsByName[text] == nil) then
-					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+					for _spellName in pairs(AllSpellIDsAndIconsByName) do
 						if (string_lower(_spellName) == string_lower(text)) then
 							text = _spellName;
 						end
@@ -1642,6 +1639,7 @@ local function GUICategory_4(index, value)
 				local spellName = text;
 				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
 				table_insert(addonTable.db.CustomSpells2, newSpellInfo);
+				addonTable.RebuildSpellCache();
 				selectSpell:Click();
 				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(newSpellInfo));
 				if (btn ~= nil) then btn:Click(); end
@@ -1669,12 +1667,12 @@ local function GUICategory_4(index, value)
 			end
 			selectedSpell = buttonInfo.indexInDB;
 			selectSpell.Text:SetText(buttonInfo.text);
-			selectSpell:SetScript("OnEnter", function(self, ...)
+			selectSpell:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
 				GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
 				GameTooltip:Show();
 			end);
-			selectSpell:SetScript("OnLeave", function(self, ...) GameTooltip:Hide(); end);
+			selectSpell:SetScript("OnLeave", function() GameTooltip:Hide(); end);
 			selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
 			selectSpell.icon:Show();
 			sliderSpellIconSizeWidth.slider:SetValue(spellInfo.iconSizeWidth);
@@ -1774,12 +1772,12 @@ local function GUICategory_4(index, value)
 		selectSpell:SetPoint("BOTTOMRIGHT", spellArea, "TOPRIGHT", -15, 5);
 		selectSpell:SetScript("OnClick", function(button)
 			local t = { };
-			for index, spellInfo in pairs(addonTable.db.CustomSpells2) do
+			for spellIndex, spellInfo in pairs(addonTable.db.CustomSpells2) do
 				table_insert(t, {
 					icon = select(2, GetIDAndTextureForSpell(spellInfo)),
 					text = GetButtonNameForSpell(spellInfo),
 					info = spellInfo,
-					indexInDB = index,
+					indexInDB = spellIndex,
 					onEnter = function(self)
 						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 						GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
@@ -1820,7 +1818,7 @@ local function GUICategory_4(index, value)
 			ResetSelectSpell();
 			HideGameTooltip();
 		end);
-		selectSpell:SetScript("OnHide", function(self)
+		selectSpell:SetScript("OnHide", function()
 			ResetSelectSpell();
 			dropdownMenuSpells:Hide();
 		end);
@@ -2013,12 +2011,12 @@ local function GUICategory_4(index, value)
 		sliderGlowThreshold.slider:SetPoint("RIGHT", -3, 0)
 		sliderGlowThreshold.slider:SetValueStep(1);
 		sliderGlowThreshold.slider:SetMinMaxValues(minV, maxV);
-		sliderGlowThreshold.slider:SetScript("OnValueChanged", function(self, value)
+		sliderGlowThreshold.slider:SetScript("OnValueChanged", function(_, value)
 			sliderGlowThreshold.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].showGlow = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderGlowThreshold.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderGlowThreshold.editbox:SetScript("OnEnterPressed", function()
 			if (sliderGlowThreshold.editbox:GetText() ~= "") then
 				local v = tonumber(sliderGlowThreshold.editbox:GetText());
 				if (v == nil) then
@@ -2155,12 +2153,12 @@ local function GUICategory_4(index, value)
 		sliderAnimationThreshold.slider:SetPoint("RIGHT", -3, 0)
 		sliderAnimationThreshold.slider:SetValueStep(1);
 		sliderAnimationThreshold.slider:SetMinMaxValues(minV, maxV);
-		sliderAnimationThreshold.slider:SetScript("OnValueChanged", function(self, value)
+		sliderAnimationThreshold.slider:SetScript("OnValueChanged", function(_, value)
 			sliderAnimationThreshold.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].animationTimer = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderAnimationThreshold.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderAnimationThreshold.editbox:SetScript("OnEnterPressed", function()
 			if (sliderAnimationThreshold.editbox:GetText() ~= "") then
 				local v = tonumber(sliderAnimationThreshold.editbox:GetText());
 				if (v == nil) then
@@ -2286,12 +2284,12 @@ local function GUICategory_4(index, value)
 		sliderSpellIconSizeWidth.slider:SetPoint("RIGHT", -3, 0)
 		sliderSpellIconSizeWidth.slider:SetValueStep(1);
 		sliderSpellIconSizeWidth.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderSpellIconSizeWidth.slider:SetScript("OnValueChanged", function(self, value)
+		sliderSpellIconSizeWidth.slider:SetScript("OnValueChanged", function(_, value)
 			sliderSpellIconSizeWidth.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].iconSizeWidth = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderSpellIconSizeWidth.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderSpellIconSizeWidth.editbox:SetScript("OnEnterPressed", function()
 			if (sliderSpellIconSizeWidth.editbox:GetText() ~= "") then
 				local v = tonumber(sliderSpellIconSizeWidth.editbox:GetText());
 				if (v == nil) then
@@ -2332,12 +2330,12 @@ local function GUICategory_4(index, value)
 		sliderSpellIconSizeHeight.slider:SetPoint("RIGHT", -3, 0)
 		sliderSpellIconSizeHeight.slider:SetValueStep(1);
 		sliderSpellIconSizeHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderSpellIconSizeHeight.slider:SetScript("OnValueChanged", function(self, value)
+		sliderSpellIconSizeHeight.slider:SetScript("OnValueChanged", function(_, value)
 			sliderSpellIconSizeHeight.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.CustomSpells2[selectedSpell].iconSizeHeight = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderSpellIconSizeHeight.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderSpellIconSizeHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderSpellIconSizeHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderSpellIconSizeHeight.editbox:GetText());
 				if (v == nil) then
@@ -2415,7 +2413,7 @@ local function GUICategory_4(index, value)
 		editboxSpellID:SetBackdropColor(0, 0, 0, 0.5);
 		editboxSpellID:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
 		editboxSpellID:SetScript("OnEscapePressed", function() editboxSpellID:ClearFocus(); end);
-		editboxSpellID:SetScript("OnEnterPressed", function(self, value)
+		editboxSpellID:SetScript("OnEnterPressed", function(self)
 			local text = self:GetText();
 			local t = StringToTableKeys(text);
 			addonTable.db.CustomSpells2[selectedSpell].checkSpellID = (table_count(t) > 0) and t or nil;
@@ -2439,8 +2437,9 @@ local function GUICategory_4(index, value)
 		buttonDeleteSpell:SetHeight(20);
 		buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
 		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
-		buttonDeleteSpell:SetScript("OnClick", function(self, ...)
+		buttonDeleteSpell:SetScript("OnClick", function()
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
+			addonTable.RebuildSpellCache();
 			addonTable.UpdateAllNameplates(false);
 			selectSpell.Text:SetText(L["Click to select spell"]);
 			selectSpell.icon:SetTexture(nil);
@@ -2454,7 +2453,7 @@ local function GUICategory_4(index, value)
 
 end
 
-local function GUICategory_Interrupts(index, value)
+local function GUICategory_Interrupts(index)
 
 	local interruptOptionsArea, checkBoxInterrupts, checkBoxUseSharedIconTexture, checkBoxEnableOnlyInPvPMode, sizeArea, sliderInterruptIconSizeWidth, sliderInterruptIconSizeHeight;
 
@@ -2581,12 +2580,12 @@ local function GUICategory_Interrupts(index, value)
 		sliderInterruptIconSizeWidth.slider:SetPoint("RIGHT", -3, 0)
 		sliderInterruptIconSizeWidth.slider:SetValueStep(1);
 		sliderInterruptIconSizeWidth.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderInterruptIconSizeWidth.slider:SetScript("OnValueChanged", function(self, value)
+		sliderInterruptIconSizeWidth.slider:SetScript("OnValueChanged", function(_, value)
 			sliderInterruptIconSizeWidth.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.InterruptsIconSizeWidth = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderInterruptIconSizeWidth.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderInterruptIconSizeWidth.editbox:SetScript("OnEnterPressed", function()
 			if (sliderInterruptIconSizeWidth.editbox:GetText() ~= "") then
 				local v = tonumber(sliderInterruptIconSizeWidth.editbox:GetText());
 				if (v == nil) then
@@ -2632,12 +2631,12 @@ local function GUICategory_Interrupts(index, value)
 		sliderInterruptIconSizeHeight.slider:SetPoint("RIGHT", -3, 0)
 		sliderInterruptIconSizeHeight.slider:SetValueStep(1);
 		sliderInterruptIconSizeHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderInterruptIconSizeHeight.slider:SetScript("OnValueChanged", function(self, value)
+		sliderInterruptIconSizeHeight.slider:SetScript("OnValueChanged", function(_, value)
 			sliderInterruptIconSizeHeight.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.InterruptsIconSizeHeight = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderInterruptIconSizeHeight.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderInterruptIconSizeHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderInterruptIconSizeHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderInterruptIconSizeHeight.editbox:GetText());
 				if (v == nil) then
@@ -2668,7 +2667,7 @@ local function GUICategory_Interrupts(index, value)
 
 	-- // dropdownGlowType
 	do
-		local glowTypes = { 
+		local glowTypes = {
 			[addonTable.GLOW_TYPE_NONE] = L["options:glow-type:GLOW_TYPE_NONE"],
 			[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
 			[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
@@ -2704,7 +2703,7 @@ local function GUICategory_Interrupts(index, value)
 
 end
 
-local function GUICategory_Additions(index, value)
+local function GUICategory_Additions(index)
 	local area1, checkBoxExplosiveOrbs;
 
 	-- // area1
@@ -2752,7 +2751,7 @@ local function GUICategory_Additions(index, value)
 
 end
 
-local function GUICategory_SizeAndPosition(index, value)
+local function GUICategory_SizeAndPosition(index)
 	local dropdownFrameAnchorToNameplate;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
@@ -2767,7 +2766,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		[frameAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 
-
 	-- // sliderIconSize
 	do
 
@@ -2779,7 +2777,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconSize.slider:SetValueStep(1);
 		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSizeWidth);
-		sliderIconSize.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconSize.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconSize.editbox:SetText(tostring(valueNum));
 			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
@@ -2791,7 +2789,7 @@ local function GUICategory_SizeAndPosition(index, value)
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSizeWidth));
-		sliderIconSize.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconSize.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconSize.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconSize.editbox:GetText());
 				if (v == nil) then
@@ -2826,7 +2824,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconHeight.slider:SetValueStep(1);
 		sliderIconHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderIconHeight.slider:SetValue(addonTable.db.DefaultIconSizeHeight);
-		sliderIconHeight.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconHeight.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconHeight.editbox:SetText(tostring(valueNum));
 			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
@@ -2838,7 +2836,7 @@ local function GUICategory_SizeAndPosition(index, value)
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconHeight.editbox:SetText(tostring(addonTable.db.DefaultIconSizeHeight));
-		sliderIconHeight.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconHeight.editbox:GetText());
 				if (v == nil) then
@@ -2876,13 +2874,13 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconSpacing.slider:SetValueStep(1);
 		sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
 		sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing);
-		sliderIconSpacing.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconSpacing.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconSpacing.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.IconSpacing = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
-		sliderIconSpacing.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconSpacing.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconSpacing.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconSpacing.editbox:GetText());
 				if (v == nil) then
@@ -2917,13 +2915,13 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconXOffset.slider:SetValueStep(1);
 		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
 		sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset);
-		sliderIconXOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.IconXOffset = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
-		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconXOffset.editbox:GetText());
 				if (v == nil) then
@@ -2959,13 +2957,13 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconYOffset.slider:SetValueStep(1);
 		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
 		sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset);
-		sliderIconYOffset.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.IconYOffset = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
-		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconYOffset.editbox:GetText());
 				if (v == nil) then
@@ -3001,14 +2999,14 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderIconZoom.slider:SetValueStep(0.01);
 		sliderIconZoom.slider:SetMinMaxValues(minV, maxV);
 		sliderIconZoom.slider:SetValue(addonTable.db.IconZoom);
-		sliderIconZoom.slider:SetScript("OnValueChanged", function(self, value)
+		sliderIconZoom.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderIconZoom.editbox:SetText(tostring(actualValue));
 			addonTable.db.IconZoom = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom));
-		sliderIconZoom.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderIconZoom.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconZoom.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconZoom.editbox:GetText());
 				if (v == nil) then
@@ -3032,12 +3030,29 @@ local function GUICategory_SizeAndPosition(index, value)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconZoom.slider:SetValue(addonTable.db.IconZoom); sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom)); end);
 	end
 
+	-- // checkboxKeepAspectRatio
+	do
+		local checkboxKeepAspectRatio = VGUI.CreateCheckBox();
+		checkboxKeepAspectRatio:SetText(L["options:size-and-position:keep-aspect-ratio"]);
+		VGUI.SetTooltip(checkboxKeepAspectRatio, L["options:size-and-position:keep-aspect-ratio:tooltip"]);
+		checkboxKeepAspectRatio:SetOnClickHandler(function(this)
+			addonTable.db.KeepAspectRatio = this:GetChecked();
+			addonTable.UpdateAllNameplates();
+		end);
+		checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+		checkboxKeepAspectRatio:SetParent(GUIFrame);
+		checkboxKeepAspectRatio:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -120);
+		table_insert(GUIFrame.Categories[index], checkboxKeepAspectRatio);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+		end);
+	end
+
 	-- // dropdownFrameAnchorToNameplate
 	do
-					
 		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 220);
-		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -140);
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -160);
 		local info = {};
 		dropdownFrameAnchorToNameplate.initialize = function()
 			wipe(info);
@@ -3059,14 +3074,13 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]); end);
-		
 	end
 
 	-- // dropdownFrameAnchor
 	do
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 220);
-		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -140);
+		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -160);
 		local info = {};
 		dropdownFrameAnchor.initialize = function()
 			wipe(info);
@@ -3094,15 +3108,14 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	-- // dropdownIconAnchor
 	do
-
 		local anchors = { addonTable.ICON_ALIGN_BOTTOM_LEFT, addonTable.ICON_ALIGN_TOP_RIGHT, addonTable.ICON_ALIGN_CENTER }; -- // if you change this, don't forget to change 'symmetricAnchors'
-		local anchorsLocalization = { 
+		local anchorsLocalization = {
 			[anchors[1]] = L["options:size-and-position:icon-align:bottom-left"],
 			[anchors[2]] = L["options:size-and-position:icon-align:top-right"],
 			[anchors[3]] = L["options:size-and-position:icon-align:center"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 220);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -180);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -200);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -3124,12 +3137,11 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownIconAnchor.text:SetText(L["options:size-and-position:icon-align"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]); end);
-
 	end
 
 	-- // dropdownIconGrowDirection
 	do
-		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT, 
+		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT,
 			addonTable.ICON_GROW_DIRECTION_UP, addonTable.ICON_GROW_DIRECTION_DOWN };
 		local growDirectionsL = {
 			[growDirections[1]] = L["icon-grow-direction:right"],
@@ -3139,7 +3151,7 @@ local function GUICategory_SizeAndPosition(index, value)
 		};
 		local dropdownIconGrowDirection = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.DropdownIconGrowDirection", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconGrowDirection, 220);
-		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -180);
+		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -200);
 		local info = {};
 		dropdownIconGrowDirection.initialize = function()
 			wipe(info);
@@ -3161,7 +3173,6 @@ local function GUICategory_SizeAndPosition(index, value)
 		dropdownIconGrowDirection.text:SetText(L["options:general:icon-grow-direction"]);
 		table.insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]); end);
-		
 	end
 
 	local dropdownTargetStrata, dropdownNonTargetStrata;
@@ -3180,7 +3191,7 @@ local function GUICategory_SizeAndPosition(index, value)
 	do
 		dropdownTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTargetStrata, 220);
-		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -220);
+		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -240);
 		local info = {};
 		dropdownTargetStrata.initialize = function()
 			wipe(info);
@@ -3208,7 +3219,7 @@ local function GUICategory_SizeAndPosition(index, value)
 	do
 		dropdownNonTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownNonTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownNonTargetStrata, 220);
-		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -220);
+		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -240);
 		local info = {};
 		dropdownNonTargetStrata.initialize = function()
 			wipe(info);
@@ -3252,7 +3263,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 		dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -270);
+		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -290);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);
@@ -3325,36 +3336,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 	end
 
-	-- do
-	-- 	local SortModesLocalization = {
-	-- 		[AURA_SORT_MODE_NONE] =				L["icon-sort-mode:none"],
-	-- 		[AURA_SORT_MODE_EXPIRETIME] =		L["icon-sort-mode:by-expire-time"],
-	-- 		[AURA_SORT_MODE_ICONSIZE] =			L["icon-sort-mode:by-icon-size"],
-	-- 		[AURA_SORT_MODE_AURATYPE_EXPIRE] =	L["icon-sort-mode:by-aura-type+by-expire-time"],
-	-- 	};
-
-	-- 	dropdownSortMode = VGUI.CreateDropdown();
-	-- 	dropdownSortMode:SetParent(GUIFrame);
-	-- 	dropdownSortMode:SetSize(300, 24);
-	-- 	dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -270);
-
-	-- 	local t = { };
-	-- 	for sortMode, sortModeL in pairs(SortModesLocalization) do
-	-- 		local entry = { };
-	-- 		entry.text = sortModeL;
-	-- 		entry.func = function(self)
-	-- 			addonTable.db.SortMode = sortMode;
-	-- 			addonTable.UpdateAllNameplates(true);
-	-- 		end
-	-- 		entry.selected = (addonTable.db.SortMode == sortMode);
-	-- 		t[#t+1] = entry;
-	-- 	end
-	-- 	dropdownSortMode:SetList(t);
-
-	-- 	table_insert(GUIFrame.Categories[index], dropdownSortMode);
-	-- end
-
-	local scaleArea, sliderScale, sliderScaleTarget;
+	local scaleArea, sliderScaleTarget;
 
 	-- // scaleArea
 	do
@@ -3389,14 +3371,14 @@ local function GUICategory_SizeAndPosition(index, value)
 		sliderScaleTarget.slider:SetValueStep(step);
 		sliderScaleTarget.slider:SetMinMaxValues(minValue, maxValue);
 		sliderScaleTarget.slider:SetValue(addonTable.db.IconScaleTarget);
-		sliderScaleTarget.slider:SetScript("OnValueChanged", function(self, value)
+		sliderScaleTarget.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderScaleTarget.editbox:SetText(tostring(actualValue));
 			addonTable.db.IconScaleTarget = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconScaleTarget));
-		sliderScaleTarget.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderScaleTarget.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
@@ -3429,7 +3411,7 @@ local function GUICategory_SizeAndPosition(index, value)
 
 end
 
-local function GUICategory_Alpha(index, value)
+local function GUICategory_Alpha(index)
 	local alphaArea, sliderAlpha, sliderAlphaTarget;
 
 	-- // alphaArea
@@ -3465,14 +3447,14 @@ local function GUICategory_Alpha(index, value)
 		sliderAlpha.slider:SetValueStep(step);
 		sliderAlpha.slider:SetMinMaxValues(minValue, maxValue);
 		sliderAlpha.slider:SetValue(addonTable.db.IconAlpha);
-		sliderAlpha.slider:SetScript("OnValueChanged", function(self, value)
+		sliderAlpha.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderAlpha.editbox:SetText(tostring(actualValue));
 			addonTable.db.IconAlpha = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderAlpha.editbox:SetText(tostring(addonTable.db.IconAlpha));
-		sliderAlpha.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderAlpha.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
@@ -3515,14 +3497,14 @@ local function GUICategory_Alpha(index, value)
 		sliderAlphaTarget.slider:SetValueStep(step);
 		sliderAlphaTarget.slider:SetMinMaxValues(minValue, maxValue);
 		sliderAlphaTarget.slider:SetValue(addonTable.db.IconAlphaTarget);
-		sliderAlphaTarget.slider:SetScript("OnValueChanged", function(self, value)
+		sliderAlphaTarget.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderAlphaTarget.editbox:SetText(tostring(actualValue));
 			addonTable.db.IconAlphaTarget = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconAlphaTarget));
-		sliderAlphaTarget.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderAlphaTarget.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
@@ -3555,7 +3537,7 @@ local function GUICategory_Alpha(index, value)
 
 end
 
-local function GUICategory_Dispel(index, value)
+local function GUICategory_Dispel(index)
 	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, dropdownGlowType, controlArea, sizeArea, sliderDispelIconSizeHeight, sliderDispelIconSizeWidth;
 	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
 
@@ -3642,12 +3624,12 @@ local function GUICategory_Dispel(index, value)
 		sliderDispelIconSizeWidth.slider:SetPoint("RIGHT", -3, 0)
 		sliderDispelIconSizeWidth.slider:SetValueStep(1);
 		sliderDispelIconSizeWidth.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderDispelIconSizeWidth.slider:SetScript("OnValueChanged", function(self, value)
+		sliderDispelIconSizeWidth.slider:SetScript("OnValueChanged", function(_, value)
 			sliderDispelIconSizeWidth.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.DispelIconSizeWidth = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderDispelIconSizeWidth.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderDispelIconSizeWidth.editbox:SetScript("OnEnterPressed", function()
 			if (sliderDispelIconSizeWidth.editbox:GetText() ~= "") then
 				local v = tonumber(sliderDispelIconSizeWidth.editbox:GetText());
 				if (v == nil) then
@@ -3693,12 +3675,12 @@ local function GUICategory_Dispel(index, value)
 		sliderDispelIconSizeHeight.slider:SetPoint("RIGHT", -3, 0)
 		sliderDispelIconSizeHeight.slider:SetValueStep(1);
 		sliderDispelIconSizeHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderDispelIconSizeHeight.slider:SetScript("OnValueChanged", function(self, value)
+		sliderDispelIconSizeHeight.slider:SetScript("OnValueChanged", function(_, value)
 			sliderDispelIconSizeHeight.editbox:SetText(tostring(math_ceil(value)));
 			addonTable.db.DispelIconSizeHeight = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
-		sliderDispelIconSizeHeight.editbox:SetScript("OnEnterPressed", function(self, value)
+		sliderDispelIconSizeHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderDispelIconSizeHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderDispelIconSizeHeight.editbox:GetText());
 				if (v == nil) then
@@ -3729,7 +3711,7 @@ local function GUICategory_Dispel(index, value)
 
 	-- // dropdownGlowType
 	do
-		local glowTypes = { 
+		local glowTypes = {
 			[addonTable.GLOW_TYPE_NONE] = L["options:glow-type:GLOW_TYPE_NONE"],
 			[addonTable.GLOW_TYPE_ACTIONBUTTON] = L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"],
 			[addonTable.GLOW_TYPE_AUTOUSE] = L["options:glow-type:GLOW_TYPE_AUTOUSE"],
@@ -3780,7 +3762,7 @@ local function GUICategory_Dispel(index, value)
 					table_insert(t, {
 						text = spellName,
 						icon = SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])],
-						onCloseButtonClick = function(buttonInfo)
+						onCloseButtonClick = function()
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
 							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
@@ -3795,7 +3777,7 @@ local function GUICategory_Dispel(index, value)
 				dispellableSpellsBlacklistMenu.searchBox:SetText("");
 			end
 		end);
-		dispellableSpellsBlacklist:SetScript("OnHide", function(self) dispellableSpellsBlacklistMenu:Hide(); end);
+		dispellableSpellsBlacklist:SetScript("OnHide", function() dispellableSpellsBlacklistMenu:Hide(); end);
 		dispellableSpellsBlacklist:Disable();
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() dispellableSpellsBlacklist:Enable(); end);
 		GUIFrame:HookScript("OnHide", function() dispellableSpellsBlacklist:Disable(); end);
@@ -3809,14 +3791,14 @@ local function GUICategory_Dispel(index, value)
 		addButton:SetWidth(dispellableSpellsBlacklistMenu:GetWidth() / 3);
 		addButton:SetHeight(24);
 		addButton:SetPoint("TOPRIGHT", dispellableSpellsBlacklistMenu, "BOTTOMRIGHT", 0, -8);
-		addButton:SetScript("OnClick", function(button)
+		addButton:SetScript("OnClick", function()
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
 				local spellExist = false;
 				if (AllSpellIDsAndIconsByName[text]) then
 					spellExist = true;
 				else
-					for _spellName, _spellInfo in pairs(AllSpellIDsAndIconsByName) do
+					for _spellName in pairs(AllSpellIDsAndIconsByName) do
 						if (string_lower(_spellName) == string_lower(text)) then
 							text = _spellName;
 							spellExist = true;
@@ -3888,6 +3870,7 @@ local function DeleteUnexistantSpells()
 		if (AllSpellIDsAndIconsByName[spellInfo.spellName] == nil) then
 			addonTable.Print(("Spell with name '%s' is not found (deleted from game?)"):format(spellInfo.spellName));
 			db.CustomSpells2[index] = nil;
+			addonTable.RebuildSpellCache();
 		end
 	end
 end
@@ -3925,7 +3908,7 @@ end
 local function InitializeGUI()
 	GUIFrame = CreateFrame("Frame", "NAuras.GUIFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate");
 	GUIFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
-	GUIFrame:SetScript("OnEvent", function(self, event, ...)
+	GUIFrame:SetScript("OnEvent", function(self, event)
 		if (event == "PLAYER_REGEN_DISABLED") then
 			if (self:IsVisible()) then
 				self:Hide();
@@ -3994,7 +3977,7 @@ local function InitializeGUI()
 	closeButton:SetHeight(20);
 	closeButton:SetPoint("BOTTOMRIGHT", GUIFrame, "TOPRIGHT", -4, 0);
 	closeButton:SetScript("OnClick", function() GUIFrame:Hide(); end);
-	
+
 	GUIFrame.Categories = {};
 	GUIFrame.OnDBChangedHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
@@ -4048,9 +4031,7 @@ local function InitializeGUI()
 		buttonTestMode:SetPoint("BOTTOMLEFT", GUIFrame.outline, "BOTTOMLEFT", 4, 4);
 		buttonTestMode:SetPoint("BOTTOMRIGHT", GUIFrame.outline, "BOTTOMRIGHT", -4, 4);
 		buttonTestMode:SetHeight(30);
-		buttonTestMode:SetScript("OnClick", function(self, ...)
-			addonTable.SwitchTestMode();
-		end);
+		buttonTestMode:SetScript("OnClick", addonTable.SwitchTestMode);
 	end
 
 	-- profiles button
@@ -4061,7 +4042,7 @@ local function InitializeGUI()
 		button:SetHeight(30);
 		button:SetPoint("BOTTOMLEFT", buttonTestMode, "TOPLEFT", 0, 0);
 		button:SetPoint("BOTTOMRIGHT", buttonTestMode, "TOPRIGHT", 0, 0);
-		button:SetScript("OnClick", function(self, ...)
+		button:SetScript("OnClick", function()
 			LibStub("AceConfigDialog-3.0"):Open("NameplateAuras.profiles");
 			GUIFrame:Hide();
 		end);
@@ -4093,7 +4074,7 @@ if (LDB ~= nil) then
 			tocname = addonName,
 		}
 	);
-	plugin.OnClick = function(display, button)
+	plugin.OnClick = function(_, button)
 		if (button == "LeftButton") then
 			if (GUIFrame ~= nil and GUIFrame:IsShown()) then
 				GUIFrame:Hide();

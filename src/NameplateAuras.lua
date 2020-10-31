@@ -1,9 +1,17 @@
+-- luacheck: no max line length
+-- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff
+-- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
+-- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
+-- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
+-- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG
+
 local _, addonTable = ...;
+
+local buildTimestamp = "DEVELOPER COPY";
 --[===[@non-debug@
-local buildTimestamp = "@project-version@";
+buildTimestamp = "@project-version@";
 --@end-non-debug@]===]
 
-local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
@@ -11,13 +19,14 @@ local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
 
 -- // upvalues
-local 	_G, pairs, select, WorldFrame, string_match,string_gsub,string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, string_lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table_sort, table_remove, IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, select, WorldFrame, strmatch, 	gsub,		strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, string.lower,
-			UnitReaction, UnitGUID, UnitIsFriend, table.sort, table.remove, IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff,
+			UnitReaction, UnitGUID,  table_sort,  IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff,
+			UnitReaction, UnitGUID,  table.sort,  IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
+local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat, GUIFrame,
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat,
 	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate;
 do
 	AurasPerNameplate 						= { };
@@ -47,11 +56,11 @@ do
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
+local Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
 do
 
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
+	Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
+		addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
 
 end
 
@@ -213,7 +222,7 @@ do
 					desc = nil,
 					func = function()
 						addonTable.ShowGUI();
-						if (GUIFrame) then
+						if (addonTable.GUIFrame) then
 							InterfaceOptionsFrameCancel:Click();
 						end
 					end,
@@ -238,6 +247,7 @@ do
 		-- // ...
 		ReloadDB();
 		addonTable.CompileSortFunction();
+		addonTable.RebuildSpellCache();
 		-- // starting listening for events
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
@@ -247,14 +257,14 @@ do
 			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
 		-- // adding slash command
-		SLASH_NAMEPLATEAURAS1 = '/nauras';
-		SlashCmdList["NAMEPLATEAURAS"] = function(msg, editBox)
+		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
+		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
 			if (msg == "ver") then
-				local c = UNKNOWN;
-				if (IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
-					c = "INSTANCE_CHAT";
-				elseif (IsInRaid()) then
-					c = "RAID";
+				local c;
+				if (IsInRaid() and GetNumGroupMembers() > 0) then
+					c = IsPartyLFG() and "INSTANCE_CHAT" or "RAID";
+				elseif (not IsInRaid() and GetNumSubgroupMembers() > 0) then
+					c = IsPartyLFG() and "INSTANCE_CHAT" or "PARTY";
 				else
 					c = "GUILD";
 				end
@@ -290,8 +300,8 @@ do
 			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
 		-- //
-		if (GUIFrame) then
-			for _, func in pairs(GUIFrame.OnDBChangedHandlers) do
+		if (addonTable.GUIFrame) then
+			for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
 				func();
 			end
 		end
@@ -305,7 +315,7 @@ end
 --------------------------------------------------------------------------------------------------
 do
 	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
-	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM = 
+	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM =
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
 	local glowInfo = { };
@@ -333,11 +343,22 @@ do
 		[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction,
 	};
 
+	local spellCache = { };
+	function addonTable.RebuildSpellCache()
+		wipe(spellCache);
+		for _, dbEntry in pairs(db.CustomSpells2) do
+			if (spellCache[dbEntry.spellName] == nil) then
+				spellCache[dbEntry.spellName] = { };
+			end
+			spellCache[dbEntry.spellName][#spellCache[dbEntry.spellName]+1] = dbEntry;
+		end
+	end
+
 	function addonTable.CompileSortFunction()
 		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME];
 		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE];
 		local exec_env = setmetatable({}, { __index =
-			function(t, k)
+			function(t, k) -- luacheck: ignore
 				if (k == "sort_time") then
 					return sort_time;
 				elseif (k == "sort_size") then
@@ -354,11 +375,11 @@ do
 			addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
 			AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction;
 		else
-  			setfenv(func, exec_env);
-  			local success, sortFunc = pcall(assert(func));
+			setfenv(func, exec_env);
+			local success, sortFunc = pcall(assert(func));
 			if (success) then
 				AuraSortFunctions[AURA_SORT_MODE_CUSTOM] = sortFunc;
-  			end
+			end
 		end
 	end
 
@@ -371,7 +392,7 @@ do
 				iconTooltip:SetSpellById(self.spellID);
 				iconTooltip:Show();
 			end);
-			icon:SetScript("OnLeave", function(self)
+			icon:SetScript("OnLeave", function()
 				iconTooltip:Hide();
 			end);
 		else
@@ -397,19 +418,19 @@ do
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMLEFT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPLEFT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOMRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOPRIGHT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_CENTER] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "LEFT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "RIGHT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "BOTTOM",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "TOP",
-		}, 
+		},
 	};
 
 	local iconAlignsOther = {
@@ -418,19 +439,19 @@ do
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "BOTTOMLEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMLEFT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_TOP_RIGHT] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "TOPLEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOPRIGHT",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOMRIGHT",
-		}, 
+		},
 		[addonTable.ICON_ALIGN_CENTER] = {
 			[addonTable.ICON_GROW_DIRECTION_RIGHT] = "RIGHT",
 			[addonTable.ICON_GROW_DIRECTION_LEFT] = "LEFT",
 			[addonTable.ICON_GROW_DIRECTION_UP] = "TOP",
 			[addonTable.ICON_GROW_DIRECTION_DOWN] = "BOTTOM",
-		}, 
+		},
 	};
 
 	function SetAlphaScaleForNameplate(nameplate)
@@ -476,7 +497,7 @@ do
 	local function IconSetCooldown(icon, remainingTime, spellInfo)
 		if (db.ShowCooldownText) then
 			-- cooldown text
-			local text = nil;
+			local text;
 			if (remainingTime > 3600 or spellInfo.duration == 0) then
 				text = "";
 			elseif (remainingTime >= 60) then
@@ -560,25 +581,9 @@ do
 		icon.alphaAnimationGroup:SetLooping("BOUNCE");
 		local animation0 = icon.alphaAnimationGroup:CreateAnimation("Alpha");
 		animation0:SetFromAlpha(1);
-    	animation0:SetToAlpha(0);
-    	animation0:SetDuration(0.5);
+		animation0:SetToAlpha(0);
+		animation0:SetDuration(0.5);
 		animation0:SetOrder(1);
-
-		-- icon.scaleAnimationGroup = icon:CreateAnimationGroup();
-		-- icon.scaleAnimationGroup:SetLooping("REPEAT");
-		-- local keys = { "texture", "cooldownFrame", "cooldownText", "border" };
-		-- for _, value in pairs(keys) do
-		-- 	local scale1 = icon.scaleAnimationGroup:CreateAnimation("Scale");
-		-- 	scale1:SetChildKey(value);
-		-- 	scale1:SetOrder(1)
-		-- 	scale1:SetDuration(0.5)
-		-- 	scale1:SetScale(1.5, 1.5);
-		-- 	local scale2 = icon.scaleAnimationGroup:CreateAnimation("Scale");
-		-- 	scale2:SetChildKey(value);
-		-- 	scale2:SetOrder(2)
-		-- 	scale2:SetDuration(0.5)
-		-- 	scale2:SetScale(2/3, 2/3);
-		-- end
 	end
 
 	local function AllocateIcon(frame)
@@ -596,7 +601,6 @@ do
 		icon:SetSize(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);
 		icon.texture = icon:CreateTexture(nil, "BORDER");
 		icon.texture:SetAllPoints(icon);
-		icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 		icon.border = icon:CreateTexture(nil, "ARTWORK");
 		icon.stacks = icon:CreateFontString(nil, "ARTWORK");
 		icon.cooldownText = icon:CreateFontString(nil, "ARTWORK");
@@ -693,7 +697,6 @@ do
 							icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((sizeMin / 4) * db.StacksFontScale), "OUTLINE");
 						end
 						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex);
-						icon.texture:SetTexCoord(db.IconZoom, 1-db.IconZoom, db.IconZoom, 1-db.IconZoom);
 						icon.cooldownText:ClearAllPoints();
 						icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 						icon.textColor = nil;
@@ -720,7 +723,7 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)
+	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)
 		if (dbEntry ~= nil) then
 			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
 				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
@@ -738,7 +741,7 @@ do
 		return false;
 	end
 
-	local function ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend)
+	local function ProcAurasForNmplt_Additions(unitGUID, frame)
 		if (unitGUID ~= nil) then
 			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
 			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
@@ -759,12 +762,13 @@ do
 		end
 	end
 
-	local function ProcessAurasForNameplate_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
+	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
 		local foundInDB = false;
 		local tSize = #AurasPerNameplate[frame];
-		for _, dbEntry in pairs(db.CustomSpells2) do
-			if (auraName == dbEntry.spellName) then
-				if (ProcessAurasForNameplate_Filter(auraType, auraName, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+		local cache = spellCache[auraName];
+		if (cache ~= nil) then
+			for _, dbEntry in pairs(cache) do
+				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
 					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
@@ -809,7 +813,6 @@ do
 							["glowType"] = db.Additions_DispellableSpells_GlowType,
 						},
 					};
-					tSize = tSize + 1;
 				end
 			end
 		end
@@ -823,11 +826,11 @@ do
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					ProcessAurasForNameplate_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
 				end
 				if (buffName == nil and debuffName == nil) then
 					break;
@@ -841,7 +844,7 @@ do
 				AurasPerNameplate[frame][tSize+1] = interrupt;
 			end
 		end
-		ProcessAurasForNameplate_ProcessAdditions(unitGUID, frame, unitID, unitIsFriend);
+		ProcAurasForNmplt_Additions(unitGUID, frame);
 		UpdateNameplate(frame, unitGUID);
 	end
 
@@ -897,8 +900,8 @@ do
 		end,
 	};
 
-	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS, ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 
-		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS, addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD;
+	local ICON_ANIMATION_DISPLAY_MODE_NONE, ICON_ANIMATION_DISPLAY_MODE_ALWAYS =
+		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE, addonTable.ICON_ANIMATION_DISPLAY_MODE_ALWAYS;
 	local ICON_ANIMATION_TYPE_ALPHA = addonTable.ICON_ANIMATION_TYPE_ALPHA;
 	local animationMethods = {
 		[ICON_ANIMATION_TYPE_ALPHA] = function(icon)
@@ -913,7 +916,7 @@ do
 		end,
 	};
 
-	local function UpdateNameplate_SetAnimation(icon, iconResized, remainingAuraTime, spellInfo)
+	local function UpdateNameplate_SetAnimation(icon, remainingAuraTime, spellInfo)
 		if (animationInfo[icon]) then
 			animationInfo[icon]:Cancel(); -- // cancel delayed animation
 			animationInfo[icon] = nil;
@@ -934,7 +937,7 @@ do
 					animationInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.animationTimer, function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
 				else
 					animationInfo[icon] = CTimerNewTimer(
-						remainingAuraTime - dbEntry.animationTimer/100*spellInfo.duration, 
+						remainingAuraTime - dbEntry.animationTimer/100*spellInfo.duration,
 						function() animationMethods[dbEntry.animationType](icon); end); -- // queue delayed animation
 				end
 			end
@@ -964,7 +967,7 @@ do
 					glowInfo[icon] = CTimerNewTimer(remainingAuraTime - dbEntry.showGlow, function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
 				else
 					glowInfo[icon] = CTimerNewTimer(
-						remainingAuraTime - dbEntry.showGlow/100*spellInfo.duration, 
+						remainingAuraTime - dbEntry.showGlow/100*spellInfo.duration,
 						function() glowMethods[dbEntry.glowType](icon, iconResized); end); -- // queue delayed glow
 				end
 			end
@@ -995,7 +998,25 @@ do
 			icon.stacks:SetFont(SML:Fetch("font", db.StacksFont), math_ceil((sizeMin / 4) * db.StacksFontScale), "OUTLINE");
 			iconResized = true;
 		end
-		return spellWidth, spellHeight;
+		return spellWidth, spellHeight, iconResized;
+	end
+
+	local function UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight)
+		local xOffset, yOffset = db.IconZoom, db.IconZoom;
+		if (db.KeepAspectRatio) then
+			local aspectRatio = spellWidth / spellHeight;
+			local freeSpace = 0.5 - db.IconZoom;
+			if (aspectRatio > 1) then
+				yOffset = db.IconZoom + (freeSpace - freeSpace*(1/aspectRatio));
+			elseif (aspectRatio < 1) then
+				xOffset = db.IconZoom + (freeSpace - freeSpace*aspectRatio);
+			end
+		end
+		if (icon.textureXOffset ~= xOffset or icon.textureYOffset ~= yOffset) then
+			icon.texture:SetTexCoord(xOffset, 1-xOffset, yOffset, 1-yOffset);
+			icon.textureXOffset = xOffset;
+			icon.textureYOffset = yOffset;
+		end
 	end
 
 	function UpdateNameplate(frame, unitGUID)
@@ -1008,8 +1029,6 @@ do
 			local currentTime = GetTime();
 			if (db.SortMode ~= AURA_SORT_MODE_NONE) then table_sort(AurasPerNameplate[frame], AuraSortFunctions[db.SortMode]); end
 			for _, spellInfo in pairs(AurasPerNameplate[frame]) do
-				local spellName = SpellNameByID[spellInfo.spellID];
-				local duration = spellInfo.duration;
 				local last = spellInfo.expires - currentTime;
 				if (last > 0 or spellInfo.duration == 0) then
 					if (counter > frame.NAurasIconsCount) then
@@ -1024,14 +1043,15 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					local spellWidth, spellHeight = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
+					local spellWidth, spellHeight, iconResized = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
+					UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight);
 					maxIconWidth = math_max(maxIconWidth, spellWidth);
 					maxIconHeight = math_max(maxIconHeight, spellHeight);
 					totalWidth = totalWidth + icon.sizeWidth + db.IconSpacing;
 					totalHeight = totalHeight + icon.sizeHeight + db.IconSpacing;
 					-- // glow
 					UpdateNameplate_SetGlow(icon, iconResized, last, spellInfo);
-					UpdateNameplate_SetAnimation(icon, iconResized, last, spellInfo);
+					UpdateNameplate_SetAnimation(icon, last, spellInfo);
 					if (not icon.shown) then
 						ShowCDIcon(icon);
 					end
@@ -1244,81 +1264,110 @@ do
 	local intervalBetweenRefreshes = 13;
 	local ticker = nil;
 	local spellsLastTimeUpdated = GetTime() - intervalBetweenRefreshes;
+	local testTable;
 
 	local function GetSpells()
 		if (GetTime() - spellsLastTimeUpdated >= intervalBetweenRefreshes) then
 			spellsLastTimeUpdated = GetTime();
 		end
-		local t = {
-			{
-				["duration"] = intervalBetweenRefreshes-3,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
-				["stacks"] = 2,
-				["spellID"] = 139,
-				["type"] = AURA_TYPE_BUFF,
-				["spellName"] = SpellNameByID[139],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 45,
-					["iconSizeHeight"] = 45,
+		if (testTable == nil) then
+			testTable = {
+				{
+					["duration"] = intervalBetweenRefreshes-3,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
+					["stacks"] = 2,
+					["spellID"] = 139,
+					["type"] = AURA_TYPE_BUFF,
+					["spellName"] = SpellNameByID[139],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 45,
+						["iconSizeHeight"] = 45,
+					},
 				},
-			},
-			{
-				["duration"] = intervalBetweenRefreshes*20,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
-				["stacks"] = 1,
-				["spellID"] = 215336,
-				["type"] = AURA_TYPE_BUFF,
-				["spellName"] = SpellNameByID[215336],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 30,
-					["iconSizeHeight"] = 30,
+				{
+					["duration"] = intervalBetweenRefreshes*20,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20,
+					["stacks"] = 1,
+					["spellID"] = 215336,
+					["type"] = AURA_TYPE_BUFF,
+					["spellName"] = SpellNameByID[215336],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 30,
+						["iconSizeHeight"] = 30,
+					},
 				},
-			},
-			{
-				["duration"] = intervalBetweenRefreshes*2,
-				["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
-				["stacks"] = 3,
-				["spellID"] = 188389,
-				["type"] = AURA_TYPE_DEBUFF,
-				["dispelType"] = "Magic",
-				["spellName"] = SpellNameByID[188389],
-				["dbEntry"] = {
-					["iconSizeWidth"] = 40,
-					["iconSizeHeight"] = 40,
+				{
+					["duration"] = intervalBetweenRefreshes*2,
+					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2,
+					["stacks"] = 3,
+					["spellID"] = 188389,
+					["type"] = AURA_TYPE_DEBUFF,
+					["dispelType"] = "Magic",
+					["spellName"] = SpellNameByID[188389],
+					["dbEntry"] = {
+						["iconSizeWidth"] = 40,
+						["iconSizeHeight"] = 40,
+					},
 				},
-			},
-			{
-				["duration"] = 0,
-				["expires"] = 0,
-				["stacks"] = 10,
-				["spellID"] = 100407,
-				["type"] = AURA_TYPE_DEBUFF,
-				["dispelType"] = "Curse",
-				["spellName"] = SpellNameByID[100407],
-				["dbEntry"] = {
-					["iconSizeWidth"] = db.DefaultIconSizeWidth,
-					["iconSizeHeight"] = db.DefaultIconSizeHeight,
-					["showGlow"] = GLOW_TIME_INFINITE,
-					["glowType"] = db.Additions_DispellableSpells_GlowType,
+				{
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 10,
+					["spellID"] = 100407,
+					["type"] = AURA_TYPE_DEBUFF,
+					["dispelType"] = "Curse",
+					["spellName"] = SpellNameByID[100407],
+					["dbEntry"] = {
+						["iconSizeWidth"] = db.DefaultIconSizeWidth,
+						["iconSizeHeight"] = db.DefaultIconSizeHeight,
+						["showGlow"] = GLOW_TIME_INFINITE,
+						["glowType"] = db.Additions_DispellableSpells_GlowType,
+					},
 				},
-			},
-		};
+			};
+		else
+			testTable[1]["duration"] = intervalBetweenRefreshes-3;
+			testTable[1]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3;
+
+			testTable[2]["duration"] = intervalBetweenRefreshes*20;
+			testTable[2]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20;
+
+			testTable[3]["duration"] = intervalBetweenRefreshes*2;
+			testTable[3]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2;
+
+			testTable[4]["dbEntry"]["iconSizeWidth"] = db.DefaultIconSizeWidth;
+			testTable[4]["dbEntry"]["iconSizeHeight"] = db.DefaultIconSizeHeight;
+			testTable[4]["dbEntry"]["glowType"] = db.Additions_DispellableSpells_GlowType;
+		end
 		if (addonTable.GetCurrentlyEditingSpell ~= nil) then
 			local dbEntry, spellID = addonTable.GetCurrentlyEditingSpell();
 			if (dbEntry ~= nil and spellID ~= nil) then
-				t[#t+1] = {
-					["duration"] = intervalBetweenRefreshes,
-					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
-					["stacks"] = 5,
-					["spellID"] = spellID,
-					["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF,
-					["dispelType"] = "Magic",
-					["spellName"] = SpellNameByID[spellID],
-					["dbEntry"] = dbEntry,
-				};
+				if (testTable[5] == nil) then
+					testTable[5] = {
+						["duration"] = intervalBetweenRefreshes,
+						["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
+						["stacks"] = 5,
+						["spellID"] = spellID,
+						["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF,
+						["dispelType"] = "Magic",
+						["spellName"] = SpellNameByID[spellID],
+						["dbEntry"] = dbEntry,
+					};
+				else
+					testTable[5]["duration"] = intervalBetweenRefreshes;
+					testTable[5]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes;
+					testTable[5]["spellID"] = spellID;
+					testTable[5]["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
+					testTable[5]["spellName"] = SpellNameByID[spellID];
+					testTable[5]["dbEntry"] = dbEntry;
+				end
+			else
+				testTable[5] = nil;
 			end
+		else
+			testTable[5] = nil;
 		end
-		return t;
+		return testTable;
 	end
 
 	local function Ticker_OnTick()

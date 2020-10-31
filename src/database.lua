@@ -1,28 +1,26 @@
+-- luacheck: no max line length
+-- luacheck: globals wipe
+
 local _, addonTable = ...;
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, 
-	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, 
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
+	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED,
+	GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
-	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE = 
+	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
+	CONST_SPELL_PVP_MODES_UNDEFINED = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
-	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
-	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
-	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
 end
 
 -- // utilities
-local Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, table_insert;
+local Print, msgWithQuestion, table_count, SpellNameByID, table_insert;
 do
-
-	Print, msg, msgWithQuestion, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID, table_insert = 
-		addonTable.Print, addonTable.msg, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID, table.insert;
-	
+	Print, msgWithQuestion, table_count, SpellNameByID, table_insert =
+		addonTable.Print, addonTable.msgWithQuestion, addonTable.table_count, addonTable.SpellNameByID, table.insert;
 end
 
 local migrations = {
@@ -61,12 +59,12 @@ local migrations = {
             db.DefaultSpellsLastSetImported = 1;
             db.DefaultSpellsAreImported = nil;
         end
-        for spellID, spellInfo in pairs(db.CustomSpells2) do
+        for _, spellInfo in pairs(db.CustomSpells2) do
             if (type(spellInfo.checkSpellID) == "number") then
                 spellInfo.checkSpellID = { [spellInfo.checkSpellID] = true };
             end
         end
-        for spellID, spellInfo in pairs(db.CustomSpells2) do
+        for _, spellInfo in pairs(db.CustomSpells2) do
             if (spellInfo.checkSpellID ~= nil) then
                 local toAdd = { };
                 for key in pairs(spellInfo.checkSpellID) do
@@ -83,7 +81,7 @@ local migrations = {
                 end
             end
         end
-        for spellID, spellInfo in pairs(db.CustomSpells2) do
+        for _, spellInfo in pairs(db.CustomSpells2) do
             if (spellInfo.checkSpellID ~= nil) then
                 local toAdd = { };
                 for key, value in pairs(spellInfo.checkSpellID) do
@@ -159,7 +157,7 @@ local migrations = {
     end,
     [6] = function()
         local db = addonTable.db;
-        local iconAligh = { 
+        local iconAligh = {
             ["TOPLEFT"] = addonTable.ICON_ALIGN_TOP_RIGHT,
             ["LEFT"] = addonTable.ICON_ALIGN_CENTER,
             ["BOTTOMLEFT"] = addonTable.ICON_ALIGN_BOTTOM_LEFT,

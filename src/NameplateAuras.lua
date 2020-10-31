@@ -3,6 +3,7 @@
 -- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
 -- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
+-- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG
 
 local _, addonTable = ...;
 
@@ -22,6 +23,7 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table_sort,  IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff,
 			UnitReaction, UnitGUID,  table.sort,  IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
+local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, IsPartyLFG = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, IsPartyLFG;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat,

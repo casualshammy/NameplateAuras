@@ -60,3 +60,13 @@ addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 3;
 
 addonTable.BORDER_TYPE_BUILTIN = 1;
 addonTable.BORDER_TYPE_CUSTOM = 2;
+
+addonTable.DR_TEXTURES = {
+	["disorient"] = [[Interface\AddOns\NameplateAuras\media\square-violet.tga]],
+	["incapacitate"] = [[Interface\AddOns\NameplateAuras\media\square-silver.tga]],
+	["silence"] = [[Interface\AddOns\NameplateAuras\media\square-blue.tga]],
+	["stun"] = [[Interface\AddOns\NameplateAuras\media\square-orange.tga]],
+	["root"] = [[Interface\AddOns\NameplateAuras\media\square-green.tga]],
+	["disarm"] = [[Interface\AddOns\NameplateAuras\media\square-yellow.tga]],
+	["taunt"] = [[Interface\AddOns\NameplateAuras\media\square-red.tga]],
+};

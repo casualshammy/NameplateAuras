@@ -189,5 +189,8 @@ Built-in sorting functions:
 L["icon-sort-mode:custom"] = "Custom";
 L["options:size-and-position:keep-aspect-ratio"] = "Keep aspect ratio of textures";
 L["options:size-and-position:keep-aspect-ratio:tooltip"] = "If this option is checked and icon width and height are not equal, then texture of spell will be cropped in that way to save original image proportions";
+L["options:apps:dr"] = "Enable display of diminishing return (beta)"
+L["options:apps:dr:pvp"] = "PvP"
+L["options:apps:dr:pve"] = "PvE (stun only)"
 
 --@end-debug@

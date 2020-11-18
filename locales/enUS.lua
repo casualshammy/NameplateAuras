@@ -192,5 +192,6 @@ L["options:size-and-position:keep-aspect-ratio:tooltip"] = "If this option is ch
 L["options:apps:dr"] = "Enable display of diminishing return (beta)"
 L["options:apps:dr:pvp"] = "PvP"
 L["options:apps:dr:pve"] = "PvE (stun only)"
+L["options:general:show-on-target-only"] = "Show auras on target's nameplate only"
 
 --@end-debug@

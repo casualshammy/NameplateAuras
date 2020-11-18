@@ -94,7 +94,8 @@ end
 local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
+		checkboxShowOnlyOnTarget;
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -216,7 +217,21 @@ local function GUICategory_1(index)
 		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
+	end
 
+	-- // checkboxShowOnlyOnTarget
+	do
+		checkboxShowOnlyOnTarget = VGUI.CreateCheckBox();
+		checkboxShowOnlyOnTarget:SetText(L["options:general:show-on-target-only"]);
+		checkboxShowOnlyOnTarget:SetOnClickHandler(function(this)
+			addonTable.db.ShowOnlyOnTarget = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget);
+		checkboxShowOnlyOnTarget:SetParent(GUIFrame);
+		checkboxShowOnlyOnTarget:SetPoint("TOPLEFT", checkboxShowCooldownAnimation, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowOnlyOnTarget);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
 	end
 
 end

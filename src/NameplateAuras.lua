@@ -28,7 +28,7 @@ local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
-local InPvPCombat, EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID;
+local InPvPCombat, EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
@@ -210,6 +210,7 @@ do
 				CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
 				Additions_DRPvP = false,
 				Additions_DRPvE = false,
+				ShowOnlyOnTarget = false,
 			},
 		};
 
@@ -456,7 +457,7 @@ do
 			local unitID = NameplatesVisible[nameplate];
 			if (unitID ~= nil) then
 				local unitGUID = UnitGUID(unitID);
-				if (unitGUID == UnitGUID("target")) then
+				if (unitGUID == TargetGUID) then
 					nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
 					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
 					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
@@ -839,7 +840,7 @@ do
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitGUID = UnitGUID(unitID);
-		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
+		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
@@ -853,16 +854,16 @@ do
 					break;
 				end
 			end
-		end
-		if (db.InterruptsEnabled) then
-			local interrupt = InterruptsPerUnitGUID[unitGUID];
-			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
-				local tSize = #AurasPerNameplate[frame];
-				AurasPerNameplate[frame][tSize+1] = interrupt;
+			if (db.InterruptsEnabled) then
+				local interrupt = InterruptsPerUnitGUID[unitGUID];
+				if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
+					local tSize = #AurasPerNameplate[frame];
+					AurasPerNameplate[frame][tSize+1] = interrupt;
+				end
 			end
+			ProcAurasForNmplt_Additions(unitGUID, frame);
+			ProcAurasForNmplt_DR(unitGUID, frame);
 		end
-		ProcAurasForNmplt_Additions(unitGUID, frame);
-		ProcAurasForNmplt_DR(unitGUID, frame);
 		UpdateNameplate(frame, unitGUID);
 	end
 
@@ -1305,8 +1306,12 @@ do
 	end
 
 	function EventFrame.PLAYER_TARGET_CHANGED()
+		TargetGUID = UnitGUID("target");
 		for nameplate in pairs(NameplatesVisible) do
 			SetAlphaScaleForNameplate(nameplate);
+		end
+		if (db.ShowOnlyOnTarget) then
+			addonTable.UpdateAllNameplates(false);
 		end
 	end
 
@@ -1377,8 +1382,8 @@ do
 					["dispelType"] = "Magic",
 					["spellName"] = SpellNameByID[188389],
 					["dbEntry"] = {
-						["iconSizeWidth"] = 40,
-						["iconSizeHeight"] = 40,
+						["iconSizeWidth"] = 30,
+						["iconSizeHeight"] = 30,
 					},
 				},
 				{

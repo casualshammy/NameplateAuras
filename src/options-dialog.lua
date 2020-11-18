@@ -94,7 +94,8 @@ end
 local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation;
+		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
+		checkboxShowOnlyOnTarget;
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -216,7 +217,21 @@ local function GUICategory_1(index)
 		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
+	end
 
+	-- // checkboxShowOnlyOnTarget
+	do
+		checkboxShowOnlyOnTarget = VGUI.CreateCheckBox();
+		checkboxShowOnlyOnTarget:SetText(L["options:general:show-on-target-only"]);
+		checkboxShowOnlyOnTarget:SetOnClickHandler(function(this)
+			addonTable.db.ShowOnlyOnTarget = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget);
+		checkboxShowOnlyOnTarget:SetParent(GUIFrame);
+		checkboxShowOnlyOnTarget:SetPoint("TOPLEFT", checkboxShowCooldownAnimation, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowOnlyOnTarget);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
 	end
 
 end
@@ -2465,10 +2480,8 @@ local function GUICategory_Interrupts(index)
 		checkBoxInterrupts:SetOnClickHandler(function(this)
 			addonTable.db.InterruptsEnabled = this:GetChecked();
 			if (addonTable.db.InterruptsEnabled) then
-				addonTable.EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 				interruptOptionsArea:Show();
 			else
-				addonTable.EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 				interruptOptionsArea:Hide();
 			end
 		end);
@@ -2704,7 +2717,7 @@ local function GUICategory_Interrupts(index)
 end
 
 local function GUICategory_Additions(index)
-	local area1, checkBoxExplosiveOrbs;
+	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP;
 
 	-- // area1
 	do
@@ -2746,6 +2759,70 @@ local function GUICategory_Additions(index)
 		table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxExplosiveOrbs:SetChecked(addonTable.db.Additions_ExplosiveOrbs);
+		end);
+	end
+
+	-- area2
+	do
+		area2 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		area2:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		area2:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		area2:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		area2:SetPoint("TOPLEFT", area1, "BOTTOMLEFT", 0, 0);
+		area2:SetPoint("TOPRIGHT", area1, "BOTTOMRIGHT", 0, 0);
+		area2:SetHeight(85);
+		table_insert(GUIFrame.Categories[index], area2);
+	end
+
+	-- textDR
+	do
+		local textDR = area2:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+		textDR:SetPoint("TOPLEFT", area2, "TOPLEFT", 20, -15);
+		textDR:SetText(L["options:apps:dr"]);
+	end
+
+	-- // checkBoxDRPvP
+	do
+		checkBoxDRPvP = VGUI.CreateCheckBox();
+		checkBoxDRPvP:SetText(L["options:apps:dr:pvp"]);
+		checkBoxDRPvP:SetOnClickHandler(function(this)
+			addonTable.db.Additions_DRPvP = this:GetChecked();
+			if (not addonTable.db.Additions_DRPvP) then
+				addonTable.UpdateAllNameplates(true);
+			end
+		end);
+		checkBoxDRPvP:SetChecked(addonTable.db.Additions_DRPvP);
+		checkBoxDRPvP:SetParent(area2);
+		checkBoxDRPvP:SetPoint("LEFT", area2, "LEFT", 20, -5);
+		table_insert(GUIFrame.Categories[index], checkBoxDRPvP);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxDRPvP:SetChecked(addonTable.db.Additions_DRPvP);
+		end);
+	end
+
+	-- // checkBoxDRPvE
+	do
+		local checkBoxDRPvE = VGUI.CreateCheckBox();
+		checkBoxDRPvE:SetText(L["options:apps:dr:pve"]);
+		checkBoxDRPvE:SetOnClickHandler(function(this)
+			addonTable.db.Additions_DRPvE = this:GetChecked();
+			if (not addonTable.db.Additions_DRPvE) then
+				addonTable.UpdateAllNameplates(true);
+			end
+		end);
+		checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
+		checkBoxDRPvE:SetParent(area2);
+		checkBoxDRPvE:SetPoint("TOPLEFT", checkBoxDRPvP, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxDRPvE);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
 		end);
 	end
 

@@ -17,6 +17,7 @@ local SML = LibStub("LibSharedMedia-3.0");
 local AceComm = LibStub("AceComm-3.0");
 local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
+local DRList = LibStub("DRList-1.0");
 
 -- // upvalues
 local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff,
@@ -26,8 +27,8 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, InPvPCombat,
-	EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate;
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
+local InPvPCombat, EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
@@ -37,6 +38,8 @@ do
 	InPvPCombat								= false;
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
+	DRDataPerGUID							= { };
+	DRResetTime								= DRList:GetResetTime();
 end
 
 -- // consts
@@ -205,6 +208,9 @@ do
 				DefaultIconSizeHeight = 45,
 				IconZoom = 0.07,
 				CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
+				Additions_DRPvP = false,
+				Additions_DRPvE = false,
+				ShowOnlyOnTarget = false,
 			},
 		};
 
@@ -253,9 +259,7 @@ do
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED");
 		EventFrame:RegisterEvent("UNIT_AURA");
 		EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED");
-		if (db.InterruptsEnabled) then
-			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-		end
+		EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
@@ -293,12 +297,6 @@ do
 		addonTable.MigrateDB();
 		-- // import default spells
 		addonTable.ImportNewSpells();
-		-- // COMBAT_LOG_EVENT_UNFILTERED
-		if (db.InterruptsEnabled) then
-			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-		else
-			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-		end
 		-- //
 		if (addonTable.GUIFrame) then
 			for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
@@ -459,7 +457,7 @@ do
 			local unitID = NameplatesVisible[nameplate];
 			if (unitID ~= nil) then
 				local unitGUID = UnitGUID(unitID);
-				if (unitGUID == UnitGUID("target")) then
+				if (unitGUID == TargetGUID) then
 					nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
 					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
 					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
@@ -762,6 +760,26 @@ do
 		end
 	end
 
+	local function ProcAurasForNmplt_DR(unitGUID, frame)
+		if ((db.Additions_DRPvE or db.Additions_DRPvP) and unitGUID ~= nil and DRDataPerGUID[unitGUID] ~= nil) then
+			local tSize = #AurasPerNameplate[frame];
+			for category, categoryData in pairs(DRDataPerGUID[unitGUID]) do
+				if (categoryData.drAppliedCount > 0) then
+					AurasPerNameplate[frame][tSize+1] = {
+						["duration"] = categoryData.lastTimeDRApplied == 0 and 0 or DRResetTime,
+						["expires"] = categoryData.lastTimeDRApplied == 0 and 0 or (categoryData.lastTimeDRApplied + DRResetTime),
+						["stacks"] = (1 - DRList:GetNextDR(categoryData.drAppliedCount, category))*100, --25 + 25*categoryData.drAppliedCount,
+						["spellID"] = 222468, -- https://www.wowhead.com/spell=222468/immunepc
+						["type"] = AURA_TYPE_BUFF,
+						["spellName"] = SpellNameByID[222468], -- https://www.wowhead.com/spell=222468/immunepc
+						["overrideTexture"] = addonTable.DR_TEXTURES[category],
+					};
+					tSize = tSize + 1;
+				end
+			end
+		end
+	end
+
 	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
 		local foundInDB = false;
 		local tSize = #AurasPerNameplate[frame];
@@ -822,7 +840,7 @@ do
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitGUID = UnitGUID(unitID);
-		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend)) then
+		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
@@ -836,15 +854,16 @@ do
 					break;
 				end
 			end
-		end
-		if (db.InterruptsEnabled) then
-			local interrupt = InterruptsPerUnitGUID[unitGUID];
-			if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
-				local tSize = #AurasPerNameplate[frame];
-				AurasPerNameplate[frame][tSize+1] = interrupt;
+			if (db.InterruptsEnabled) then
+				local interrupt = InterruptsPerUnitGUID[unitGUID];
+				if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
+					local tSize = #AurasPerNameplate[frame];
+					AurasPerNameplate[frame][tSize+1] = interrupt;
+				end
 			end
+			ProcAurasForNmplt_Additions(unitGUID, frame);
+			ProcAurasForNmplt_DR(unitGUID, frame);
 		end
-		ProcAurasForNmplt_Additions(unitGUID, frame);
 		UpdateNameplate(frame, unitGUID);
 	end
 
@@ -1036,7 +1055,11 @@ do
 					end
 					local icon = frame.NAurasIcons[counter];
 					if (icon.spellID ~= spellInfo.spellID) then
-						icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
+						if (spellInfo.overrideTexture ~= nil) then
+							icon.texture:SetTexture(spellInfo.overrideTexture);
+						else
+							icon.texture:SetTexture(SpellTextureByID[spellInfo.spellID]);
+						end
 						icon.spellID = spellInfo.spellID;
 					end
 					icon:SetCooldown(last, spellInfo);
@@ -1108,11 +1131,11 @@ end
 ----- Frame for events
 --------------------------------------------------------------------------------------------------
 do
-
 	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
 	local MarkerSpellsForRestorationShamansAndShadowPriests = addonTable.MarkerSpellsForRestorationShamansAndShadowPriests;
 	local InterruptSpells = addonTable.Interrupts;
 	local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER;
+	local drTimers = { };
 
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -1172,69 +1195,123 @@ do
 		end
 	end
 
-	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
-		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName = CombatLogGetCurrentEventInfo();
-		-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
-		if (event == "SPELL_INTERRUPT") then
-			local spellDuration = InterruptSpells[spellID];
-			if (spellDuration ~= nil) then
-				if (not db.InterruptsShowOnlyOnPlayers or bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0) then
-					-- // warlocks have 30% interrupt lockout reduction
-					if (UnitClassByGUID[destGUID] == "WARLOCK") then
-						spellDuration = spellDuration * 0.7;
-					-- // Restoration Shamans and Shadow Priests have 30% interrupt lockout reduction
-					elseif (UnitGUIDHasAdditionalInterruptReduction[destGUID]) then
-						spellDuration = spellDuration * 0.7;
-					end
-					-- // pvp talents
-					if (UnitGUIDHasInterruptReduction[destGUID]) then
-						spellDuration = spellDuration * 0.3;
-					end
-					InterruptsPerUnitGUID[destGUID] = {
-						["duration"] = spellDuration,
-						["expires"] = GetTime() + spellDuration,
-						["stacks"] = 1,
-						["spellID"] = spellID,
-						["type"] = AURA_TYPE_DEBUFF,
-						["spellName"] = spellName,
-						["dbEntry"] = {
-							["enabledState"] =				CONST_SPELL_MODE_DISABLED,
-							["auraType"] =					AURA_TYPE_DEBUFF,
-							["iconSizeWidth"] = 			db.InterruptsIconSizeWidth,
-							["iconSizeHeight"] = 			db.InterruptsIconSizeHeight,
-							["showGlow"] =					GLOW_TIME_INFINITE,
-							["glowType"] =					db.InterruptsGlowType,
-						},
-					};
-					for frame, unitID in pairs(NameplatesVisible) do
-						if (destGUID == UnitGUID(unitID)) then
-							ProcessAurasForNameplate(frame, unitID);
-							CTimerAfter(spellDuration, function() ProcessAurasForNameplate(frame, unitID); end);
-							break;
+	local function ProcessInterrupts(event, sourceGUID, destGUID, destFlags, spellID, spellName)
+		if (db.InterruptsEnabled) then
+			-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
+			if (event == "SPELL_INTERRUPT") then
+				local spellDuration = InterruptSpells[spellID];
+				if (spellDuration ~= nil) then
+					if (not db.InterruptsShowOnlyOnPlayers or bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0) then
+						-- // warlocks have 30% interrupt lockout reduction
+						if (UnitClassByGUID[destGUID] == "WARLOCK") then
+							spellDuration = spellDuration * 0.7;
+						-- // Restoration Shamans and Shadow Priests have 30% interrupt lockout reduction
+						elseif (UnitGUIDHasAdditionalInterruptReduction[destGUID]) then
+							spellDuration = spellDuration * 0.7;
+						end
+						-- // pvp talents
+						if (UnitGUIDHasInterruptReduction[destGUID]) then
+							spellDuration = spellDuration * 0.3;
+						end
+						InterruptsPerUnitGUID[destGUID] = {
+							["duration"] = spellDuration,
+							["expires"] = GetTime() + spellDuration,
+							["stacks"] = 1,
+							["spellID"] = spellID,
+							["type"] = AURA_TYPE_DEBUFF,
+							["spellName"] = spellName,
+							["dbEntry"] = {
+								["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+								["auraType"] =					AURA_TYPE_DEBUFF,
+								["iconSizeWidth"] = 			db.InterruptsIconSizeWidth,
+								["iconSizeHeight"] = 			db.InterruptsIconSizeHeight,
+								["showGlow"] =					GLOW_TIME_INFINITE,
+								["glowType"] =					db.InterruptsGlowType,
+							},
+						};
+						for frame, unitID in pairs(NameplatesVisible) do
+							if (destGUID == UnitGUID(unitID)) then
+								ProcessAurasForNameplate(frame, unitID);
+								CTimerAfter(spellDuration, function() ProcessAurasForNameplate(frame, unitID); end);
+								break;
+							end
 						end
 					end
 				end
-			end
-		elseif (event == "SPELL_AURA_APPLIED") then
-			if (TalentsReducingInterruptTime[spellName]) then
-				UnitGUIDHasInterruptReduction[destGUID] = true;
-			end
-		elseif (event == "SPELL_AURA_REMOVED") then
-			if (TalentsReducingInterruptTime[spellName]) then
-				UnitGUIDHasInterruptReduction[destGUID] = nil;
-			end
-		elseif (event == "SPELL_CAST_SUCCESS") then
-			if (MarkerSpellsForRestorationShamansAndShadowPriests[spellID]) then
-				if (not UnitGUIDHasAdditionalInterruptReduction[sourceGUID]) then
-					UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
+			elseif (event == "SPELL_AURA_APPLIED") then
+				if (TalentsReducingInterruptTime[spellName]) then
+					UnitGUIDHasInterruptReduction[destGUID] = true;
+				end
+			elseif (event == "SPELL_AURA_REMOVED") then
+				if (TalentsReducingInterruptTime[spellName]) then
+					UnitGUIDHasInterruptReduction[destGUID] = nil;
+				end
+			elseif (event == "SPELL_CAST_SUCCESS") then
+				if (MarkerSpellsForRestorationShamansAndShadowPriests[spellID]) then
+					if (not UnitGUIDHasAdditionalInterruptReduction[sourceGUID]) then
+						UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
+					end
 				end
 			end
 		end
 	end
 
+	local function ProcessDR(event, spellID, destGUID, destFlags, spellAuraType)
+		if ((db.Additions_DRPvP or db.Additions_DRPvE) and spellAuraType == "DEBUFF") then
+			local category = DRList:GetCategoryBySpellID(spellID);
+			if (category and category ~= "knockback") then
+				local isPlayer = bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0;
+				if ((isPlayer and db.Additions_DRPvP) or (not isPlayer and category == "stun" and db.Additions_DRPvE)) then
+					if (DRDataPerGUID[destGUID] == nil) then DRDataPerGUID[destGUID] = { }; end
+					if (DRDataPerGUID[destGUID][category] == nil) then
+						DRDataPerGUID[destGUID][category] = {
+							["drAppliedCount"] = 0,
+							["lastTimeDRApplied"] = 0,
+						};
+					end
+					local data = DRDataPerGUID[destGUID][category];
+					if (event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH") then
+						if (drTimers[data] ~= nil) then
+							drTimers[data]:Cancel();
+							drTimers[data] = nil;
+						end
+						data.drAppliedCount = data.drAppliedCount + 1;
+						data.lastTimeDRApplied = 0;
+						for frame, unitID in pairs(NameplatesVisible) do
+							if (destGUID == UnitGUID(unitID)) then
+								ProcessAurasForNameplate(frame, unitID);
+								break;
+							end
+						end
+					elseif (event == "SPELL_AURA_REMOVED") then
+						data.lastTimeDRApplied = GetTime();
+						drTimers[data] = CTimerNewTimer(DRResetTime, function() DRDataPerGUID[destGUID][category] = nil; end);
+						for frame, unitID in pairs(NameplatesVisible) do
+							if (destGUID == UnitGUID(unitID)) then
+								ProcessAurasForNameplate(frame, unitID);
+								CTimerAfter(DRResetTime, function() ProcessAurasForNameplate(frame, unitID); end);
+								break;
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
+		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName, _, spellAuraType = CombatLogGetCurrentEventInfo();
+		ProcessInterrupts(event, sourceGUID, destGUID, destFlags, spellID, spellName);
+		ProcessDR(event, spellID, destGUID, destFlags, spellAuraType);
+	end
+
 	function EventFrame.PLAYER_TARGET_CHANGED()
+		TargetGUID = UnitGUID("target");
 		for nameplate in pairs(NameplatesVisible) do
 			SetAlphaScaleForNameplate(nameplate);
+		end
+		if (db.ShowOnlyOnTarget) then
+			addonTable.UpdateAllNameplates(false);
 		end
 	end
 
@@ -1305,8 +1382,8 @@ do
 					["dispelType"] = "Magic",
 					["spellName"] = SpellNameByID[188389],
 					["dbEntry"] = {
-						["iconSizeWidth"] = 40,
-						["iconSizeHeight"] = 40,
+						["iconSizeWidth"] = 30,
+						["iconSizeHeight"] = 30,
 					},
 				},
 				{

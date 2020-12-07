@@ -211,6 +211,7 @@ do
 				Additions_DRPvP = false,
 				Additions_DRPvE = false,
 				ShowOnlyOnTarget = false,
+				UseTargetAlphaIfNotTargetSelected = false,
 			},
 		};
 
@@ -457,13 +458,19 @@ do
 			local unitID = NameplatesVisible[nameplate];
 			if (unitID ~= nil) then
 				local unitGUID = UnitGUID(unitID);
-				if (unitGUID == TargetGUID) then
+				if (unitGUID == TargetGUID or (TargetGUID == nil and db.UseTargetAlphaIfNotTargetSelected)) then
 					nameplate.NAurasFrame:SetAlpha(db.IconAlphaTarget);
-					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
-					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
 				else
 					nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
+				end
+				if (unitGUID == TargetGUID) then
+					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
+				else
 					nameplate.NAurasFrame:SetScale(1.0);
+				end
+				if (unitGUID == TargetGUID) then
+					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
+				else
 					nameplate.NAurasFrame:SetFrameStrata(db.NonTargetStrata);
 				end
 			end

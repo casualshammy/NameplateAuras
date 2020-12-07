@@ -170,21 +170,21 @@ L["options:size-and-position:icon-zoom"] = "Icon zoom";
 L["options:size-and-position:custom-sorting:tooltip"] =
 [[Rules:
   - code must be an unnamed function with 2 arguments. These arguments are tables, representing auras to compare
-  - this function must return 'true' if the first aura should be placed before the second aura, and vice versa
+  - this function must return true if the first aura should be placed before the second aura, and false otherwise
   - sorting is done quite often, so don't make sorting function too heavy
   - don't modify content of aura's table unless you REALLY know what you are doing
   - double-check any code you got from strangers
 
 Aura's table content:
-  - .duration - contains duration of aura in seconds. If aura is permanent, value of this field is 0. (type: number)
-  - .expires - time when aura will finish. You can compare it with GetTime(). If aura is permanent, value of this field is 0. (type: number)
-  - .stacks - number of stacks (type: number)
-  - .spellID - ID of aura (type: number)
-  - .spellName - name of aura (type: string)
+  - aura.duration - contains duration of aura in seconds. If aura is permanent, value of this field is 0. (type: number)
+  - aura.expires - time when aura will finish. You can compare it with GetTime(). If aura is permanent, value of this field is 0. (type: number)
+  - aura.stacks - number of stacks (type: number)
+  - aura.spellID - ID of aura (type: number)
+  - aura.spellName - name of aura (type: string)
 
-Built-in sorting functions:
-  - sort_time(aura1, aura2) - sort by aura's remaining time
-  - sort_size(aura1, aura2) - sort by icon's size
+Built-in sorting functions (result is a boolean value):
+  - local result = sort_time(aura1, aura2) - sort by aura's remaining time
+  - local result = sort_size(aura1, aura2) - sort by icon's size
 ]];
 L["icon-sort-mode:custom"] = "Custom";
 L["options:size-and-position:keep-aspect-ratio"] = "Keep aspect ratio of textures";
@@ -193,5 +193,6 @@ L["options:apps:dr"] = "Enable display of diminishing return (beta)"
 L["options:apps:dr:pvp"] = "PvP"
 L["options:apps:dr:pve"] = "PvE (stun only)"
 L["options:general:show-on-target-only"] = "Show auras on target's nameplate only"
+L["options:alpha:use-target-alpha-if-not-target-selected"] = "Display auras with target's alpha if no target selected"
 
 --@end-debug@

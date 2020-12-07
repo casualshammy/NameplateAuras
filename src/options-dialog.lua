@@ -3489,7 +3489,7 @@ local function GUICategory_SizeAndPosition(index)
 end
 
 local function GUICategory_Alpha(index)
-	local alphaArea, sliderAlpha, sliderAlphaTarget;
+	local alphaArea, sliderAlpha, sliderAlphaTarget, checkboxUseTargetAlphaIfNotTargetSelected;
 
 	-- // alphaArea
 	do
@@ -3507,7 +3507,7 @@ local function GUICategory_Alpha(index)
 		alphaArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		alphaArea:SetPoint("TOPLEFT", 150, -12);
 		alphaArea:SetPoint("TOPRIGHT", -12, -12);
-		alphaArea:SetHeight(140);
+		alphaArea:SetHeight(170);
 		table_insert(GUIFrame.Categories[index], alphaArea);
 
 	end
@@ -3610,6 +3610,23 @@ local function GUICategory_Alpha(index)
 		end);
 		sliderAlphaTarget:Show();
 
+	end
+
+	-- // checkboxUseTargetAlphaIfNotTargetSelected
+	do
+		checkboxUseTargetAlphaIfNotTargetSelected = VGUI.CreateCheckBox();
+		checkboxUseTargetAlphaIfNotTargetSelected:SetText(L["options:alpha:use-target-alpha-if-not-target-selected"]);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetOnClickHandler(function(this)
+			addonTable.db.UseTargetAlphaIfNotTargetSelected = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetParent(alphaArea);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetPoint("TOPLEFT", alphaArea, "TOPLEFT", 10, -140);
+		table_insert(GUIFrame.Categories[index], checkboxUseTargetAlphaIfNotTargetSelected);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+		end);
 	end
 
 end

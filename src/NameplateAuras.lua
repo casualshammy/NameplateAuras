@@ -1,7 +1,7 @@
 -- luacheck: no max line length
 -- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff
 -- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
--- luacheck: globals IsUsableSpell C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
+-- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG
 
@@ -20,22 +20,21 @@ local LRD = LibStub("LibRedDropdown-1.0");
 local DRList = LibStub("DRList-1.0");
 
 -- // upvalues
-local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff,
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table_sort,  IsUsableSpell, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff,
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort,  IsUsableSpell, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
-local InPvPCombat, EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
+local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
 	UnitGUIDHasInterruptReduction			= { };
 	UnitGUIDHasAdditionalInterruptReduction	= { };
 	Nameplates, NameplatesVisible 			= { }, { };
-	InPvPCombat								= false;
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
 	DRDataPerGUID							= { };
@@ -44,14 +43,13 @@ end
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
-	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+	AURA_SORT_MODE_AURATYPE_EXPIRE,
+	GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
 	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
@@ -96,7 +94,6 @@ do
 		DebugWindow:AddText("");
 		DebugWindow:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY"));
 		DebugWindow:AddText("");
-		DebugWindow:AddText("InPvPCombat: " .. tostring(InPvPCombat));
 		DebugWindow:AddText("Number of nameplates: " .. table_count(Nameplates));
 		DebugWindow:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
 		DebugWindow:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
@@ -127,7 +124,7 @@ do
 				spellInfo.checkSpellID ~= nil and table.concat(spellInfo.checkSpellID, ",") or "NONE",
 				tostring(spellInfo.showOnFriends),
 				tostring(spellInfo.showOnEnemies),
-				tostring(spellInfo.pvpCombat),
+				tostring(spellInfo.playerNpcMode),
 				tostring(spellInfo.showGlow)));
 		end
 		DebugWindow:Show();
@@ -317,6 +314,7 @@ do
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM =
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
+	local SHOW_ON_PLAYERS_AND_NPC, SHOW_ON_PLAYERS, SHOW_ON_NPC = addonTable.SHOW_ON_PLAYERS_AND_NPC, addonTable.SHOW_ON_PLAYERS, addonTable.SHOW_ON_NPC;
 	local glowInfo = { };
 	local animationInfo = { };
 	local defaultCustomSortFunction = function(aura1, aura2) return aura1.spellName < aura2.spellName; end;
@@ -728,13 +726,13 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)
+	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer)
 		if (dbEntry ~= nil) then
 			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
 				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
 					if (dbEntry.auraType == AURA_TYPE_ANY or dbEntry.auraType == auraType) then
-						local showInPvPCombat = dbEntry.pvpCombat;
-						if (showInPvPCombat == CONST_SPELL_PVP_MODES_UNDEFINED or (showInPvPCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT and InPvPCombat) or (showInPvPCombat == CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT and not InPvPCombat)) then
+						local playerNpcMode = dbEntry.playerNpcMode;
+						if (playerNpcMode == SHOW_ON_PLAYERS_AND_NPC or (playerNpcMode == SHOW_ON_PLAYERS and unitIsPlayer) or (playerNpcMode == SHOW_ON_NPC and not unitIsPlayer)) then
 							if (dbEntry.checkSpellID == nil or dbEntry.checkSpellID[auraSpellID]) then
 								return true;
 							end
@@ -787,13 +785,13 @@ do
 		end
 	end
 
-	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame)
+	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer)
 		local foundInDB = false;
 		local tSize = #AurasPerNameplate[frame];
 		local cache = spellCache[auraName];
 		if (cache ~= nil) then
 			for _, dbEntry in pairs(cache) do
-				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry)) then
+				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer)) then
 					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
@@ -846,16 +844,17 @@ do
 	function ProcessAurasForNameplate(frame, unitID)
 		wipe(AurasPerNameplate[frame]);
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
+		local unitIsPlayer = UnitIsPlayer(unitID);
 		local unitGUID = UnitGUID(unitID);
 		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 			for i = 1, 40 do
 				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 				if (buffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer);
 				end
 				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 				if (debuffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame);
+					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer);
 				end
 				if (buffName == nil and debuffName == nil) then
 					break;
@@ -1321,16 +1320,6 @@ do
 			addonTable.UpdateAllNameplates(false);
 		end
 	end
-
-	local function UpdatePvPState()
-		local inPvPCombat = IsUsableSpell(SpellNameByID[195710]); -- // Honorable Medallion
-		if (inPvPCombat ~= InPvPCombat) then
-			InPvPCombat = inPvPCombat;
-			addonTable.UpdateAllNameplates(false);
-		end
-		CTimerAfter(1, UpdatePvPState);
-	end
-	CTimerAfter(1, UpdatePvPState);
 
 	local function WipeUnitGUIDHasAdditionalInterruptReduction()
 		wipe(UnitGUIDHasAdditionalInterruptReduction);

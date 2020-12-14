@@ -53,9 +53,6 @@ L["options:auras:enabled-state:tooltip"] =
 %s: показывать все ауры]=]
 L["options:auras:enabled-state-all"] = "Включено, показывать все ауры"
 L["options:auras:enabled-state-mineonly"] = "Включено, показывать только мои ауры"
-L["options:auras:pvp-state-dontshowinpvp"] = "Не отображать эту ауру в PvP битвах"
-L["options:auras:pvp-state-indefinite"] = "Отображать эту ауру в PvP битвах"
-L["options:auras:pvp-state-onlyduringpvpbattles"] = "Отображать эту ауру только в PvP битвах"
 L["options:category:apps"] = "Дополнения"
 L["options:category:interrupts"] = "Прерывания"
 L["options:general:always-show-my-auras:tooltip"] = "Это высший по приоритету фильтр. Если он включен, ваши ауры будут отображаться вне зависимости от других фильтров"
@@ -169,5 +166,8 @@ L["options:spells:animation-relative:tooltip"] =
 Если эта опция выключена, то анимация будет появляться когда оставшееся время ауры меньше, чем абсолютное значение на слайдере (в секундах).]];
 L["options:size-and-position:icon-zoom"] = "Увеличение иконок";
 L["icon-sort-mode:custom"] = "Пользовательский";
+L["options:auras:show-on-npcs-and-players"] = "Показывать эту ауру на игроках и НПС"
+L["options:auras:show-on-players"] = "Показывать эту ауру только на игроках"
+L["options:auras:show-on-npcs"] = "Показывать эту ауру только на НПС"
 
 --@end-debug@

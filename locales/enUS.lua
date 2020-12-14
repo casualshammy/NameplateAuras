@@ -50,9 +50,6 @@ L["options:auras:enabled-state:tooltip"] =
 %s: show all auras]=]
 L["options:auras:enabled-state-all"] = "Enabled, show all auras"
 L["options:auras:enabled-state-mineonly"] = "Enabled, show only my auras"
-L["options:auras:pvp-state-dontshowinpvp"] = "Don't show this aura during PvP combat"
-L["options:auras:pvp-state-indefinite"] = "Show this aura during PvP combat"
-L["options:auras:pvp-state-onlyduringpvpbattles"] = "Show this aura during PvP combat only"
 L["options:category:apps"] = "Apps"
 L["options:category:interrupts"] = "Interrupts"
 L["options:general:always-show-my-auras:tooltip"] = "This is top priority filter. If you enable this feature, your auras will be shown regardless of other filters"
@@ -194,5 +191,8 @@ L["options:apps:dr:pvp"] = "PvP"
 L["options:apps:dr:pve"] = "PvE (stun only)"
 L["options:general:show-on-target-only"] = "Show auras on target's nameplate only"
 L["options:alpha:use-target-alpha-if-not-target-selected"] = "Display auras with target's alpha if no target selected"
+L["options:auras:show-on-npcs-and-players"] = "Show this aura on players and NPC"
+L["options:auras:show-on-players"] = "Show this aura on players only"
+L["options:auras:show-on-npcs"] = "Show this aura on NPC only"
 
 --@end-debug@

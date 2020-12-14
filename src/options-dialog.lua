@@ -14,15 +14,13 @@ local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_in
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
-	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE;
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE;
+local AURA_SORT_MODE_AURATYPE_EXPIRE, GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 end
 
@@ -48,7 +46,7 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["checkSpellID"] =				checkSpellID,
 		["showOnFriends"] =				true,
 		["showOnEnemies"] =				true,
-		["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
+		["playerNpcMode"] =				addonTable.SHOW_ON_PLAYERS_AND_NPC,
 		["showGlow"] =					nil,
 		["glowType"] =					addonTable.GLOW_TYPE_AUTOUSE,
 		["animationType"] =				addonTable.ICON_ANIMATION_TYPE_ALPHA,
@@ -1713,9 +1711,9 @@ local function GUICategory_4(index)
 			else
 				checkboxEnabled:SetTriState(1);
 			end
-			if (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
+			if (spellInfo.playerNpcMode == addonTable.SHOW_ON_PLAYERS_AND_NPC) then
 				checkboxPvPMode:SetTriState(0);
-			elseif (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
+			elseif (spellInfo.playerNpcMode == addonTable.SHOW_ON_PLAYERS) then
 				checkboxPvPMode:SetTriState(1);
 			else
 				checkboxPvPMode:SetTriState(2);
@@ -1905,17 +1903,17 @@ local function GUICategory_4(index)
 	do
 		checkboxPvPMode = VGUI.CreateCheckBoxTristate();
 		checkboxPvPMode:SetTextEntries({
-			L["options:auras:pvp-state-indefinite"],
-			addonTable.ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
-			addonTable.ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
+			L["options:auras:show-on-npcs-and-players"],
+			addonTable.ColorizeText(L["options:auras:show-on-players"], 1, 0, 0),
+			addonTable.ColorizeText(L["options:auras:show-on-npcs"], 0, 1, 0),
 		});
 		checkboxPvPMode:SetOnClickHandler(function(self)
 			if (self:GetTriState() == 0) then
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_PLAYERS_AND_NPC;
 			elseif (self:GetTriState() == 1) then
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_INPVPCOMBAT;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_PLAYERS;
 			else
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_NPC;
 			end
 			addonTable.UpdateAllNameplates(false);
 		end);

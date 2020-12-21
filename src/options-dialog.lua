@@ -101,16 +101,14 @@ local function GUICategory_1(index)
 		checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
 		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 			addonTable.db.HideBlizzardFrames = this:GetChecked();
-			addonTable.PopupReloadUI();
+			addonTable.UpdateAllNameplates(false);
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
 		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", GUIFrame, 160, -20);
 		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
-				addonTable.PopupReloadUI();
-			end
+			addonTable.UpdateAllNameplates(false);
 			checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		end);
 	end
@@ -121,16 +119,14 @@ local function GUICategory_1(index)
 		checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
 		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
 			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
-			addonTable.PopupReloadUI();
+			addonTable.UpdateAllNameplates(false);
 		end);
 		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
 		checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", checkBoxHideBlizzardFrames, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (checkBoxHidePlayerBlizzardFrame:GetChecked() ~= addonTable.db.HidePlayerBlizzardFrame) then
-				addonTable.PopupReloadUI();
-			end
+			addonTable.UpdateAllNameplates(false);
 			checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		end);
 	end

@@ -1099,12 +1099,18 @@ do
 				HideCDIcon(icon);
 			end
 		end
-		-- // hide standart buff frame
-		if (db.HideBlizzardFrames and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil and unitGUID ~= LocalPlayerGUID) then
-			frame.UnitFrame.BuffFrame:SetAlpha(0);
-		end
-		if (db.HidePlayerBlizzardFrame and frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil and unitGUID == LocalPlayerGUID) then
-			frame.UnitFrame.BuffFrame:SetAlpha(0);
+		-- // hide/show standart buff frame
+		if (frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
+			if (db.HideBlizzardFrames and unitGUID ~= LocalPlayerGUID) then
+				frame.UnitFrame.BuffFrame:SetAlpha(0);
+			else
+				frame.UnitFrame.BuffFrame:SetAlpha(1);
+			end
+			if (db.HidePlayerBlizzardFrame and unitGUID == LocalPlayerGUID) then
+				frame.UnitFrame.BuffFrame:SetAlpha(0);
+			else
+				frame.UnitFrame.BuffFrame:SetAlpha(1);
+			end
 		end
 	end
 

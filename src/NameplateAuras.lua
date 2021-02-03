@@ -1316,7 +1316,7 @@ do
 	end
 
 	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
-		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName, _, spellAuraType = CombatLogGetCurrentEventInfo();
+		local _, event, _, _, _, _, _,destGUID,_,destFlags,_, spellID, spellName, _, spellAuraType = CombatLogGetCurrentEventInfo();
 		ProcessInterrupts(event, destGUID, destFlags, spellID, spellName);
 		ProcessDR(event, spellID, destGUID, destFlags, spellAuraType);
 	end

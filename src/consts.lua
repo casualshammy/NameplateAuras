@@ -15,10 +15,6 @@ addonTable.AURA_SORT_MODE_ICONSIZE = 4;
 addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE = 6;
 addonTable.AURA_SORT_MODE_CUSTOM = 7;
 
-addonTable.CONST_SPELL_PVP_MODES_UNDEFINED = 1;
-addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT = 2;
-addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = 3;
-
 addonTable.GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
 
 addonTable.EXPLOSIVE_ORB_SPELL_ID = 240446;
@@ -70,3 +66,10 @@ addonTable.DR_TEXTURES = {
 	["disarm"] = [[Interface\AddOns\NameplateAuras\media\square-yellow.tga]],
 	["taunt"] = [[Interface\AddOns\NameplateAuras\media\square-red.tga]],
 };
+
+addonTable.SHOW_ON_PLAYERS_AND_NPC = 1;
+addonTable.SHOW_ON_PLAYERS = 2;
+addonTable.SHOW_ON_NPC = 3;
+
+addonTable.SPITEFUL_NPC_ID_STRING = "174773";
+addonTable.SPITEFUL_SPELL_ID = 69861;

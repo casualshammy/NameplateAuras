@@ -4,15 +4,13 @@
 local _, addonTable = ...;
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
-	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED,
-	GLOW_TIME_INFINITE;
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE;
+local AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE, GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	CONST_SPELL_PVP_MODES_UNDEFINED = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 end
 
@@ -272,6 +270,12 @@ local migrations = {
             end
         end
     end,
+    [18] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            spellInfo.pvpCombat = nil;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -290,8 +294,8 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.showOnEnemies == nil) then
                 spellInfo.showOnEnemies = true;
             end
-            if (spellInfo.pvpCombat == nil) then
-                spellInfo.pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
+            if (spellInfo.playerNpcMode == nil) then
+                spellInfo.playerNpcMode = addonTable.SHOW_ON_PLAYERS_AND_NPC;
             end
             if (spellInfo.auraType == nil) then
                 spellInfo.auraType = AURA_TYPE_ANY;

@@ -14,15 +14,13 @@ local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_in
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
-	AURA_SORT_MODE_AURATYPE_EXPIRE, CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT,
-	CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT, GLOW_TIME_INFINITE;
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE;
+local AURA_SORT_MODE_AURATYPE_EXPIRE, GLOW_TIME_INFINITE;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
-	CONST_SPELL_PVP_MODES_UNDEFINED, CONST_SPELL_PVP_MODES_INPVPCOMBAT, CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT = addonTable.CONST_SPELL_PVP_MODES_UNDEFINED, addonTable.CONST_SPELL_PVP_MODES_INPVPCOMBAT, addonTable.CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
 end
 
@@ -48,7 +46,7 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["checkSpellID"] =				checkSpellID,
 		["showOnFriends"] =				true,
 		["showOnEnemies"] =				true,
-		["pvpCombat"] =					CONST_SPELL_PVP_MODES_UNDEFINED,
+		["playerNpcMode"] =				addonTable.SHOW_ON_PLAYERS_AND_NPC,
 		["showGlow"] =					nil,
 		["glowType"] =					addonTable.GLOW_TYPE_AUTOUSE,
 		["animationType"] =				addonTable.ICON_ANIMATION_TYPE_ALPHA,
@@ -103,16 +101,14 @@ local function GUICategory_1(index)
 		checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
 		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 			addonTable.db.HideBlizzardFrames = this:GetChecked();
-			addonTable.PopupReloadUI();
+			addonTable.UpdateAllNameplates(false);
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
 		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", GUIFrame, 160, -20);
 		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (checkBoxHideBlizzardFrames:GetChecked() ~= addonTable.db.HideBlizzardFrames) then
-				addonTable.PopupReloadUI();
-			end
+			addonTable.UpdateAllNameplates(false);
 			checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		end);
 	end
@@ -123,16 +119,14 @@ local function GUICategory_1(index)
 		checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
 		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
 			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
-			addonTable.PopupReloadUI();
+			addonTable.UpdateAllNameplates(false);
 		end);
 		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
 		checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", checkBoxHideBlizzardFrames, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			if (checkBoxHidePlayerBlizzardFrame:GetChecked() ~= addonTable.db.HidePlayerBlizzardFrame) then
-				addonTable.PopupReloadUI();
-			end
+			addonTable.UpdateAllNameplates(false);
 			checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		end);
 	end
@@ -1713,9 +1707,9 @@ local function GUICategory_4(index)
 			else
 				checkboxEnabled:SetTriState(1);
 			end
-			if (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_UNDEFINED) then
+			if (spellInfo.playerNpcMode == addonTable.SHOW_ON_PLAYERS_AND_NPC) then
 				checkboxPvPMode:SetTriState(0);
-			elseif (spellInfo.pvpCombat == CONST_SPELL_PVP_MODES_INPVPCOMBAT) then
+			elseif (spellInfo.playerNpcMode == addonTable.SHOW_ON_PLAYERS) then
 				checkboxPvPMode:SetTriState(1);
 			else
 				checkboxPvPMode:SetTriState(2);
@@ -1905,17 +1899,17 @@ local function GUICategory_4(index)
 	do
 		checkboxPvPMode = VGUI.CreateCheckBoxTristate();
 		checkboxPvPMode:SetTextEntries({
-			L["options:auras:pvp-state-indefinite"],
-			addonTable.ColorizeText(L["options:auras:pvp-state-onlyduringpvpbattles"], 0, 1, 0),
-			addonTable.ColorizeText(L["options:auras:pvp-state-dontshowinpvp"], 1, 0, 0),
+			L["options:auras:show-on-npcs-and-players"],
+			addonTable.ColorizeText(L["options:auras:show-on-players"], 1, 0, 0),
+			addonTable.ColorizeText(L["options:auras:show-on-npcs"], 0, 1, 0),
 		});
 		checkboxPvPMode:SetOnClickHandler(function(self)
 			if (self:GetTriState() == 0) then
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_UNDEFINED;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_PLAYERS_AND_NPC;
 			elseif (self:GetTriState() == 1) then
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_INPVPCOMBAT;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_PLAYERS;
 			else
-				addonTable.db.CustomSpells2[selectedSpell].pvpCombat = CONST_SPELL_PVP_MODES_NOTINPVPCOMBAT;
+				addonTable.db.CustomSpells2[selectedSpell].playerNpcMode = addonTable.SHOW_ON_NPC;
 			end
 			addonTable.UpdateAllNameplates(false);
 		end);
@@ -2717,7 +2711,7 @@ local function GUICategory_Interrupts(index)
 end
 
 local function GUICategory_Additions(index)
-	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP;
+	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP, area3;
 
 	-- // area1
 	do
@@ -2823,6 +2817,45 @@ local function GUICategory_Additions(index)
 		table_insert(GUIFrame.Categories[index], checkBoxDRPvE);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
+		end);
+	end
+
+	-- // area3
+	do
+		area3 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		area3:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		area3:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		area3:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		area3:SetPoint("TOPLEFT", area2, "BOTTOMLEFT", 0, 0);
+		area3:SetPoint("TOPRIGHT", area2, "BOTTOMRIGHT", 0, 0);
+		area3:SetHeight(80);
+		table_insert(GUIFrame.Categories[index], area3);
+	end
+
+	-- // checkBoxAffixSpiteful
+	do
+		local checkBoxAffixSpiteful = VGUI.CreateCheckBox();
+		checkBoxAffixSpiteful:SetText(L["options:apps:spiteful"]);
+		checkBoxAffixSpiteful.Text:SetPoint("LEFT");
+		checkBoxAffixSpiteful.Text:SetPoint("RIGHT");
+		checkBoxAffixSpiteful.Text:SetJustifyH("CENTER");
+		checkBoxAffixSpiteful:SetOnClickHandler(function(this)
+			addonTable.db.AffixSpiteful = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
+		checkBoxAffixSpiteful:SetParent(GUIFrame);
+		checkBoxAffixSpiteful:SetPoint("LEFT", area3, "LEFT", 10, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxAffixSpiteful);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
 		end);
 	end
 
@@ -3489,7 +3522,7 @@ local function GUICategory_SizeAndPosition(index)
 end
 
 local function GUICategory_Alpha(index)
-	local alphaArea, sliderAlpha, sliderAlphaTarget;
+	local alphaArea, sliderAlpha, sliderAlphaTarget, checkboxUseTargetAlphaIfNotTargetSelected;
 
 	-- // alphaArea
 	do
@@ -3507,7 +3540,7 @@ local function GUICategory_Alpha(index)
 		alphaArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		alphaArea:SetPoint("TOPLEFT", 150, -12);
 		alphaArea:SetPoint("TOPRIGHT", -12, -12);
-		alphaArea:SetHeight(140);
+		alphaArea:SetHeight(170);
 		table_insert(GUIFrame.Categories[index], alphaArea);
 
 	end
@@ -3610,6 +3643,23 @@ local function GUICategory_Alpha(index)
 		end);
 		sliderAlphaTarget:Show();
 
+	end
+
+	-- // checkboxUseTargetAlphaIfNotTargetSelected
+	do
+		checkboxUseTargetAlphaIfNotTargetSelected = VGUI.CreateCheckBox();
+		checkboxUseTargetAlphaIfNotTargetSelected:SetText(L["options:alpha:use-target-alpha-if-not-target-selected"]);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetOnClickHandler(function(this)
+			addonTable.db.UseTargetAlphaIfNotTargetSelected = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetParent(alphaArea);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetPoint("TOPLEFT", alphaArea, "TOPLEFT", 10, -140);
+		table_insert(GUIFrame.Categories[index], checkboxUseTargetAlphaIfNotTargetSelected);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+		end);
 	end
 
 end

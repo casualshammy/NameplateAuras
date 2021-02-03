@@ -194,5 +194,6 @@ L["options:alpha:use-target-alpha-if-not-target-selected"] = "Display auras with
 L["options:auras:show-on-npcs-and-players"] = "Show this aura on players and NPC"
 L["options:auras:show-on-players"] = "Show this aura on players only"
 L["options:auras:show-on-npcs"] = "Show this aura on NPC only"
+L["options:apps:spiteful"] = "Highlight Spiteful Shade (Spiteful M+ affix)";
 
 --@end-debug@

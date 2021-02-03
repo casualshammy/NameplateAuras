@@ -2711,7 +2711,7 @@ local function GUICategory_Interrupts(index)
 end
 
 local function GUICategory_Additions(index)
-	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP;
+	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP, area3;
 
 	-- // area1
 	do
@@ -2817,6 +2817,45 @@ local function GUICategory_Additions(index)
 		table_insert(GUIFrame.Categories[index], checkBoxDRPvE);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
+		end);
+	end
+
+	-- // area3
+	do
+		area3 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		area3:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		area3:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		area3:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		area3:SetPoint("TOPLEFT", area2, "BOTTOMLEFT", 0, 0);
+		area3:SetPoint("TOPRIGHT", area2, "BOTTOMRIGHT", 0, 0);
+		area3:SetHeight(80);
+		table_insert(GUIFrame.Categories[index], area3);
+	end
+
+	-- // checkBoxAffixSpiteful
+	do
+		local checkBoxAffixSpiteful = VGUI.CreateCheckBox();
+		checkBoxAffixSpiteful:SetText(L["options:apps:spiteful"]);
+		checkBoxAffixSpiteful.Text:SetPoint("LEFT");
+		checkBoxAffixSpiteful.Text:SetPoint("RIGHT");
+		checkBoxAffixSpiteful.Text:SetJustifyH("CENTER");
+		checkBoxAffixSpiteful:SetOnClickHandler(function(this)
+			addonTable.db.AffixSpiteful = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
+		checkBoxAffixSpiteful:SetParent(GUIFrame);
+		checkBoxAffixSpiteful:SetPoint("LEFT", area3, "LEFT", 10, 0);
+		table_insert(GUIFrame.Categories[index], checkBoxAffixSpiteful);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
 		end);
 	end
 

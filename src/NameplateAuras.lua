@@ -27,18 +27,19 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, UnitGUIDHasAdditionalInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
+local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
 local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
+local SpitefulMobs;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
 	UnitGUIDHasInterruptReduction			= { };
-	UnitGUIDHasAdditionalInterruptReduction	= { };
 	Nameplates, NameplatesVisible 			= { }, { };
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
 	DRDataPerGUID							= { };
 	DRResetTime								= DRList:GetResetTime();
+	SpitefulMobs							= { };
 end
 
 -- // consts
@@ -209,6 +210,7 @@ do
 				Additions_DRPvE = false,
 				ShowOnlyOnTarget = false,
 				UseTargetAlphaIfNotTargetSelected = false,
+				AffixSpiteful = true,
 			},
 		};
 
@@ -258,6 +260,7 @@ do
 		EventFrame:RegisterEvent("UNIT_AURA");
 		EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED");
 		EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		EventFrame:RegisterEvent("UNIT_THREAT_LIST_UPDATE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
 		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
@@ -728,7 +731,7 @@ do
 
 	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer)
 		if (dbEntry ~= nil) then
-			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster == "player")) then
+			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and (auraCaster == "player" or auraCaster == "pet"))) then
 				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
 					if (dbEntry.auraType == AURA_TYPE_ANY or dbEntry.auraType == auraType) then
 						local playerNpcMode = dbEntry.playerNpcMode;
@@ -759,6 +762,24 @@ do
 					["dbEntry"] = {
 						["showGlow"] = GLOW_TIME_INFINITE,
 						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
+					},
+				};
+			end
+			if (db.AffixSpiteful and npcID == addonTable.SPITEFUL_NPC_ID_STRING and SpitefulMobs[unitGUID]) then
+				local tSize = #AurasPerNameplate[frame];
+				local iconSize = math_max(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);
+				AurasPerNameplate[frame][tSize+1] = {
+					["duration"] = 0,
+					["expires"] = 0,
+					["stacks"] = 1,
+					["spellID"] = addonTable.SPITEFUL_SPELL_ID,
+					["type"] = AURA_TYPE_DEBUFF,
+					["spellName"] = SpellNameByID[addonTable.SPITEFUL_SPELL_ID],
+					["dbEntry"] = {
+						["showGlow"] = GLOW_TIME_INFINITE,
+						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
+						["iconSizeWidth"] = iconSize,
+						["iconSizeHeight"] = iconSize,
 					},
 				};
 			end
@@ -1143,8 +1164,6 @@ end
 ----- Frame for events
 --------------------------------------------------------------------------------------------------
 do
-	local TalentsReducingInterruptTime = addonTable.TalentsReducingInterruptTime;
-	local MarkerSpellsForRestorationShamansAndShadowPriests = addonTable.MarkerSpellsForRestorationShamansAndShadowPriests;
 	local InterruptSpells = addonTable.Interrupts;
 	local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER;
 	local drTimers = { };
@@ -1161,7 +1180,7 @@ do
 		for nameplate in pairs(AurasPerNameplate) do
 			wipe(AurasPerNameplate[nameplate]);
 		end
-		wipe(UnitGUIDHasAdditionalInterruptReduction);
+		wipe(SpitefulMobs);
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
@@ -1187,6 +1206,7 @@ do
 		if (nameplate.NAurasFrame ~= nil) then
 			nameplate.NAurasFrame:Show();
 		end
+		EventFrame.UNIT_THREAT_LIST_UPDATE(unitID);
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
@@ -1207,6 +1227,21 @@ do
 		end
 	end
 
+	function EventFrame.UNIT_THREAT_LIST_UPDATE(unitID)
+		if (db.AffixSpiteful) then
+			local unitGUID = UnitGUID(unitID);
+			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+			if (not SpitefulMobs[unitGUID] and npcID == addonTable.SPITEFUL_NPC_ID_STRING) then
+				local _, _, threatPct = UnitDetailedThreatSituation("player", unitID);
+				if (threatPct == 100) then
+					PlaySound(5274, "Master");
+					SpitefulMobs[unitGUID] = true;
+					EventFrame.UNIT_AURA(unitID);
+				end
+			end
+		end
+	end
+
 	local function ProcessInterrupts(event, sourceGUID, destGUID, destFlags, spellID, spellName)
 		if (db.InterruptsEnabled) then
 			-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
@@ -1214,17 +1249,6 @@ do
 				local spellDuration = InterruptSpells[spellID];
 				if (spellDuration ~= nil) then
 					if (not db.InterruptsShowOnlyOnPlayers or bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0) then
-						-- // warlocks have 30% interrupt lockout reduction
-						if (UnitClassByGUID[destGUID] == "WARLOCK") then
-							spellDuration = spellDuration * 0.7;
-						-- // Restoration Shamans and Shadow Priests have 30% interrupt lockout reduction
-						elseif (UnitGUIDHasAdditionalInterruptReduction[destGUID]) then
-							spellDuration = spellDuration * 0.7;
-						end
-						-- // pvp talents
-						if (UnitGUIDHasInterruptReduction[destGUID]) then
-							spellDuration = spellDuration * 0.3;
-						end
 						InterruptsPerUnitGUID[destGUID] = {
 							["duration"] = spellDuration,
 							["expires"] = GetTime() + spellDuration,
@@ -1248,20 +1272,6 @@ do
 								break;
 							end
 						end
-					end
-				end
-			elseif (event == "SPELL_AURA_APPLIED") then
-				if (TalentsReducingInterruptTime[spellName]) then
-					UnitGUIDHasInterruptReduction[destGUID] = true;
-				end
-			elseif (event == "SPELL_AURA_REMOVED") then
-				if (TalentsReducingInterruptTime[spellName]) then
-					UnitGUIDHasInterruptReduction[destGUID] = nil;
-				end
-			elseif (event == "SPELL_CAST_SUCCESS") then
-				if (MarkerSpellsForRestorationShamansAndShadowPriests[spellID]) then
-					if (not UnitGUIDHasAdditionalInterruptReduction[sourceGUID]) then
-						UnitGUIDHasAdditionalInterruptReduction[sourceGUID] = true;
 					end
 				end
 			end
@@ -1326,12 +1336,6 @@ do
 			addonTable.UpdateAllNameplates(false);
 		end
 	end
-
-	local function WipeUnitGUIDHasAdditionalInterruptReduction()
-		wipe(UnitGUIDHasAdditionalInterruptReduction);
-		CTimerAfter(60, WipeUnitGUIDHasAdditionalInterruptReduction);
-	end
-	CTimerAfter(60, WipeUnitGUIDHasAdditionalInterruptReduction);
 
 end
 

@@ -28,27 +28,6 @@ addonTable.Interrupts = {
 	[231665] = 3,	-- Avengers Shield (Paladin)
 };
 
-addonTable.TalentsReducingInterruptTime = {
-	[GetSpellInfo(221404)] = true, -- // Burning Determination
-	[GetSpellInfo(221677)] = true, -- // Calming Waters
-	[GetSpellInfo(221660)] = true, -- // Holy Concentration
-};
-
-addonTable.MarkerSpellsForRestorationShamansAndShadowPriests = {
-	[232698] = true,	-- // Облик Тьмы
-	[34914] = true,		-- // Прикосновение вампира
-	[15407] = true,		-- // Пытка разума
-	[47585] = true,		-- // Слияние с тьмой
-	[8092] = true,		-- // Взрыв разума
-	[228260] = true,	-- // Извержение бездны
-	[79206] = true,		-- // Благосклонность предков
-	[61295] = true,		-- // Быстрина
-	[77130] = true,		-- // Возрождение духа
-	[77472] = true,		-- // Волна исцеления
-	[5394] = true,		-- // Тотем исцеляющего потока
-	[1064] = true,		-- // Цепное исцеление
-};
-
 addonTable.DefaultSpells2 = {
 	[1] = {
 		[51514] =	{ ["enabledState"] = "all", ["auraType"] = "buff/debuff", ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[51514] }, -- // Hex

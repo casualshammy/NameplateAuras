@@ -70,3 +70,6 @@ addonTable.DR_TEXTURES = {
 addonTable.SHOW_ON_PLAYERS_AND_NPC = 1;
 addonTable.SHOW_ON_PLAYERS = 2;
 addonTable.SHOW_ON_NPC = 3;
+
+addonTable.SPITEFUL_NPC_ID_STRING = "174773";
+addonTable.SPITEFUL_SPELL_ID = 69861;

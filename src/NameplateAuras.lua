@@ -3,7 +3,7 @@
 -- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
--- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG
+-- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 
 local _, addonTable = ...;
 
@@ -24,16 +24,16 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table_sort, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
-local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
+local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound;
+local UnitDetailedThreatSituation = UnitDetailedThreatSituation;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, UnitGUIDHasInterruptReduction, Nameplates, NameplatesVisible, DRResetTime;
+local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime;
 local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 local SpitefulMobs;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
-	UnitGUIDHasInterruptReduction			= { };
 	Nameplates, NameplatesVisible 			= { }, { };
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
@@ -58,13 +58,7 @@ do
 end
 
 -- // utilities
-local Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID;
-do
-
-	Print, table_count, SpellTextureByID, SpellNameByID, UnitClassByGUID =
-		addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.UnitClassByGUID;
-
-end
+local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
@@ -1242,7 +1236,7 @@ do
 		end
 	end
 
-	local function ProcessInterrupts(event, sourceGUID, destGUID, destFlags, spellID, spellName)
+	local function ProcessInterrupts(event, destGUID, destFlags, spellID, spellName)
 		if (db.InterruptsEnabled) then
 			-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
 			if (event == "SPELL_INTERRUPT") then
@@ -1323,7 +1317,7 @@ do
 
 	function EventFrame.COMBAT_LOG_EVENT_UNFILTERED()
 		local _, event, _, sourceGUID, _, _, _,destGUID,_,destFlags,_, spellID, spellName, _, spellAuraType = CombatLogGetCurrentEventInfo();
-		ProcessInterrupts(event, sourceGUID, destGUID, destFlags, spellID, spellName);
+		ProcessInterrupts(event, destGUID, destFlags, spellID, spellName);
 		ProcessDR(event, spellID, destGUID, destFlags, spellAuraType);
 	end
 

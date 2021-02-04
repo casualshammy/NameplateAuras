@@ -1224,13 +1224,15 @@ do
 	function EventFrame.UNIT_THREAT_LIST_UPDATE(unitID)
 		if (db.AffixSpiteful) then
 			local unitGUID = UnitGUID(unitID);
-			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
-			if (not SpitefulMobs[unitGUID] and npcID == addonTable.SPITEFUL_NPC_ID_STRING) then
-				local _, _, threatPct = UnitDetailedThreatSituation("player", unitID);
-				if (threatPct == 100) then
-					PlaySound(5274, "Master");
-					SpitefulMobs[unitGUID] = true;
-					EventFrame.UNIT_AURA(unitID);
+			if (unitGUID ~= nil) then
+				local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+				if (not SpitefulMobs[unitGUID] and npcID == addonTable.SPITEFUL_NPC_ID_STRING) then
+					local _, _, threatPct = UnitDetailedThreatSituation("player", unitID);
+					if (threatPct == 100) then
+						PlaySound(5274, "Master");
+						SpitefulMobs[unitGUID] = true;
+						EventFrame.UNIT_AURA(unitID);
+					end
 				end
 			end
 		end

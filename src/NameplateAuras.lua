@@ -1116,15 +1116,18 @@ do
 		end
 		-- // hide/show standart buff frame
 		if (frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
-			if (db.HideBlizzardFrames and unitGUID ~= LocalPlayerGUID) then
-				frame.UnitFrame.BuffFrame:SetAlpha(0);
+			if (unitGUID ~= LocalPlayerGUID) then
+				if (db.HideBlizzardFrames) then
+					frame.UnitFrame.BuffFrame:SetAlpha(0);
+				else
+					frame.UnitFrame.BuffFrame:SetAlpha(1);
+				end
 			else
-				frame.UnitFrame.BuffFrame:SetAlpha(1);
-			end
-			if (db.HidePlayerBlizzardFrame and unitGUID == LocalPlayerGUID) then
-				frame.UnitFrame.BuffFrame:SetAlpha(0);
-			else
-				frame.UnitFrame.BuffFrame:SetAlpha(1);
+				if (db.HidePlayerBlizzardFrame) then
+					frame.UnitFrame.BuffFrame:SetAlpha(0);
+				else
+					frame.UnitFrame.BuffFrame:SetAlpha(1);
+				end
 			end
 		end
 	end

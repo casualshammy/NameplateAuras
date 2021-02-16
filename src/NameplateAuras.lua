@@ -220,12 +220,7 @@ do
 					order = 1,
 					name = 'Open config dialog',
 					desc = nil,
-					func = function()
-						addonTable.ShowGUI();
-						if (addonTable.GUIFrame) then
-							InterfaceOptionsFrameCancel:Click();
-						end
-					end,
+					func = addonTable.ShowGUI,
 				},
 			},
 		});

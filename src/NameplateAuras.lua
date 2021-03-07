@@ -228,7 +228,7 @@ do
 		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
-		-- // creating a fast reference
+
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);

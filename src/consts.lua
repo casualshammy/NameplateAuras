@@ -73,3 +73,11 @@ addonTable.SHOW_ON_NPC = 3;
 
 addonTable.SPITEFUL_NPC_ID_STRING = "174773";
 addonTable.SPITEFUL_SPELL_ID = 69861;
+
+addonTable.INSTANCE_TYPE_NONE = "none";
+addonTable.INSTANCE_TYPE_UNKNOWN = "unknown";
+addonTable.INSTANCE_TYPE_PVP = "pvp";
+addonTable.INSTANCE_TYPE_ARENA = "arena";
+addonTable.INSTANCE_TYPE_PARTY = "party";
+addonTable.INSTANCE_TYPE_RAID = "raid";
+addonTable.INSTANCE_TYPE_SCENARIO = "scenario";

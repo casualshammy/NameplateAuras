@@ -228,6 +228,80 @@ local function GUICategory_1(index)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
 	end
 
+	-- // buttonInstances
+	do
+		local zoneTypes = {
+			[addonTable.INSTANCE_TYPE_NONE] = 		L["instance-type:none"],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 	L["instance-type:unknown"],
+			[addonTable.INSTANCE_TYPE_PVP] = 		L["instance-type:pvp"],
+			[addonTable.INSTANCE_TYPE_ARENA] = 		L["instance-type:arena"],
+			[addonTable.INSTANCE_TYPE_PARTY] = 		L["instance-type:party"],
+			[addonTable.INSTANCE_TYPE_RAID] = 		L["instance-type:raid"],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =	L["instance-type:scenario"],
+		};
+		local zoneIcons = {
+			[addonTable.INSTANCE_TYPE_NONE] = 		SpellTextureByID[6711],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 	SpellTextureByID[175697],
+			[addonTable.INSTANCE_TYPE_PVP] = 		SpellTextureByID[232352],
+			[addonTable.INSTANCE_TYPE_ARENA] = 		SpellTextureByID[270697],
+			[addonTable.INSTANCE_TYPE_PARTY] = 		SpellTextureByID[77629],
+			[addonTable.INSTANCE_TYPE_RAID] = 		SpellTextureByID[3363],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =	SpellTextureByID[77628],
+		};
+
+		local dropdownInstances = VGUI.CreateDropdownMenu();
+		dropdownInstances:SetHeight(200);
+		local buttonInstances = VGUI.CreateButton();
+		buttonInstances:SetParent(GUIFrame);
+		buttonInstances:SetText(L["options:general:instance-types"]);
+
+		local function setEntries()
+			local entries = { };
+			for instanceType, instanceLocalizatedName in pairs(zoneTypes) do
+				table_insert(entries, {
+					["text"] = instanceLocalizatedName,
+					["icon"] = zoneIcons[instanceType],
+					["func"] = function(info)
+						local btn = dropdownInstances:GetButtonByText(info.text);
+						if (btn) then
+							info.disabled = not info.disabled;
+							btn:SetGray(info.disabled);
+							addonTable.db.EnabledZoneTypes[info.instanceType] = not info.disabled;
+						end
+						addonTable.UpdateAllNameplates();
+					end,
+					["disabled"] = not addonTable.db.EnabledZoneTypes[instanceType],
+					["dontCloseOnClick"] = true,
+					["instanceType"] = instanceType,
+				});
+			end
+			table_sort(entries, function(item1, item2) return item1.instanceType < item2.instanceType; end);
+			return entries;
+		end
+
+		buttonInstances:SetWidth(350);
+		buttonInstances:SetHeight(40);
+		buttonInstances:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, -5);
+		buttonInstances:SetScript("OnClick", function(self)
+			if (dropdownInstances:IsVisible()) then
+				dropdownInstances:Hide();
+			else
+				dropdownInstances:SetList(setEntries());
+				dropdownInstances:SetParent(self);
+				dropdownInstances:ClearAllPoints();
+				dropdownInstances:SetPoint("TOP", self, "BOTTOM", 0, 0);
+				dropdownInstances:Show();
+			end
+		end);
+		buttonInstances:SetScript("OnHide", dropdownInstances.Hide);
+		table_insert(GUIFrame.Categories[index], buttonInstances);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			dropdownInstances:SetList(setEntries());
+			dropdownInstances:Hide();
+		end);
+
+	end
+
 end
 
 local function GUICategory_Fonts(index)

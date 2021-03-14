@@ -4,6 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
+-- luacheck: globals IsInInstance
 
 local _, addonTable = ...;
 
@@ -25,10 +26,10 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound;
-local UnitDetailedThreatSituation = UnitDetailedThreatSituation;
+local UnitDetailedThreatSituation, IsInInstance = UnitDetailedThreatSituation, IsInInstance;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime;
+local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType;
 local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 local SpitefulMobs;
 do
@@ -40,6 +41,7 @@ do
 	DRDataPerGUID							= { };
 	DRResetTime								= DRList:GetResetTime();
 	SpitefulMobs							= { };
+	InstanceType							= addonTable.INSTANCE_TYPE_NONE;
 end
 
 -- // consts
@@ -205,6 +207,15 @@ do
 				ShowOnlyOnTarget = false,
 				UseTargetAlphaIfNotTargetSelected = false,
 				AffixSpiteful = true,
+				EnabledZoneTypes = {
+					[addonTable.INSTANCE_TYPE_NONE] =		true,
+					[addonTable.INSTANCE_TYPE_UNKNOWN] = 	true,
+					[addonTable.INSTANCE_TYPE_PVP] = 		true,
+					[addonTable.INSTANCE_TYPE_ARENA] = 		true,
+					[addonTable.INSTANCE_TYPE_PARTY] = 		true,
+					[addonTable.INSTANCE_TYPE_RAID] = 		true,
+					[addonTable.INSTANCE_TYPE_SCENARIO] =	true,
+				},
 			},
 		};
 
@@ -228,10 +239,35 @@ do
 		local profilesConfig = LibStub("AceDBOptions-3.0"):GetOptionsTable(aceDB);
 		LibStub("AceConfig-3.0"):RegisterOptionsTable("NameplateAuras.profiles", profilesConfig);
 		LibStub("AceConfigDialog-3.0"):AddToBlizOptions("NameplateAuras.profiles", "Profiles", "NameplateAuras");
-		-- // creating a fast reference
+
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileChanged", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileCopied", ReloadDB);
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
+	end
+
+	local function OnChatCommand(msg)
+		if (msg == "ver") then
+			local c;
+			if (IsInRaid() and GetNumGroupMembers() > 0) then
+				c = IsPartyLFG() and "INSTANCE_CHAT" or "RAID";
+			elseif (not IsInRaid() and GetNumSubgroupMembers() > 0) then
+				c = IsPartyLFG() and "INSTANCE_CHAT" or "PARTY";
+			else
+				c = "GUILD";
+			end
+			Print("Waiting for replies from " .. c);
+			AceComm:SendCommMessage("NameplateAuras", "requesting3#" .. LocalPlayerGUID, c);
+		elseif (msg == "debug") then
+			ChatCommand_Debug();
+		elseif (msg == "test") then
+			addonTable.SwitchTestMode();
+		elseif (msg == "batch:only-pvp") then -- luacheck: ignore
+
+		elseif (msg == "batch:only-pve") then -- luacheck: ignore
+
+		else
+			addonTable.ShowGUI();
+		end
 	end
 
 	function addonTable.OnStartup()
@@ -252,26 +288,7 @@ do
 		EventFrame:RegisterEvent("UNIT_THREAT_LIST_UPDATE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
-		SlashCmdList["NAMEPLATEAURAS"] = function(msg) -- luacheck: ignore
-			if (msg == "ver") then
-				local c;
-				if (IsInRaid() and GetNumGroupMembers() > 0) then
-					c = IsPartyLFG() and "INSTANCE_CHAT" or "RAID";
-				elseif (not IsInRaid() and GetNumSubgroupMembers() > 0) then
-					c = IsPartyLFG() and "INSTANCE_CHAT" or "PARTY";
-				else
-					c = "GUILD";
-				end
-				Print("Waiting for replies from " .. c);
-				AceComm:SendCommMessage("NameplateAuras", "requesting3#" .. LocalPlayerGUID, c);
-			elseif (msg == "debug") then
-				ChatCommand_Debug();
-			elseif (msg == "test") then
-				addonTable.SwitchTestMode();
-			else
-				addonTable.ShowGUI();
-			end
-		end
+		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand; -- luacheck: ignore
 		AceComm:RegisterComm("NameplateAuras", OnAddonMessageReceived);
 		addonTable.OnStartup = nil;
 	end
@@ -856,29 +873,31 @@ do
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitIsPlayer = UnitIsPlayer(unitID);
 		local unitGUID = UnitGUID(unitID);
-		if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
-			for i = 1, 40 do
-				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
-				if (buffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer);
+		if (db.EnabledZoneTypes[InstanceType]) then
+			if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
+				for i = 1, 40 do
+					local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
+					if (buffName ~= nil) then
+						ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer);
+					end
+					local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
+					if (debuffName ~= nil) then
+						ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer);
+					end
+					if (buffName == nil and debuffName == nil) then
+						break;
+					end
 				end
-				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
-				if (debuffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer);
+				if (db.InterruptsEnabled) then
+					local interrupt = InterruptsPerUnitGUID[unitGUID];
+					if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
+						local tSize = #AurasPerNameplate[frame];
+						AurasPerNameplate[frame][tSize+1] = interrupt;
+					end
 				end
-				if (buffName == nil and debuffName == nil) then
-					break;
-				end
+				ProcAurasForNmplt_Additions(unitGUID, frame);
+				ProcAurasForNmplt_DR(unitGUID, frame);
 			end
-			if (db.InterruptsEnabled) then
-				local interrupt = InterruptsPerUnitGUID[unitGUID];
-				if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
-					local tSize = #AurasPerNameplate[frame];
-					AurasPerNameplate[frame][tSize+1] = interrupt;
-				end
-			end
-			ProcAurasForNmplt_Additions(unitGUID, frame);
-			ProcAurasForNmplt_DR(unitGUID, frame);
 		end
 		UpdateNameplate(frame, unitGUID);
 	end
@@ -1173,6 +1192,14 @@ do
 			wipe(AurasPerNameplate[nameplate]);
 		end
 		wipe(SpitefulMobs);
+		local inInstance, instanceType = IsInInstance();
+		if (not inInstance) then
+			InstanceType = instanceType;
+		elseif (inInstance and instanceType == "none") then
+			InstanceType = addonTable.INSTANCE_TYPE_UNKNOWN;
+		else
+			InstanceType = instanceType;
+		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)

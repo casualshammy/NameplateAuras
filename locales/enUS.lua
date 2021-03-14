@@ -195,5 +195,14 @@ L["options:auras:show-on-npcs-and-players"] = "Show this aura on players and NPC
 L["options:auras:show-on-players"] = "Show this aura on players only"
 L["options:auras:show-on-npcs"] = "Show this aura on NPC only"
 L["options:apps:spiteful"] = "Highlight Spiteful Shade (Spiteful M+ affix)";
+L["instance-type:arena"] = "Arenas"
+L["instance-type:none"] = "Open World"
+L["instance-type:party"] = "5ppl dungeons"
+L["instance-type:pvp"] = "Battlegrounds"
+L["instance-type:raid"] = "Raid dungeons"
+L["instance-type:scenario"] = "Scenarios"
+L["instance-type:unknown"] = "Unknown dungeons (some quest scenarios)"
+L["options:general:instance-types"] = [=[Set the visibility of the cooldowns
+in different types of locations]=]
 
 --@end-debug@

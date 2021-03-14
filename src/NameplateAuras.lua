@@ -261,9 +261,9 @@ do
 			ChatCommand_Debug();
 		elseif (msg == "test") then
 			addonTable.SwitchTestMode();
-		elseif (msg == "batch:only-pvp") then
+		elseif (msg == "batch:only-pvp") then -- luacheck: ignore
 
-		elseif (msg == "batch:only-pve") then
+		elseif (msg == "batch:only-pve") then -- luacheck: ignore
 
 		else
 			addonTable.ShowGUI();
@@ -288,7 +288,7 @@ do
 		EventFrame:RegisterEvent("UNIT_THREAT_LIST_UPDATE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
-		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand;
+		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand; -- luacheck: ignore
 		AceComm:RegisterComm("NameplateAuras", OnAddonMessageReceived);
 		addonTable.OnStartup = nil;
 	end
@@ -1196,7 +1196,7 @@ do
 		if (not inInstance) then
 			InstanceType = instanceType;
 		elseif (inInstance and instanceType == "none") then
-			InstanceType = addon.INSTANCE_TYPE_UNKNOWN;
+			InstanceType = addonTable.INSTANCE_TYPE_UNKNOWN;
 		else
 			InstanceType = instanceType;
 		end

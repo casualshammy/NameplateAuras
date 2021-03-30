@@ -1172,7 +1172,7 @@ do
 							-- // getting reference to icon
 							local icon = frame.NAurasIcons[counter];
 							-- // setting text
-							icon:SetCooldown(last, spellInfo);
+							if (icon ~= nil) then icon:SetCooldown(last, spellInfo); end
 							counter = counter + 1;
 						end
 					end

@@ -246,8 +246,8 @@ do
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
 	end
 
-	local function OnChatCommand(msg)
-		local msg, arg1 = strsplit(" ", msg, 2);
+	local function OnChatCommand(_msg)
+		local msg, arg1 = strsplit(" ", _msg, 2);
 		if (msg == "ver") then
 			local c;
 			if (IsInRaid() and GetNumGroupMembers() > 0) then

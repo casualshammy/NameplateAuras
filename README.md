@@ -18,6 +18,7 @@ NameplateAuras displays buffs/debuffs of players above their nameplates. The dev
 **/nauras** - opens options dialog  
 **/nauras ver** - asks raid/guild members if they have NAuras installed  
 **/nauras test** - enables/disables test mode
+**/nauras max-auras N** - sets the maximum number of icons you want to see on every nameplate. N is number of icons, N = 0 disables this function
 
 ## Call to arms
 

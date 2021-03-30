@@ -216,6 +216,7 @@ do
 					[addonTable.INSTANCE_TYPE_RAID] = 		true,
 					[addonTable.INSTANCE_TYPE_SCENARIO] =	true,
 				},
+				MaxAuras = nil,
 			},
 		};
 
@@ -245,7 +246,8 @@ do
 		aceDB.RegisterCallback("NameplateAuras", "OnProfileReset", ReloadDB);
 	end
 
-	local function OnChatCommand(msg)
+	local function OnChatCommand(_msg)
+		local msg, arg1 = strsplit(" ", _msg, 2);
 		if (msg == "ver") then
 			local c;
 			if (IsInRaid() and GetNumGroupMembers() > 0) then
@@ -265,6 +267,17 @@ do
 
 		elseif (msg == "batch:only-pve") then -- luacheck: ignore
 
+		elseif (msg == "max-auras") then
+			local count = tonumber(arg1);
+			if (count ~= nil) then
+				if (count <= 0) then
+					db.MaxAuras = nil;
+				else
+					db.MaxAuras = count;
+				end
+				addonTable.UpdateAllNameplates();
+				Print("'max-auras' is set to " .. (db.MaxAuras or "'disabled'"));
+			end
 		else
 			addonTable.ShowGUI();
 		end
@@ -1114,6 +1127,7 @@ do
 						ShowCDIcon(icon);
 					end
 					counter = counter + 1;
+					if (db.MaxAuras ~= nil and db.MaxAuras < counter) then break; end
 				end
 			end
 		end
@@ -1158,7 +1172,7 @@ do
 							-- // getting reference to icon
 							local icon = frame.NAurasIcons[counter];
 							-- // setting text
-							icon:SetCooldown(last, spellInfo);
+							if (icon ~= nil) then icon:SetCooldown(last, spellInfo); end
 							counter = counter + 1;
 						end
 					end

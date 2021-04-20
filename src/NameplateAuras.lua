@@ -483,11 +483,11 @@ do
 				else
 					nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
 				end
-				if (unitGUID == TargetGUID) then
-					nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
-				else
-					nameplate.NAurasFrame:SetScale(1.0);
-				end
+				-- if (unitGUID == TargetGUID) then
+				-- 	nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
+				-- else
+				-- 	nameplate.NAurasFrame:SetScale(1.0);
+				-- end
 				if (unitGUID == TargetGUID) then
 					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
 				else
@@ -1043,13 +1043,17 @@ do
 		end
 	end
 
-	local function UpdateNameplate_SetIconSize(dbEntry, icon)
+	local function UpdateNameplate_SetIconSize(dbEntry, icon, unitGUID)
 		local spellWidth, spellHeight;
 		if (dbEntry ~= nil) then
 			spellWidth = dbEntry.iconSizeWidth or db.DefaultIconSizeWidth;
 			spellHeight = dbEntry.iconSizeHeight or db.DefaultIconSizeHeight;
 		else
 			spellWidth, spellHeight = db.DefaultIconSizeWidth, db.DefaultIconSizeHeight;
+		end
+		if (unitGUID == TargetGUID) then
+			spellWidth = spellWidth * db.IconScaleTarget;
+			spellHeight = spellHeight * db.IconScaleTarget;
 		end
 		local iconResized = false;
 		if (spellWidth ~= icon.sizeWidth or spellHeight ~= icon.sizeHeight) then
@@ -1114,7 +1118,7 @@ do
 					-- // border
 					UpdateNameplate_SetBorder(icon, spellInfo);
 					-- // icon size
-					local spellWidth, spellHeight, iconResized = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon);
+					local spellWidth, spellHeight, iconResized = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon, unitGUID);
 					UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight);
 					maxIconWidth = math_max(maxIconWidth, spellWidth);
 					maxIconHeight = math_max(maxIconHeight, spellHeight);
@@ -1367,9 +1371,10 @@ do
 		for nameplate in pairs(NameplatesVisible) do
 			SetAlphaScaleForNameplate(nameplate);
 		end
-		if (db.ShowOnlyOnTarget) then
-			addonTable.UpdateAllNameplates(false);
-		end
+		addonTable.UpdateAllNameplates(false);
+		-- if (db.ShowOnlyOnTarget) then
+		-- 	addonTable.UpdateAllNameplates(false);
+		-- end
 	end
 
 end
@@ -1496,7 +1501,7 @@ do
 				for _, spellInfo in pairs(GetSpells()) do
 					auras[#auras+1] = spellInfo;
 				end
-				UpdateNameplate(nameplate, unitID);
+				UpdateNameplate(nameplate, UnitGUID(unitID));
 			end
 		end
 	end

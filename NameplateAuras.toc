@@ -1,5 +1,5 @@
-## Interface: 90005
-## Title: NameplateAuras
+## Interface: 20501
+## Title: NameplateAuras [TBC]
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB
 ## Version: @project-version@

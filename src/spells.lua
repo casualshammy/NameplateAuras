@@ -202,3 +202,4 @@ addonTable.DefaultSpells2 = {
 		[236320] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[236320] },
 	},
 };
+

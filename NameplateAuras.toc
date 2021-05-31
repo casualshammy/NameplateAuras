@@ -3,6 +3,8 @@
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB
 ## Version: @project-version@
+## X-Curse-Project-ID: 101192
+## X-Wago-ID: lQNl536e
 
 src\consts.lua
 embeds.xml

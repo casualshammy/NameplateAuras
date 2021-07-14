@@ -207,6 +207,7 @@ do
 				ShowOnlyOnTarget = false,
 				UseTargetAlphaIfNotTargetSelected = false,
 				AffixSpiteful = true,
+				AffixSpitefulSound = 5274,
 				EnabledZoneTypes = {
 					[addonTable.INSTANCE_TYPE_NONE] =		true,
 					[addonTable.INSTANCE_TYPE_UNKNOWN] = 	true,
@@ -1272,7 +1273,11 @@ do
 				if (not SpitefulMobs[unitGUID] and npcID == addonTable.SPITEFUL_NPC_ID_STRING) then
 					local _, _, threatPct = UnitDetailedThreatSituation("player", unitID);
 					if (threatPct == 100) then
-						PlaySound(5274, "Master");
+						if (type(db.AffixSpitefulSound) == "number") then
+							PlaySound(db.AffixSpitefulSound, "Master");
+						else
+							PlaySoundFile(SML:Fetch(SML.MediaType.SOUND, db.AffixSpitefulSound), "Master");
+						end
 						SpitefulMobs[unitGUID] = true;
 						EventFrame.UNIT_AURA(unitID);
 					end

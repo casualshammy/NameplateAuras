@@ -204,5 +204,6 @@ L["instance-type:scenario"] = "Scenarios"
 L["instance-type:unknown"] = "Unknown dungeons (some quest scenarios)"
 L["options:general:instance-types"] = [=[Set the visibility of the cooldowns
 in different types of locations]=]
+L["options:apps:spiteful:sound"] = "Sound"
 
 --@end-debug@

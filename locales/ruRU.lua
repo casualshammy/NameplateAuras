@@ -169,5 +169,6 @@ L["icon-sort-mode:custom"] = "Пользовательский";
 L["options:auras:show-on-npcs-and-players"] = "Показывать эту ауру на игроках и НПС"
 L["options:auras:show-on-players"] = "Показывать эту ауру только на игроках"
 L["options:auras:show-on-npcs"] = "Показывать эту ауру только на НПС"
+L["options:apps:spiteful:sound"] = "Звук"
 
 --@end-debug@

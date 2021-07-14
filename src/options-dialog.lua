@@ -2913,9 +2913,9 @@ local function GUICategory_Additions(index)
 		table_insert(GUIFrame.Categories[index], area3);
 	end
 
-	-- // checkBoxAffixSpiteful
+	local checkBoxAffixSpiteful;
 	do
-		local checkBoxAffixSpiteful = VGUI.CreateCheckBox();
+		checkBoxAffixSpiteful = VGUI.CreateCheckBox();
 		checkBoxAffixSpiteful:SetText(L["options:apps:spiteful"]);
 		checkBoxAffixSpiteful.Text:SetPoint("LEFT");
 		checkBoxAffixSpiteful.Text:SetPoint("RIGHT");
@@ -2926,10 +2926,49 @@ local function GUICategory_Additions(index)
 		end);
 		checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
 		checkBoxAffixSpiteful:SetParent(GUIFrame);
-		checkBoxAffixSpiteful:SetPoint("LEFT", area3, "LEFT", 10, 0);
+		checkBoxAffixSpiteful:SetPoint("TOPLEFT", area3, "TOPLEFT", 10, -10);
 		table_insert(GUIFrame.Categories[index], checkBoxAffixSpiteful);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
+		end);
+	end
+
+	-- // dropdownSound
+	local dropdownMenuSound = VGUI.CreateDropdownMenu();
+	do
+		local sounds = { };
+		local buttonSound = VGUI.CreateButton();
+		buttonSound:SetParent(area3);
+		buttonSound:SetText(L["options:apps:spiteful:sound"] .. ": " .. tostring(addonTable.db.AffixSpitefulSound));
+		table_insert(GUIFrame.Categories[index], buttonSound);
+
+		for _, sound in next, SML:List(SML.MediaType.SOUND) do
+			table_insert(sounds, {
+				["text"] = sound,
+				-- ["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
+				["func"] = function(info)
+					buttonSound.Text:SetText(L["options:apps:spiteful:sound"]  .. ": " .. info.text);
+					addonTable.db.AffixSpitefulSound = info.text;
+					PlaySoundFile(SML:Fetch(SML.MediaType.SOUND, info.text), "Master");
+				end,
+				--["font"] = SML:Fetch(SML.MediaType.SOUND, font),
+			});
+		end
+		table_sort(sounds, function(item1, item2) return item1.text < item2.text; end);
+
+		buttonSound:SetHeight(24);
+		buttonSound:SetPoint("TOPLEFT", checkBoxAffixSpiteful, "BOTTOMLEFT", 0, -10);
+		buttonSound:SetPoint("RIGHT", area3, "RIGHT", -30, 0);
+		buttonSound:SetScript("OnClick", function(self)
+			if (dropdownMenuSound:IsVisible()) then
+				dropdownMenuSound:Hide();
+			else
+				dropdownMenuSound:SetList(sounds);
+				dropdownMenuSound:SetParent(self);
+				dropdownMenuSound:ClearAllPoints();
+				dropdownMenuSound:SetPoint("TOP", self, "BOTTOM", 0, 0);
+				dropdownMenuSound:Show();
+			end
 		end);
 	end
 

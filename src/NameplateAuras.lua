@@ -4,7 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance
+-- luacheck: globals IsInInstance PlaySoundFile
 
 local _, addonTable = ...;
 
@@ -25,7 +25,7 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table_sort, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
-local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound;
+local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
 local UnitDetailedThreatSituation, IsInInstance = UnitDetailedThreatSituation, IsInInstance;
 
 -- // variables

@@ -2,6 +2,7 @@
 -- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
 -- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
 -- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer GetSpellInfo
+-- luacheck: globals PlaySoundFile
 
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");

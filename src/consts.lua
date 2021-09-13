@@ -56,6 +56,7 @@ addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 3;
 
 addonTable.BORDER_TYPE_BUILTIN = 1;
 addonTable.BORDER_TYPE_CUSTOM = 2;
+addonTable.BORDER_TYPE_DISABLED = 3;
 
 addonTable.DR_TEXTURES = {
 	["disorient"] = [[Interface\AddOns\NameplateAuras\media\square-violet.tga]],

@@ -916,22 +916,39 @@ do
 		UpdateNameplate(frame, unitGUID);
 	end
 
-	local function UpdateNameplate_SetBorder(icon, spellInfo)
-		if (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
-			if (icon.borderState ~= spellInfo.type) then
-				local color = db.BuffBordersColor;
-				icon.border:SetVertexColor(color[1], color[2], color[3], color[4]);
-				icon.border:Show();
-				icon.borderState = spellInfo.type;
+	local function UpdateNameplate_SetBorderTextureAndColor(icon, borderType, preciseType, borderSize, texturePath, color)
+		if (icon.borderState ~= preciseType) then
+			if (borderType == addonTable.BORDER_TYPE_BUILTIN) then
+				icon.border:SetTexture(BORDER_TEXTURES[borderSize]);
+			elseif (borderType == addonTable.BORDER_TYPE_CUSTOM) then
+				icon.border:SetTexture(texturePath);
 			end
+			icon.border:SetVertexColor(color[1], color[2], color[3], color[4]);
+			icon.border:Show();
+			icon.borderState = preciseType;
+		end
+	end
+
+	local function UpdateNameplate_SetBorder(icon, spellInfo)
+		local dbEntry = spellInfo.dbEntry;
+		if (dbEntry ~= nil and dbEntry.customBorderType ~= nil and dbEntry.customBorderType ~= addonTable.BORDER_TYPE_DISABLED) then
+			local borderType = dbEntry.customBorderType;
+			local borderColor = dbEntry.customBorderColor;
+			local preciseType = string_format("%s%s%s%s%s%s",
+				borderType,
+				borderColor[1],
+				borderColor[2],
+				borderColor[3],
+				borderColor[4],
+				borderType == addonTable.BORDER_TYPE_BUILTIN and dbEntry.customBorderSize or dbEntry.customBorderPath
+			);
+			UpdateNameplate_SetBorderTextureAndColor(icon, borderType, preciseType, dbEntry.customBorderSize, dbEntry.customBorderPath, borderColor);
+		elseif (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then
+			UpdateNameplate_SetBorderTextureAndColor(icon, db.BorderType, spellInfo.type, db.BorderThickness, db.BorderFilePath, db.BuffBordersColor);
 		elseif (db.ShowDebuffBorders and spellInfo.type == AURA_TYPE_DEBUFF) then
 			local preciseType = spellInfo.type .. (spellInfo.dispelType or "OTHER");
-			if (icon.borderState ~= preciseType) then
-				local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
-				icon.border:SetVertexColor(color[1], color[2], color[3], color[4]);
-				icon.border:Show();
-				icon.borderState = preciseType;
-			end
+			local color = db["DebuffBorders" .. (spellInfo.dispelType or "Other") .. "Color"];
+			UpdateNameplate_SetBorderTextureAndColor(icon, db.BorderType, preciseType, db.BorderThickness, db.BorderFilePath, color);
 		else
 			if (icon.borderState ~= nil) then
 				icon.border:Hide();

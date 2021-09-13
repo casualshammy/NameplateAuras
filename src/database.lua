@@ -276,6 +276,13 @@ local migrations = {
             spellInfo.pvpCombat = nil;
         end
     end,
+    [19] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            spellInfo.customBorderEnabled = nil;
+            spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -322,6 +329,17 @@ local function FillInMissingEntriesIsSpells()
             -- useRelativeAnimationTimer may be nil
             -- checkSpellID may be nil
             -- showGlow may be nil
+            if (spellInfo.customBorderType == nil) then
+                spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
+            end
+            -- spellInfo.customBorderPath may be nil
+            if (spellInfo.customBorderSize == nil) then
+                spellInfo.customBorderSize = db.BorderThickness;
+            end
+            if (spellInfo.customBorderColor == nil) then
+                spellInfo.customBorderColor = { 1, 0.1, 0.1, 1 };
+            end
+
             if (spellInfo.enabledState == "disabled") then
                 spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
             elseif (spellInfo.enabledState == "all") then

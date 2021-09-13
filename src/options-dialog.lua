@@ -1445,6 +1445,7 @@ local function GUICategory_4(index)
 	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
+	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1823,6 +1824,31 @@ local function GUICategory_4(index)
 				sliderAnimationThreshold.slider:SetValue(spellInfo.animationTimer);
 				checkboxAnimationRelative:SetChecked(spellInfo.useRelativeAnimationTimer);
 				areaAnimation:SetHeight(80);
+			end
+			if (spellInfo.customBorderType == addonTable.BORDER_TYPE_DISABLED) then
+				checkboxCustomBorder:SetTriState(0);
+				textboxCustomBorderPath:Hide();
+				sliderCustomBorderSize:Hide();
+				colorPickerCustomBorderColor:Hide();
+				areaCustomBorder:SetHeight(40);
+			elseif (spellInfo.customBorderType == addonTable.BORDER_TYPE_BUILTIN) then
+				checkboxCustomBorder:SetTriState(1);
+				textboxCustomBorderPath:Hide();
+				sliderCustomBorderSize:Show();
+				sliderCustomBorderSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].customBorderSize);
+				colorPickerCustomBorderColor:Show();
+				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
+				areaCustomBorder:SetHeight(80);
+			elseif (spellInfo.customBorderType == addonTable.BORDER_TYPE_CUSTOM) then
+				checkboxCustomBorder:SetTriState(2);
+				textboxCustomBorderPath:Show();
+				textboxCustomBorderPath:SetText(addonTable.db.CustomSpells2[selectedSpell].customBorderPath or "");
+				sliderCustomBorderSize:Hide();
+				colorPickerCustomBorderColor:Show();
+				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
+				areaCustomBorder:SetHeight(80);
 			end
 			_G[dropdownAnimationType:GetName().."Text"]:SetText(animationTypes[spellInfo.animationType]);
 		end
@@ -2279,6 +2305,147 @@ local function GUICategory_4(index)
 		checkboxAnimationRelative:SetPoint("LEFT", sliderAnimationThreshold, "RIGHT", 10, 0);
 		table_insert(controls, checkboxAnimationRelative);
 	end
+	-- local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor;
+	-- areaCustomBorder
+	do
+		areaCustomBorder = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaCustomBorder:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaCustomBorder:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaCustomBorder:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaCustomBorder:SetPoint("TOPLEFT", areaAnimation, "BOTTOMLEFT", 0, 0);
+		areaCustomBorder:SetPoint("TOPRIGHT", areaAnimation, "BOTTOMRIGHT", 0, 0);
+		areaCustomBorder:SetHeight(80);
+		table_insert(controls, areaCustomBorder);
+	end
+
+	-- // checkboxCustomBorder
+	do
+		checkboxCustomBorder = VGUI.CreateCheckBoxTristate();
+		checkboxCustomBorder:SetTextEntries({
+			addonTable.ColorizeText(L["options:spells:icon-border:disabled"], 1, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-border:builtin"], 0, 1, 1),
+			addonTable.ColorizeText(L["options:spells:icon-border:custom"], 0, 1, 0),
+		});
+		checkboxCustomBorder:SetOnClickHandler(function(self)
+			local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+			if (self:GetTriState() == 0) then
+				addonTable.db.CustomSpells2[selectedSpell].customBorderType = addonTable.BORDER_TYPE_DISABLED;
+				textboxCustomBorderPath:Hide();
+				sliderCustomBorderSize:Hide();
+				colorPickerCustomBorderColor:Hide();
+				areaCustomBorder:SetHeight(40);
+			elseif (self:GetTriState() == 1) then
+				addonTable.db.CustomSpells2[selectedSpell].customBorderType = addonTable.BORDER_TYPE_BUILTIN;
+				textboxCustomBorderPath:Hide();
+				sliderCustomBorderSize:Show();
+				sliderCustomBorderSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].customBorderSize);
+				colorPickerCustomBorderColor:Show();
+				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
+				areaCustomBorder:SetHeight(80);
+			else
+				addonTable.db.CustomSpells2[selectedSpell].customBorderType = addonTable.BORDER_TYPE_CUSTOM;
+				textboxCustomBorderPath:Show();
+				textboxCustomBorderPath:SetText(addonTable.db.CustomSpells2[selectedSpell].customBorderPath or "");
+				sliderCustomBorderSize:Hide();
+				colorPickerCustomBorderColor:Show();
+				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
+				areaCustomBorder:SetHeight(80);
+			end
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxCustomBorder:SetParent(areaCustomBorder);
+		checkboxCustomBorder:SetPoint("TOPLEFT", 10, -10);
+		table_insert(controls, checkboxCustomBorder);
+	end
+
+	-- // colorPickerCustomBorderColor
+	do
+		colorPickerCustomBorderColor = VGUI.CreateColorPicker();
+		colorPickerCustomBorderColor:SetParent(areaCustomBorder);
+		colorPickerCustomBorderColor:SetPoint("TOPLEFT", 15, -45);
+		colorPickerCustomBorderColor:SetText();
+		colorPickerCustomBorderColor.func = function(_, r, g, b, a)
+			addonTable.db.CustomSpells2[selectedSpell].customBorderColor = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		table_insert(controls, colorPickerCustomBorderColor);
+	end
+
+	-- // sliderCustomBorderSize
+	do
+
+		local minV, maxV = 1, 5;
+		sliderCustomBorderSize = VGUI.CreateSlider();
+		sliderCustomBorderSize:SetParent(areaCustomBorder);
+		sliderCustomBorderSize:SetWidth(140);
+		sliderCustomBorderSize.label:ClearAllPoints();
+		sliderCustomBorderSize.label:SetPoint("CENTER", sliderCustomBorderSize, "CENTER", 0, 15);
+		sliderCustomBorderSize.label:SetText();
+		sliderCustomBorderSize:ClearAllPoints();
+		sliderCustomBorderSize:SetPoint("LEFT", colorPickerCustomBorderColor, "RIGHT", 10, 10);
+		sliderCustomBorderSize.slider:ClearAllPoints();
+		sliderCustomBorderSize.slider:SetPoint("LEFT", 3, 0)
+		sliderCustomBorderSize.slider:SetPoint("RIGHT", -3, 0)
+		sliderCustomBorderSize.slider:SetValueStep(1);
+		sliderCustomBorderSize.slider:SetMinMaxValues(minV, maxV);
+		sliderCustomBorderSize.slider:SetScript("OnValueChanged", function(_, value)
+			sliderCustomBorderSize.editbox:SetText(tostring(math_ceil(value)));
+			addonTable.db.CustomSpells2[selectedSpell].customBorderSize = math_ceil(value);
+			addonTable.UpdateAllNameplates(false);
+		end);
+		sliderCustomBorderSize.editbox:SetScript("OnEnterPressed", function()
+			if (sliderCustomBorderSize.editbox:GetText() ~= "") then
+				local v = tonumber(sliderCustomBorderSize.editbox:GetText());
+				if (v == nil) then
+					sliderCustomBorderSize.editbox:SetText(tostring(addonTable.db.CustomSpells2[selectedSpell].customBorderSize));
+					Print(L["Value must be a number"]);
+				else
+					if (v > maxV) then
+						v = maxV;
+					end
+					if (v < minV) then
+						v = minV;
+					end
+					sliderCustomBorderSize.slider:SetValue(v);
+				end
+				sliderCustomBorderSize.editbox:ClearFocus();
+			end
+		end);
+		sliderCustomBorderSize.lowtext:SetText(tostring(minV));
+		sliderCustomBorderSize.hightext:SetText(tostring(maxV));
+		table_insert(controls, sliderCustomBorderSize);
+
+	end
+
+	-- // textboxCustomBorderPath
+	do
+		textboxCustomBorderPath = CreateFrame("EditBox", nil, areaCustomBorder, "InputBoxTemplate");
+		textboxCustomBorderPath:SetAutoFocus(false);
+		textboxCustomBorderPath:SetFontObject(GameFontHighlightSmall);
+		textboxCustomBorderPath:SetPoint("LEFT", colorPickerCustomBorderColor, "RIGHT", 10, 0);
+		textboxCustomBorderPath:SetPoint("RIGHT", areaCustomBorder, "RIGHT", -10, 0);
+		textboxCustomBorderPath:SetHeight(20);
+		textboxCustomBorderPath:SetJustifyH("LEFT");
+		textboxCustomBorderPath:EnableMouse(true);
+		textboxCustomBorderPath:SetScript("OnEscapePressed", function() textboxCustomBorderPath:ClearFocus(); end);
+		textboxCustomBorderPath:SetScript("OnEnterPressed", function() textboxCustomBorderPath:ClearFocus(); end);
+		textboxCustomBorderPath:SetScript("OnTextChanged", function(self)
+			local inputText = self:GetText();
+			addonTable.db.CustomSpells2[selectedSpell].customBorderPath = inputText;
+			addonTable.UpdateAllNameplates(true);
+		end);
+		local text = textboxCustomBorderPath:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("LEFT", 0, 15);
+		text:SetText(L["options:borders:border-file-path"]);
+		table_insert(controls, textboxCustomBorderPath);
+	end
 
 	-- // areaAuraType
 	do
@@ -2294,7 +2461,7 @@ local function GUICategory_4(index)
 		});
 		areaAuraType:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaAuraType:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaAuraType:SetPoint("TOPLEFT", areaAnimation, "BOTTOMLEFT", 0, 0);
+		areaAuraType:SetPoint("TOPLEFT", areaCustomBorder, "BOTTOMLEFT", 0, 0);
 		areaAuraType:SetWidth(167);
 		areaAuraType:SetHeight(70);
 		table_insert(controls, areaAuraType);

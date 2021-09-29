@@ -205,5 +205,8 @@ L["instance-type:unknown"] = "Unknown dungeons (some quest scenarios)"
 L["options:general:instance-types"] = [=[Set the visibility of the cooldowns
 in different types of locations]=]
 L["options:apps:spiteful:sound"] = "Sound"
+L["options:spells:icon-border:custom"] = "Border: Custom"
+L["options:spells:icon-border:builtin"] = "Border: Built-in"
+L["options:spells:icon-border:disabled"] = "Border: Disabled"
 
 --@end-debug@

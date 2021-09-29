@@ -201,5 +201,8 @@ addonTable.DefaultSpells2 = {
 		[236273] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[236273] },
 		[236320] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[236320] },
 	},
+	[3] = {
+		[343503] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[343503] },
+	},
 };
 

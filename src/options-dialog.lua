@@ -1482,7 +1482,11 @@ local function GUICategory_4(index)
 			textureID = SpellTextureByID[spellID];
 		else
 			spellID = next(AllSpellIDsAndIconsByName[spellInfo.spellName]);
-			textureID = SpellTextureByID[spellID];
+			if (spellID ~= nil) then
+				textureID = SpellTextureByID[spellID];
+			else
+				textureID = 136243;
+			end
 		end
 		return spellID, textureID;
 	end

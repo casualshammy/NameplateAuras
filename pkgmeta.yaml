@@ -48,6 +48,9 @@ externals:
     libs/DRList-1.0:
         url: https://github.com/wardz/DRList-1.0.git
         tag: latest
+    libs/LibClassicDurations:
+        url: https://repos.curseforge.com/wow/libclassicdurations
+        tag: latest
 
 ignore:
     - libs/LibRedDropdown-1.0/docs

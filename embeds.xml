@@ -15,5 +15,6 @@
 <Include	file="libs\LibCustomGlow\LibCustomGlow-1.0.xml"/>
 <Script		file="libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
 <Include	file="libs\DRList-1.0\DRList-1.0.xml"/>
+<Include	file="libs\LibClassicDurations\LibClassicDurations.xml"/>
 </Ui>
 

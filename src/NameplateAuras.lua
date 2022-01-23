@@ -6,7 +6,7 @@
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance
 
-local _, addonTable = ...;
+local addonName, addonTable = ...;
 
 local buildTimestamp = "DEVELOPER COPY";
 --[===[@non-debug@
@@ -19,6 +19,7 @@ local AceComm = LibStub("AceComm-3.0");
 local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
 local DRList = LibStub("DRList-1.0");
+local LibClassicDurations = LibStub("LibClassicDurations", true);
 
 -- // upvalues
 local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
@@ -61,6 +62,17 @@ end
 
 -- // utilities
 local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
+
+local UnitAura = _G.UnitAura;
+if (LibClassicDurations) then
+    LibClassicDurations:Register(addonName);
+    UnitAura = LibClassicDurations.UnitAuraWrapper;
+	UnitBuff = function(unit, buffIndex) return UnitAura(unit, buffIndex, "HELPFUL") end;
+	UnitDebuff = function(unit, buffIndex) return UnitAura(unit, buffIndex, "HARMFUL") end;
+else
+	Print("Can't load LibClassicDurations! Addon will be disabled");
+	return;
+end
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...

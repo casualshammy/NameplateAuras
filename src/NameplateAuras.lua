@@ -4,7 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance
+-- luacheck: globals IsInInstance bit setfenv loadstring
 
 local addonName, addonTable = ...;
 
@@ -22,9 +22,10 @@ local DRList = LibStub("DRList-1.0");
 local LibClassicDurations = LibStub("LibClassicDurations", true);
 
 -- // upvalues
-local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
+local UnitBuff, UnitDebuff;
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table_sort, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound;
 local UnitDetailedThreatSituation, IsInInstance = UnitDetailedThreatSituation, IsInInstance;
@@ -63,10 +64,9 @@ end
 -- // utilities
 local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
 
-local UnitAura = _G.UnitAura;
 if (LibClassicDurations) then
     LibClassicDurations:Register(addonName);
-    UnitAura = LibClassicDurations.UnitAuraWrapper;
+    local UnitAura = LibClassicDurations.UnitAuraWrapper;
 	UnitBuff = function(unit, buffIndex) return UnitAura(unit, buffIndex, "HELPFUL") end;
 	UnitDebuff = function(unit, buffIndex) return UnitAura(unit, buffIndex, "HARMFUL") end;
 else

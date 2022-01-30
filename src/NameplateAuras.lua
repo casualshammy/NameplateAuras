@@ -4,7 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv
+-- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo
 
 local _, addonTable = ...;
 
@@ -26,7 +26,7 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
-local UnitDetailedThreatSituation, IsInInstance = UnitDetailedThreatSituation, IsInInstance;
+local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType;
@@ -209,15 +209,17 @@ do
 				AffixSpiteful = true,
 				AffixSpitefulSound = 5274,
 				EnabledZoneTypes = {
-					[addonTable.INSTANCE_TYPE_NONE] =		true,
-					[addonTable.INSTANCE_TYPE_UNKNOWN] = 	true,
-					[addonTable.INSTANCE_TYPE_PVP] = 		true,
-					[addonTable.INSTANCE_TYPE_ARENA] = 		true,
-					[addonTable.INSTANCE_TYPE_PARTY] = 		true,
-					[addonTable.INSTANCE_TYPE_RAID] = 		true,
-					[addonTable.INSTANCE_TYPE_SCENARIO] =	true,
+					[addonTable.INSTANCE_TYPE_NONE] =			true,
+					[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+					[addonTable.INSTANCE_TYPE_PVP] = 			true,
+					[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+					[addonTable.INSTANCE_TYPE_ARENA] = 			true,
+					[addonTable.INSTANCE_TYPE_PARTY] = 			true,
+					[addonTable.INSTANCE_TYPE_RAID] = 			true,
+					[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
 				},
 				MaxAuras = nil,
+				ShowAurasOnTargetEvenInDisabledAreas = false,
 			},
 		};
 
@@ -887,7 +889,7 @@ do
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitIsPlayer = UnitIsPlayer(unitID);
 		local unitGUID = UnitGUID(unitID);
-		if (db.EnabledZoneTypes[InstanceType]) then
+		if (db.EnabledZoneTypes[InstanceType] or (db.ShowAurasOnTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
 			if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 				for i = 1, 40 do
 					local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
@@ -1220,6 +1222,32 @@ do
 	EventFrame:SetScript("OnEvent", function(self, event, ...) self[event](...); end);
 	addonTable.EventFrame = EventFrame;
 
+	-- we do polling because 'GetInstanceInfo' works unstable
+	local function UpdateZoneType()
+		local newInstanceType;
+		local inInstance, instanceType = IsInInstance();
+		if (not inInstance) then
+			newInstanceType = instanceType;
+		elseif (inInstance and instanceType == "none") then
+			newInstanceType = addonTable.INSTANCE_TYPE_UNKNOWN;
+		elseif (inInstance and instanceType == "pvp") then
+			local maxInstanceGroup = select(5, GetInstanceInfo());
+			if (maxInstanceGroup == 40) then
+				newInstanceType = addonTable.INSTANCE_TYPE_PVP_BG_40PPL;
+			else
+				newInstanceType = instanceType;
+			end
+		else
+			newInstanceType = instanceType;
+		end
+		if (newInstanceType ~= InstanceType) then
+			InstanceType = newInstanceType;
+			addonTable.UpdateAllNameplates(false);
+		end
+		CTimerAfter(2, UpdateZoneType);
+	end
+	CTimerAfter(2, UpdateZoneType);
+
 	function EventFrame.PLAYER_ENTERING_WORLD()
 		if (addonTable.OnStartup) then
 			addonTable.OnStartup();
@@ -1228,14 +1256,6 @@ do
 			wipe(AurasPerNameplate[nameplate]);
 		end
 		wipe(SpitefulMobs);
-		local inInstance, instanceType = IsInInstance();
-		if (not inInstance) then
-			InstanceType = instanceType;
-		elseif (inInstance and instanceType == "none") then
-			InstanceType = addonTable.INSTANCE_TYPE_UNKNOWN;
-		else
-			InstanceType = instanceType;
-		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)

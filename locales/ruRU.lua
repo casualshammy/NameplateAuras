@@ -170,5 +170,7 @@ L["options:auras:show-on-npcs-and-players"] = "Показывать эту ау�
 L["options:auras:show-on-players"] = "Показывать эту ауру только на игроках"
 L["options:auras:show-on-npcs"] = "Показывать эту ауру только на НПС"
 L["options:apps:spiteful:sound"] = "Звук"
+L["instance-type:pvp_bg_40ppl"] = "Поле боя (40 игроков)"
+L["options:general:show-on-target-even-in-disabled-area-types"] = "Показывать ауры на неймплейтах цели даже в отключённых типах зон"
 
 --@end-debug@

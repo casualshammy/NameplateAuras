@@ -78,6 +78,7 @@ addonTable.SPITEFUL_SPELL_ID = 69861;
 addonTable.INSTANCE_TYPE_NONE = "none";
 addonTable.INSTANCE_TYPE_UNKNOWN = "unknown";
 addonTable.INSTANCE_TYPE_PVP = "pvp";
+addonTable.INSTANCE_TYPE_PVP_BG_40PPL = "pvp_bg_40ppl";
 addonTable.INSTANCE_TYPE_ARENA = "arena";
 addonTable.INSTANCE_TYPE_PARTY = "party";
 addonTable.INSTANCE_TYPE_RAID = "raid";

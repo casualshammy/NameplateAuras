@@ -94,7 +94,7 @@ local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
-		checkboxShowOnlyOnTarget;
+		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances;
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -229,31 +229,55 @@ local function GUICategory_1(index)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
 	end
 
+	-- // zoneTypesArea
+	do
+
+		zoneTypesArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		zoneTypesArea:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		zoneTypesArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		zoneTypesArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		zoneTypesArea:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, -10);
+		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
+		zoneTypesArea:SetWidth(360);
+		zoneTypesArea:SetHeight(90);
+		table_insert(GUIFrame.Categories[index], zoneTypesArea);
+
+	end
+
 	-- // buttonInstances
 	do
 		local zoneTypes = {
-			[addonTable.INSTANCE_TYPE_NONE] = 		L["instance-type:none"],
-			[addonTable.INSTANCE_TYPE_UNKNOWN] = 	L["instance-type:unknown"],
-			[addonTable.INSTANCE_TYPE_PVP] = 		L["instance-type:pvp"],
-			[addonTable.INSTANCE_TYPE_ARENA] = 		L["instance-type:arena"],
-			[addonTable.INSTANCE_TYPE_PARTY] = 		L["instance-type:party"],
-			[addonTable.INSTANCE_TYPE_RAID] = 		L["instance-type:raid"],
-			[addonTable.INSTANCE_TYPE_SCENARIO] =	L["instance-type:scenario"],
+			[addonTable.INSTANCE_TYPE_NONE] = 			L["instance-type:none"],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 		L["instance-type:unknown"],
+			[addonTable.INSTANCE_TYPE_PVP] = 			L["instance-type:pvp"],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	L["instance-type:pvp_bg_40ppl"],
+			[addonTable.INSTANCE_TYPE_ARENA] = 			L["instance-type:arena"],
+			[addonTable.INSTANCE_TYPE_PARTY] = 			L["instance-type:party"],
+			[addonTable.INSTANCE_TYPE_RAID] = 			L["instance-type:raid"],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =		L["instance-type:scenario"],
 		};
 		local zoneIcons = {
-			[addonTable.INSTANCE_TYPE_NONE] = 		SpellTextureByID[6711],
-			[addonTable.INSTANCE_TYPE_UNKNOWN] = 	SpellTextureByID[175697],
-			[addonTable.INSTANCE_TYPE_PVP] = 		SpellTextureByID[232352],
-			[addonTable.INSTANCE_TYPE_ARENA] = 		SpellTextureByID[270697],
-			[addonTable.INSTANCE_TYPE_PARTY] = 		SpellTextureByID[77629],
-			[addonTable.INSTANCE_TYPE_RAID] = 		SpellTextureByID[3363],
-			[addonTable.INSTANCE_TYPE_SCENARIO] =	SpellTextureByID[77628],
+			[addonTable.INSTANCE_TYPE_NONE] = 			SpellTextureByID[6711],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 		SpellTextureByID[175697],
+			[addonTable.INSTANCE_TYPE_PVP] = 			SpellTextureByID[232352],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	132485,
+			[addonTable.INSTANCE_TYPE_ARENA] = 			SpellTextureByID[270697],
+			[addonTable.INSTANCE_TYPE_PARTY] = 			SpellTextureByID[77629],
+			[addonTable.INSTANCE_TYPE_RAID] = 			SpellTextureByID[3363],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =		SpellTextureByID[77628],
 		};
 
 		local dropdownInstances = VGUI.CreateDropdownMenu();
-		dropdownInstances:SetHeight(200);
-		local buttonInstances = VGUI.CreateButton();
-		buttonInstances:SetParent(GUIFrame);
+		dropdownInstances:SetHeight(230);
+		buttonInstances = VGUI.CreateButton();
+		buttonInstances:SetParent(zoneTypesArea);
 		buttonInstances:SetText(L["options:general:instance-types"]);
 
 		local function setEntries()
@@ -280,9 +304,10 @@ local function GUICategory_1(index)
 			return entries;
 		end
 
-		buttonInstances:SetWidth(350);
+		-- buttonInstances:SetWidth(350);
+		buttonInstances:SetPoint("TOPLEFT", zoneTypesArea, "TOPLEFT", 10, -10);
+		buttonInstances:SetPoint("TOPRIGHT", zoneTypesArea, "TOPRIGHT", -10, -10);
 		buttonInstances:SetHeight(40);
-		buttonInstances:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, -5);
 		buttonInstances:SetScript("OnClick", function(self)
 			if (dropdownInstances:IsVisible()) then
 				dropdownInstances:Hide();
@@ -301,6 +326,21 @@ local function GUICategory_1(index)
 			dropdownInstances:Hide();
 		end);
 
+	end
+
+	-- // checkboxShowAurasOnTargetEvenInDisabledAreas
+	do
+		checkboxShowAurasOnTargetEvenInDisabledAreas = VGUI.CreateCheckBox();
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetText(L["options:general:show-on-target-even-in-disabled-area-types"]);
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetOnClickHandler(function(this)
+			addonTable.db.ShowAurasOnTargetEvenInDisabledAreas = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.ShowAurasOnTargetEvenInDisabledAreas);
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetParent(zoneTypesArea);
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetPoint("TOPLEFT", buttonInstances, "BOTTOMLEFT", 0, -10);
+		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnTargetEvenInDisabledAreas);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.ShowAurasOnTargetEvenInDisabledAreas); end);
 	end
 
 end

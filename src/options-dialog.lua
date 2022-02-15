@@ -1881,7 +1881,7 @@ local function GUICategory_4(index)
 				sliderCustomBorderSize:Show();
 				sliderCustomBorderSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].customBorderSize);
 				colorPickerCustomBorderColor:Show();
-				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor or {1,0,0,1};
 				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
 				areaCustomBorder:SetHeight(80);
 			elseif (spellInfo.customBorderType == addonTable.BORDER_TYPE_CUSTOM) then
@@ -1890,7 +1890,7 @@ local function GUICategory_4(index)
 				textboxCustomBorderPath:SetText(addonTable.db.CustomSpells2[selectedSpell].customBorderPath or "");
 				sliderCustomBorderSize:Hide();
 				colorPickerCustomBorderColor:Show();
-				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+				local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor or {1,0,0,1};
 				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
 				areaCustomBorder:SetHeight(80);
 			end
@@ -2378,7 +2378,7 @@ local function GUICategory_4(index)
 			addonTable.ColorizeText(L["options:spells:icon-border:custom"], 0, 1, 0),
 		});
 		checkboxCustomBorder:SetOnClickHandler(function(self)
-			local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor;
+			local color = addonTable.db.CustomSpells2[selectedSpell].customBorderColor or {1,0,0,1};
 			if (self:GetTriState() == 0) then
 				addonTable.db.CustomSpells2[selectedSpell].customBorderType = addonTable.BORDER_TYPE_DISABLED;
 				textboxCustomBorderPath:Hide();

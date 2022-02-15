@@ -963,24 +963,28 @@ do
 		[GLOW_TYPE_NONE] = function(icon) HideGlow(icon); end,
 		[GLOW_TYPE_ACTIONBUTTON] = function(icon, iconResized)
 			if (icon.glowType ~= GLOW_TYPE_ACTIONBUTTON) then
+				HideGlow(icon);
 				LBG_ShowOverlayGlow(icon, iconResized, false);
 				icon.glowType = GLOW_TYPE_ACTIONBUTTON;
 			end
 		end,
 		[GLOW_TYPE_AUTOUSE] = function(icon)
 			if (icon.glowType ~= GLOW_TYPE_AUTOUSE) then
+				HideGlow(icon);
 				LibCustomGlow.AutoCastGlow_Start(icon, nil, nil, 0.2, 1.5);
 				icon.glowType = GLOW_TYPE_AUTOUSE;
 			end
 		end,
 		[GLOW_TYPE_PIXEL] = function(icon)
 			if (icon.glowType ~= GLOW_TYPE_PIXEL) then
+				HideGlow(icon);
 				LibCustomGlow.PixelGlow_Start(icon, nil, nil, nil, nil, 2);
 				icon.glowType = GLOW_TYPE_PIXEL;
 			end
 		end,
 		[GLOW_TYPE_ACTIONBUTTON_DIM] = function(icon, iconResized)
 			if (icon.glowType ~= GLOW_TYPE_ACTIONBUTTON_DIM) then
+				HideGlow(icon);
 				LBG_ShowOverlayGlow(icon, iconResized, true);
 				icon.glowType = GLOW_TYPE_ACTIONBUTTON_DIM;
 			end

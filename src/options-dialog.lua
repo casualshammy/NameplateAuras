@@ -1869,7 +1869,7 @@ local function GUICategory_4(index)
 				checkboxAnimationRelative:SetChecked(spellInfo.useRelativeAnimationTimer);
 				areaAnimation:SetHeight(80);
 			end
-			if (spellInfo.customBorderType == addonTable.BORDER_TYPE_DISABLED) then
+			if (spellInfo.customBorderType == nil or spellInfo.customBorderType == addonTable.BORDER_TYPE_DISABLED) then
 				checkboxCustomBorder:SetTriState(0);
 				textboxCustomBorderPath:Hide();
 				sliderCustomBorderSize:Hide();
@@ -2389,7 +2389,7 @@ local function GUICategory_4(index)
 				addonTable.db.CustomSpells2[selectedSpell].customBorderType = addonTable.BORDER_TYPE_BUILTIN;
 				textboxCustomBorderPath:Hide();
 				sliderCustomBorderSize:Show();
-				sliderCustomBorderSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].customBorderSize);
+				sliderCustomBorderSize.slider:SetValue(addonTable.db.CustomSpells2[selectedSpell].customBorderSize or 1);
 				colorPickerCustomBorderColor:Show();
 				colorPickerCustomBorderColor:SetColor(color[1], color[2], color[3], color[4]);
 				areaCustomBorder:SetHeight(80);

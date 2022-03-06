@@ -367,8 +367,11 @@ function addonTable.MigrateDB()
     FillInMissingEntriesIsSpells();
 end
 
-function addonTable.ImportNewSpells()
+function addonTable.ImportNewSpells(force)
     local db = addonTable.db;
+    if (force == true) then
+        db.DefaultSpellsLastSetImported = 0;
+    end
     if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
         local spellNamesAlreadyInUsersDB = { };
         for _, spellInfo in pairs(db.CustomSpells2) do

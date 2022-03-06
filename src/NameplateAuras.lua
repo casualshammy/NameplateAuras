@@ -281,6 +281,8 @@ do
 				addonTable.UpdateAllNameplates();
 				Print("'max-auras' is set to " .. (db.MaxAuras or "'disabled'"));
 			end
+		elseif (msg == "import-default-spells") then
+			addonTable.ImportNewSpells(true);
 		else
 			addonTable.ShowGUI();
 		end

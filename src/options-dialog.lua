@@ -4213,7 +4213,7 @@ local function GUICategory_Dispel(index)
 				for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
 					table_insert(t, {
 						text = spellName,
-						icon = SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])],
+						icon = AllSpellIDsAndIconsByName[spellName] ~= nil and SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])] or 136243,
 						onCloseButtonClick = function()
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again

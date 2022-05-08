@@ -8,6 +8,8 @@ local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
+local LibSerialize = LibStub("LibSerialize");
+local LibDeflate = LibStub("LibDeflate");
 
 local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
 		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
@@ -1485,7 +1487,7 @@ local function GUICategory_4(index)
 	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
-	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor;
+	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1719,7 +1721,7 @@ local function GUICategory_4(index)
 		editboxAddSpell:SetFontObject(GameFontHighlightSmall);
 		editboxAddSpell:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, 10, -10);
 		editboxAddSpell:SetHeight(20);
-		editboxAddSpell:SetWidth(380);
+		editboxAddSpell:SetWidth(340);
 		editboxAddSpell:SetJustifyH("LEFT");
 		editboxAddSpell:EnableMouse(true);
 		editboxAddSpell:SetScript("OnEscapePressed", function() editboxAddSpell:ClearFocus(); end);
@@ -1728,7 +1730,12 @@ local function GUICategory_4(index)
 		editboxText:SetPoint("LEFT", 0, 0);
 		editboxText:SetText(L["options:spells:add-new-spell"]);
 		editboxAddSpell:SetScript("OnEditFocusGained", function() editboxText:Hide(); end);
-		editboxAddSpell:SetScript("OnEditFocusLost", function() editboxText:Show(); end);
+		editboxAddSpell:SetScript("OnEditFocusLost", function() 
+			local text = editboxAddSpell:GetText();
+			if (text == nil or text == "") then
+				editboxText:Show();
+			end
+		end);
 		hooksecurefunc("ChatEdit_InsertLink", function(link)
 			if (editboxAddSpell:IsVisible() and editboxAddSpell:HasFocus() and link ~= nil) then
 				local spellName = string.match(link, "%[\"?(.-)\"?%]");
@@ -1743,7 +1750,7 @@ local function GUICategory_4(index)
 
 		buttonAddSpell = VGUI.CreateButton();
 		buttonAddSpell:SetParent(GUIFrame);
-		buttonAddSpell:SetText(L["Add spell"]);
+		buttonAddSpell:SetText(L["options:spells:add-import-new-spell"]);
 		buttonAddSpell:SetHeight(20);
 		buttonAddSpell:SetPoint("LEFT", editboxAddSpell, "RIGHT", 10, 0);
 		buttonAddSpell:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
@@ -1776,7 +1783,30 @@ local function GUICategory_4(index)
 				editboxAddSpell:SetText("");
 				editboxAddSpell:ClearFocus();
 			else
-				msg(L["Spell seems to be nonexistent"]);
+				-- import string?
+				local decoded = LibDeflate:DecodeForPrint(editboxAddSpell:GetText());
+				if (decoded == nil) then
+					msg(L["Spell seems to be nonexistent"]);
+				end
+
+				local decompressed = LibDeflate:DecompressDeflate(decoded);
+				if (decompressed == nil) then
+					msg(L["Spell seems to be nonexistent"]);
+				end
+
+				local success, deserialized = LibSerialize:Deserialize(decompressed);
+				if (not success) then
+					msg(L["Spell seems to be nonexistent"]);
+				end
+
+				table_insert(addonTable.db.CustomSpells2, deserialized);
+				addonTable.RebuildSpellCache();
+				selectSpell:Click();
+				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(deserialized));
+				if (btn ~= nil) then btn:Click(); end
+				addonTable.UpdateAllNameplates(false);
+				editboxAddSpell:SetText("");
+				editboxAddSpell:ClearFocus();
 			end
 		end);
 		buttonAddSpell:Disable();
@@ -2743,6 +2773,30 @@ local function GUICategory_4(index)
 			end
 		end);
 		table_insert(controls, buttonDeleteSpell);
+
+	end
+
+	-- // buttonExportSpell
+	do
+		local luaEditor = VGUI.CreateLuaEditor();
+
+		buttonExportSpell = VGUI.CreateButton();
+		buttonExportSpell:SetParent(spellArea.controlsFrame);
+		buttonExportSpell:SetText(L["options:spells:export-spell"]);
+		buttonExportSpell:SetWidth(90);
+		buttonExportSpell:SetHeight(20);
+		buttonExportSpell:SetPoint("TOPLEFT", buttonDeleteSpell, "BOTTOMLEFT", 0, -10);
+		buttonExportSpell:SetPoint("TOPRIGHT", buttonDeleteSpell, "BOTTOMRIGHT", 0, -10);
+		buttonExportSpell:SetScript("OnClick", function()
+			local data = addonTable.db.CustomSpells2[selectedSpell];
+			local serialized = LibSerialize:Serialize(data);
+			local compressed = LibDeflate:CompressDeflate(serialized);
+			local encoded = LibDeflate:EncodeForPrint(compressed);
+
+			luaEditor:SetText(encoded);
+			luaEditor:Show();
+		end);
+		table_insert(controls, buttonExportSpell);
 
 	end
 

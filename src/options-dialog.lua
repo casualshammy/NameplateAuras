@@ -2793,7 +2793,9 @@ local function GUICategory_4(index)
 			local compressed = LibDeflate:CompressDeflate(serialized);
 			local encoded = LibDeflate:EncodeForPrint(compressed);
 
+			luaEditor:SetHeaderText("Export aura");
 			luaEditor:SetText(encoded);
+			luaEditor:SetAcceptButton(false, nil);
 			luaEditor:Show();
 		end);
 		table_insert(controls, buttonExportSpell);
@@ -4540,17 +4542,83 @@ local function InitializeGUI()
 		buttonTestMode:SetScript("OnClick", addonTable.SwitchTestMode);
 	end
 
-	-- profiles button
+	local profilesButton;
 	do
-		local button = VGUI.CreateButton();
-		button:SetParent(GUIFrame.outline);
-		button:SetText(L["Profiles"]);
-		button:SetHeight(30);
-		button:SetPoint("BOTTOMLEFT", buttonTestMode, "TOPLEFT", 0, 0);
-		button:SetPoint("BOTTOMRIGHT", buttonTestMode, "TOPRIGHT", 0, 0);
-		button:SetScript("OnClick", function()
+		profilesButton = VGUI.CreateButton();
+		profilesButton:SetParent(GUIFrame.outline);
+		profilesButton:SetText(L["Profiles"]);
+		profilesButton:SetHeight(30);
+		profilesButton:SetPoint("BOTTOMLEFT", buttonTestMode, "TOPLEFT", 0, 10);
+		profilesButton:SetPoint("BOTTOMRIGHT", buttonTestMode, "TOPRIGHT", 0, 10);
+		profilesButton:SetScript("OnClick", function()
 			LibStub("AceConfigDialog-3.0"):Open("NameplateAuras.profiles");
 			GUIFrame:Hide();
+		end);
+	end
+
+	local profileImportExportWindow = VGUI.CreateLuaEditor();
+	local profileImportButton;
+	do
+		profileImportButton = VGUI.CreateButton();
+		profileImportButton:SetParent(GUIFrame.outline);
+		profileImportButton:SetText(L["options:general:import-profile"]);
+		profileImportButton:SetHeight(20);
+		profileImportButton:SetPoint("BOTTOMLEFT", profilesButton, "TOPLEFT", 0, 0);
+		profileImportButton:SetPoint("BOTTOMRIGHT", profilesButton, "TOPRIGHT", 0, 0);
+		profileImportButton:SetScript("OnClick", function()
+			profileImportExportWindow:Hide();
+			profileImportExportWindow:SetHeaderText("Import profile");
+			profileImportExportWindow:SetText("");
+			profileImportExportWindow:SetAcceptButton(true, function(self)
+				local decoded = LibDeflate:DecodeForPrint(self:GetText());
+				if (decoded == nil) then
+					msg(L["Import data decoding error"]);
+				end
+
+				local decompressed = LibDeflate:DecompressDeflate(decoded);
+				if (decompressed == nil) then
+					msg(L["Import data decompressing error"]);
+				end
+
+				local success, deserialized = LibSerialize:Deserialize(decompressed);
+				if (not success) then
+					msg(L["Import data deserialization error"]);
+				end
+
+				for key, value in pairs(deserialized) do
+					addonTable.db[key] = value;
+				end
+				for key, value in pairs(addonTable.db) do
+					if (deserialized[key] == nil) then
+						addonTable.db[key] = nil;
+					end
+				end
+
+				addonTable.ReloadDB();
+			end);
+			profileImportExportWindow:Show();
+		end);
+	end
+
+	local profileExportButton;
+	do
+		profileExportButton = VGUI.CreateButton();
+		profileExportButton:SetParent(GUIFrame.outline);
+		profileExportButton:SetText(L["options:general:export-profile"]);
+		profileExportButton:SetHeight(20);
+		profileExportButton:SetPoint("BOTTOMLEFT", profileImportButton, "TOPLEFT", 0, 0);
+		profileExportButton:SetPoint("BOTTOMRIGHT", profileImportButton, "TOPRIGHT", 0, 0);
+		profileExportButton:SetScript("OnClick", function()
+			local data = addonTable.db;
+			local serialized = LibSerialize:Serialize(data);
+			local compressed = LibDeflate:CompressDeflate(serialized);
+			local encoded = LibDeflate:EncodeForPrint(compressed);
+
+			profileImportExportWindow:Hide();
+			profileImportExportWindow:SetHeaderText("Export profile");
+			profileImportExportWindow:SetText(encoded);
+			profileImportExportWindow:SetAcceptButton(false, nil);
+			profileImportExportWindow:Show();
 		end);
 	end
 

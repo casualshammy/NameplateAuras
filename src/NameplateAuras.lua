@@ -330,6 +330,7 @@ do
 		end
 		addonTable.UpdateAllNameplates(true);
 	end
+	addonTable.ReloadDB = ReloadDB;
 
 end
 

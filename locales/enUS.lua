@@ -212,5 +212,7 @@ L["options:spells:icon-border:disabled"] = "Border: Disabled"
 L["options:general:show-on-target-even-in-disabled-area-types"] = "Show auras on target's nameplate even in disabled types of zones"
 L["options:spells:add-import-new-spell"] = "Add/import aura"
 L["options:spells:export-spell"] = "Export aura"
+L["options:general:import-profile"] = "Import profile"
+L["options:general:export-profile"] = "Export profile"
 
 --@end-debug@

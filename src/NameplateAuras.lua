@@ -481,6 +481,9 @@ do
 
 	function SetAlphaScaleForNameplate(nameplate)
 		if (nameplate ~= nil and nameplate.NAurasFrame ~= nil) then
+			local frameLevel = nameplate:GetFrameLevel();
+			nameplate.NAurasFrame:SetFrameLevel((frameLevel or 1)*10);
+
 			local unitID = NameplatesVisible[nameplate];
 			if (unitID ~= nil) then
 				local unitGUID = UnitGUID(unitID);

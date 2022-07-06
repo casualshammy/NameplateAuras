@@ -1787,16 +1787,19 @@ local function GUICategory_4(index)
 				local decoded = LibDeflate:DecodeForPrint(editboxAddSpell:GetText());
 				if (decoded == nil) then
 					msg(L["Spell seems to be nonexistent"]);
+					return;
 				end
 
 				local decompressed = LibDeflate:DecompressDeflate(decoded);
 				if (decompressed == nil) then
 					msg(L["Spell seems to be nonexistent"]);
+					return;
 				end
 
 				local success, deserialized = LibSerialize:Deserialize(decompressed);
 				if (not success) then
 					msg(L["Spell seems to be nonexistent"]);
+					return;
 				end
 
 				table_insert(addonTable.db.CustomSpells2, deserialized);

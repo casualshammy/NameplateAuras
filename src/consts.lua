@@ -1,4 +1,3 @@
--- // enums as variables: it's done for better performance
 local _, addonTable = ...;
 
 addonTable.CONST_SPELL_MODE_DISABLED = 1;

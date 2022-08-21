@@ -220,6 +220,7 @@ do
 				},
 				MaxAuras = nil,
 				ShowAurasOnTargetEvenInDisabledAreas = false,
+				AlwaysShowMyAurasBlacklist = {},
 			},
 		};
 
@@ -857,7 +858,7 @@ do
 			end
 		end
 		if (not foundInDB) then
-			if (db.AlwaysShowMyAuras and auraCaster == "player") then
+			if (db.AlwaysShowMyAuras and auraCaster == "player" and not db.AlwaysShowMyAurasBlacklist[auraName]) then
 				AurasPerNameplate[frame][tSize+1] = {
 					["duration"] = auraDuration,
 					["expires"] = auraExpires,

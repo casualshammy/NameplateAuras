@@ -96,7 +96,9 @@ local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
-		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances;
+		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
+		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist;
+	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -180,6 +182,126 @@ local function GUICategory_1(index)
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
 
+	end
+
+	-- // buttonAlwaysShowMyAurasBlacklist
+	do
+		buttonAlwaysShowMyAurasBlacklist = VGUI.CreateButton();
+		buttonAlwaysShowMyAurasBlacklist:SetParent(GUIFrame);
+		buttonAlwaysShowMyAurasBlacklist:SetText(L["options:general:always-show-my-auras-blacklist:button"]);
+		VGUI.SetTooltip(buttonAlwaysShowMyAurasBlacklist, L["options:general:always-show-my-auras-blacklist:button:tooltip"]);
+		buttonAlwaysShowMyAurasBlacklist:SetWidth(150);
+		buttonAlwaysShowMyAurasBlacklist:SetHeight(20);
+		buttonAlwaysShowMyAurasBlacklist:SetPoint("LEFT", checkBoxShowMyAuras.textFrame, "RIGHT", 5, 0);
+		buttonAlwaysShowMyAurasBlacklist:SetScript("OnClick", function(button)
+			if (dropdownAlwaysShowMyAurasBlacklist:IsShown()) then
+				dropdownAlwaysShowMyAurasBlacklist:Hide();
+			else
+				local t = { };
+				for spellName in pairs(addonTable.db.AlwaysShowMyAurasBlacklist) do
+					table_insert(t, {
+						text = spellName,
+						icon = AllSpellIDsAndIconsByName[spellName] ~= nil and SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])] or 136243,
+						onCloseButtonClick = function()
+							addonTable.db.AlwaysShowMyAurasBlacklist[spellName] = nil;
+							addonTable.UpdateAllNameplates(false);
+							-- close and then open list again
+							buttonAlwaysShowMyAurasBlacklist:Click(); buttonAlwaysShowMyAurasBlacklist:Click();
+						end,
+					});
+				end
+				table_sort(t, function(item1, item2) return item1.text < item2.text end);
+				dropdownAlwaysShowMyAurasBlacklist:SetList(t);
+				dropdownAlwaysShowMyAurasBlacklist:SetParent(button);
+				dropdownAlwaysShowMyAurasBlacklist:Show();
+				dropdownAlwaysShowMyAurasBlacklist.searchBox:SetFocus();
+				dropdownAlwaysShowMyAurasBlacklist.searchBox:SetText("");
+			end
+		end);
+		buttonAlwaysShowMyAurasBlacklist:SetScript("OnHide", function() dropdownAlwaysShowMyAurasBlacklist:Hide(); end);
+		buttonAlwaysShowMyAurasBlacklist:Disable();
+		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() buttonAlwaysShowMyAurasBlacklist:Enable(); end);
+		GUIFrame:HookScript("OnHide", function() buttonAlwaysShowMyAurasBlacklist:Disable(); end);
+		table_insert(GUIFrame.Categories[index], buttonAlwaysShowMyAurasBlacklist);
+	end
+
+	-- buttonAddAlwaysShowMyAurasBlacklist
+	do
+		buttonAddAlwaysShowMyAurasBlacklist = VGUI.CreateButton();
+		buttonAddAlwaysShowMyAurasBlacklist:SetParent(dropdownAlwaysShowMyAurasBlacklist);
+		buttonAddAlwaysShowMyAurasBlacklist:SetText(L["Add spell"]);
+		buttonAddAlwaysShowMyAurasBlacklist:SetWidth(dropdownAlwaysShowMyAurasBlacklist:GetWidth() / 3);
+		buttonAddAlwaysShowMyAurasBlacklist:SetHeight(24);
+		buttonAddAlwaysShowMyAurasBlacklist:SetPoint("TOPRIGHT", dropdownAlwaysShowMyAurasBlacklist, "BOTTOMRIGHT", 0, -8);
+		buttonAddAlwaysShowMyAurasBlacklist:SetScript("OnClick", function()
+			local text = editboxAddAlwaysShowMyAurasBlacklist:GetText();
+			if (text ~= nil and text ~= "") then
+				local spellExist = false;
+				if (AllSpellIDsAndIconsByName[text]) then
+					spellExist = true;
+				else
+					for _spellName in pairs(AllSpellIDsAndIconsByName) do
+						if (string_lower(_spellName) == string_lower(text)) then
+							text = _spellName;
+							spellExist = true;
+							break;
+						end
+					end
+				end
+				if (not spellExist) then
+					msg(L["Spell seems to be nonexistent"]);
+				else
+					addonTable.db.AlwaysShowMyAurasBlacklist[text] = true;
+					addonTable.UpdateAllNameplates(false);
+					-- close and then open list again
+					buttonAlwaysShowMyAurasBlacklist:Click(); buttonAlwaysShowMyAurasBlacklist:Click();
+				end
+			end
+			editboxAddAlwaysShowMyAurasBlacklist:SetText("");
+		end);
+	end
+
+	-- editboxAddAlwaysShowMyAurasBlacklist
+	do
+		editboxAddAlwaysShowMyAurasBlacklist = CreateFrame("EditBox", nil, dropdownAlwaysShowMyAurasBlacklist, "InputBoxTemplate");
+		editboxAddAlwaysShowMyAurasBlacklist:SetAutoFocus(false);
+		editboxAddAlwaysShowMyAurasBlacklist:SetFontObject(GameFontHighlightSmall);
+		editboxAddAlwaysShowMyAurasBlacklist:SetHeight(20);
+		editboxAddAlwaysShowMyAurasBlacklist:SetWidth(dropdownAlwaysShowMyAurasBlacklist:GetWidth() - buttonAddAlwaysShowMyAurasBlacklist:GetWidth() - 10);
+		editboxAddAlwaysShowMyAurasBlacklist:SetPoint("BOTTOMRIGHT", buttonAddAlwaysShowMyAurasBlacklist, "BOTTOMLEFT", -5, 2);
+		editboxAddAlwaysShowMyAurasBlacklist:SetJustifyH("LEFT");
+		editboxAddAlwaysShowMyAurasBlacklist:EnableMouse(true);
+		editboxAddAlwaysShowMyAurasBlacklist:SetScript("OnEscapePressed", function() editboxAddAlwaysShowMyAurasBlacklist:ClearFocus(); end);
+		editboxAddAlwaysShowMyAurasBlacklist:SetScript("OnEnterPressed", function() buttonAddAlwaysShowMyAurasBlacklist:Click(); end);
+		local text = editboxAddAlwaysShowMyAurasBlacklist:CreateFontString(nil, "ARTWORK", "GameFontDisableTiny");
+		text:SetPoint("LEFT", 0, 0);
+		text:SetText(L["options:spells:add-new-spell"]);
+		editboxAddAlwaysShowMyAurasBlacklist:SetScript("OnEditFocusGained", function() text:Hide(); end);
+		editboxAddAlwaysShowMyAurasBlacklist:SetScript("OnEditFocusLost", function() text:Show(); end);
+		hooksecurefunc("ChatEdit_InsertLink", function(link)
+			if (editboxAddAlwaysShowMyAurasBlacklist:IsVisible() and editboxAddAlwaysShowMyAurasBlacklist:HasFocus() and link ~= nil) then
+				local spellName = string.match(link, "%[\"?(.-)\"?%]");
+				if (spellName ~= nil) then
+					editboxAddAlwaysShowMyAurasBlacklist:SetText(spellName);
+					editboxAddAlwaysShowMyAurasBlacklist:ClearFocus();
+					return true;
+				end
+			end
+		end);
+	end
+
+	-- dropdownAlwaysShowMyAurasBlacklist
+	do
+		dropdownAlwaysShowMyAurasBlacklist.Background = dropdownAlwaysShowMyAurasBlacklist:CreateTexture(nil, "BORDER");
+		dropdownAlwaysShowMyAurasBlacklist.Background:SetPoint("TOPLEFT", dropdownAlwaysShowMyAurasBlacklist, "TOPLEFT", -2, 2);
+		dropdownAlwaysShowMyAurasBlacklist.Background:SetPoint("BOTTOMRIGHT", buttonAddAlwaysShowMyAurasBlacklist, "BOTTOMRIGHT",  2, -2);
+		dropdownAlwaysShowMyAurasBlacklist.Background:SetColorTexture(1, 0.3, 0.3, 1);
+		dropdownAlwaysShowMyAurasBlacklist.Border = dropdownAlwaysShowMyAurasBlacklist:CreateTexture(nil, "BACKGROUND");
+		dropdownAlwaysShowMyAurasBlacklist.Border:SetPoint("TOPLEFT", dropdownAlwaysShowMyAurasBlacklist, "TOPLEFT", -3, 3);
+		dropdownAlwaysShowMyAurasBlacklist.Border:SetPoint("BOTTOMRIGHT", buttonAddAlwaysShowMyAurasBlacklist, "BOTTOMRIGHT",  3, -3);
+		dropdownAlwaysShowMyAurasBlacklist.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
+		dropdownAlwaysShowMyAurasBlacklist:ClearAllPoints();
+		dropdownAlwaysShowMyAurasBlacklist:SetPoint("TOPLEFT", buttonAlwaysShowMyAurasBlacklist, "TOPRIGHT", 5, 0);
 	end
 
 	-- // checkboxAuraTooltip

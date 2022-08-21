@@ -283,6 +283,12 @@ local migrations = {
             spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
         end
     end,
+    [20] = function()
+        local db = addonTable.db;
+        if (db.AlwaysShowMyAurasBlacklist == nil) then
+            db.AlwaysShowMyAurasBlacklist = {};
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

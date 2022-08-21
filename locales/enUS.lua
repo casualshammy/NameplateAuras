@@ -214,5 +214,7 @@ L["options:spells:add-import-new-spell"] = "Add/import aura"
 L["options:spells:export-spell"] = "Export aura"
 L["options:general:import-profile"] = "Import profile"
 L["options:general:export-profile"] = "Export profile"
+L["options:general:always-show-my-auras-blacklist:button"] = "-> Blacklist"
+L["options:general:always-show-my-auras-blacklist:button:tooltip"] = "Pay attention! If spell is added to `Spells` list AND this blacklist, it WILL be shown on nameplates"
 
 --@end-debug@

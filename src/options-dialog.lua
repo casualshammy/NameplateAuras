@@ -55,6 +55,10 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["animationType"] =				addonTable.ICON_ANIMATION_TYPE_ALPHA,
 		["animationTimer"] =			10,
 		["animationDisplayMode"] =		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE,
+		["customBorderColor"] = 		{ 1, 0.1, 0.1, 1 },
+		["customBorderSize"] = 			addonTable.db.BorderThickness,
+		["customBorderType"] = 			addonTable.BORDER_TYPE_DISABLED,
+		["customBorderPath"] = 			"",
 	};
 end
 
@@ -4513,7 +4517,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 		local scanAllSpells = coroutine.create(function()
 			local misses = 0;
 			local id = 0;
-			while (misses < 400) do
+			while (misses < 100000) do
 				id = id + 1;
 				local name, _, icon = GetSpellInfo(id);
 				if (icon == 136243) then -- 136243 is the a gear icon

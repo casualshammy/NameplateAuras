@@ -949,7 +949,7 @@ do
 				borderColor[2],
 				borderColor[3],
 				borderColor[4],
-				borderType == addonTable.BORDER_TYPE_BUILTIN and dbEntry.customBorderSize or dbEntry.customBorderPath
+				borderType == addonTable.BORDER_TYPE_BUILTIN and dbEntry.customBorderSize or (dbEntry.customBorderPath or "")
 			);
 			UpdateNameplate_SetBorderTextureAndColor(icon, borderType, preciseType, dbEntry.customBorderSize, dbEntry.customBorderPath, borderColor);
 		elseif (db.ShowBuffBorders and spellInfo.type == AURA_TYPE_BUFF) then

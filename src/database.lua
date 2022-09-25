@@ -345,6 +345,9 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.customBorderColor == nil) then
                 spellInfo.customBorderColor = { 1, 0.1, 0.1, 1 };
             end
+            if (spellInfo.customBorderPath == nil) then
+                spellInfo.customBorderPath = "";
+            end
 
             if (spellInfo.enabledState == "disabled") then
                 spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;

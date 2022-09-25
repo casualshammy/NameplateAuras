@@ -55,6 +55,10 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["animationType"] =				addonTable.ICON_ANIMATION_TYPE_ALPHA,
 		["animationTimer"] =			10,
 		["animationDisplayMode"] =		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE,
+		["customBorderColor"] = 		{ 1, 0.1, 0.1, 1 },
+		["customBorderSize"] = 			addonTable.db.BorderThickness,
+		["customBorderType"] = 			addonTable.BORDER_TYPE_DISABLED,
+		["customBorderPath"] = 			"",
 	};
 end
 

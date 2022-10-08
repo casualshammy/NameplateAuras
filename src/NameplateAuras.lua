@@ -4,7 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo
+-- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip
 
 local _, addonTable = ...;
 
@@ -411,19 +411,29 @@ do
 
 	local iconTooltip = LRD.CreateTooltip();
 	local function AllocateIcon_SetAuraTooltip(icon)
+		icon:SetScript("OnEnter", nil);
+		icon:SetScript("OnLeave", nil);
 		if (db.ShowAuraTooltip) then
 			icon:SetScript("OnEnter", function(self)
-				iconTooltip:ClearAllPoints();
-				iconTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0);
-				iconTooltip:SetSpellById(self.spellID);
-				iconTooltip:Show();
+				if (db.UseDefaultAuraTooltip) then
+					GameTooltip:Hide();
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:SetSpellByID(self.spellID);
+					GameTooltip:Show();
+				else
+					iconTooltip:ClearAllPoints();
+					iconTooltip:SetPoint("BOTTOM", self, "TOP", 0, 0);
+					iconTooltip:SetSpellById(self.spellID);
+					iconTooltip:Show();
+				end
 			end);
 			icon:SetScript("OnLeave", function()
-				iconTooltip:Hide();
+				if (db.UseDefaultAuraTooltip) then
+					GameTooltip:Hide();
+				else
+					iconTooltip:Hide();
+				end
 			end);
-		else
-			icon:SetScript("OnEnter", nil);
-			icon:SetScript("OnLeave", nil);
 		end
 	end
 	addonTable.AllocateIcon_SetAuraTooltip = AllocateIcon_SetAuraTooltip;

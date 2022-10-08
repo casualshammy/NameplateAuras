@@ -101,7 +101,8 @@ local function GUICategory_1(index)
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
-		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist;
+		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
+		checkboxUseDefaultAuraTooltip;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 
 	-- checkBoxHideBlizzardFrames
@@ -308,25 +309,6 @@ local function GUICategory_1(index)
 		dropdownAlwaysShowMyAurasBlacklist:SetPoint("TOPLEFT", buttonAlwaysShowMyAurasBlacklist, "TOPRIGHT", 5, 0);
 	end
 
-	-- // checkboxAuraTooltip
-	do
-		checkboxAuraTooltip = VGUI.CreateCheckBox();
-		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
-		checkboxAuraTooltip:SetOnClickHandler(function(this)
-			addonTable.db.ShowAuraTooltip = this:GetChecked();
-			for _, icon in pairs(addonTable.AllAuraIconFrames) do
-				addonTable.AllocateIcon_SetAuraTooltip(icon);
-			end
-			GameTooltip:Hide();
-		end);
-		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
-		checkboxAuraTooltip:SetParent(GUIFrame);
-		checkboxAuraTooltip:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
-
-	end
-
 	-- // checkboxShowCooldownAnimation
 	do
 		checkboxShowCooldownAnimation = VGUI.CreateCheckBox();
@@ -337,7 +319,7 @@ local function GUICategory_1(index)
 		end);
 		checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation);
 		checkboxShowCooldownAnimation:SetParent(GUIFrame);
-		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
 	end
@@ -357,6 +339,54 @@ local function GUICategory_1(index)
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
 	end
 
+	-- // checkboxAuraTooltip
+	do
+		checkboxAuraTooltip = VGUI.CreateCheckBox();
+		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
+		checkboxAuraTooltip:SetOnClickHandler(function(this)
+			addonTable.db.ShowAuraTooltip = this:GetChecked();
+			for _, icon in pairs(addonTable.AllAuraIconFrames) do
+				addonTable.AllocateIcon_SetAuraTooltip(icon);
+			end
+			GameTooltip:Hide();
+			if (addonTable.db.ShowAuraTooltip) then
+				checkboxUseDefaultAuraTooltip:Show();
+			else
+				checkboxUseDefaultAuraTooltip:Hide();
+			end
+		end);
+		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
+		checkboxAuraTooltip:SetParent(GUIFrame);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
+
+	end
+
+	-- // checkboxUseDefaultAuraTooltip
+	do
+		checkboxUseDefaultAuraTooltip = VGUI.CreateCheckBox();
+		checkboxUseDefaultAuraTooltip:SetText(L["options:general:use-default-tooltip"]);
+		checkboxUseDefaultAuraTooltip:SetOnClickHandler(function(this)
+			addonTable.db.UseDefaultAuraTooltip = this:GetChecked();
+			for _, icon in pairs(addonTable.AllAuraIconFrames) do
+				addonTable.AllocateIcon_SetAuraTooltip(icon);
+			end
+			GameTooltip:Hide();
+		end);
+		checkboxUseDefaultAuraTooltip:SetChecked(addonTable.db.UseDefaultAuraTooltip);
+		checkboxUseDefaultAuraTooltip:SetParent(GUIFrame);
+		checkboxUseDefaultAuraTooltip:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxUseDefaultAuraTooltip:HookScript("OnShow", function(self)
+			if (not addonTable.db.ShowAuraTooltip) then
+				self:Hide();
+			end
+		end);
+		table_insert(GUIFrame.Categories[index], checkboxUseDefaultAuraTooltip);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxUseDefaultAuraTooltip:SetChecked(addonTable.db.UseDefaultAuraTooltip); end);
+		
+	end
+
 	-- // zoneTypesArea
 	do
 
@@ -371,7 +401,7 @@ local function GUICategory_1(index)
 		});
 		zoneTypesArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		zoneTypesArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		zoneTypesArea:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, -10);
+		zoneTypesArea:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, -10);
 		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		zoneTypesArea:SetWidth(360);
 		zoneTypesArea:SetHeight(90);

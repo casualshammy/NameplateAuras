@@ -217,5 +217,8 @@ L["options:general:export-profile"] = "Export profile"
 L["options:general:always-show-my-auras-blacklist:button"] = "-> Blacklist"
 L["options:general:always-show-my-auras-blacklist:button:tooltip"] = "Pay attention! If spell is added to `Spells` list AND this blacklist, it WILL be shown on nameplates"
 L["options:general:use-default-tooltip"] = "Show default Blizzard's aura tooltip"
+L["options:general:npc-blacklist"] = "NPC blacklist"
+L["options:general:npc-blacklist-add-button"] = "Add NPC"
+L["options:general:npc-blacklist-editbox-add"] = "Please enter NPC name here"
 
 --@end-debug@

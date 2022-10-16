@@ -102,8 +102,9 @@ local function GUICategory_1(index)
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
 		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
-		checkboxUseDefaultAuraTooltip;
+		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
+	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -499,6 +500,98 @@ local function GUICategory_1(index)
 		checkboxShowAurasOnTargetEvenInDisabledAreas:SetPoint("TOPLEFT", buttonInstances, "BOTTOMLEFT", 0, -10);
 		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnTargetEvenInDisabledAreas);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.ShowAurasOnTargetEvenInDisabledAreas); end);
+	end
+
+	-- // buttonNpcBlacklist
+	do
+		buttonNpcBlacklist = VGUI.CreateButton();
+		buttonNpcBlacklist:SetParent(GUIFrame);
+		buttonNpcBlacklist:SetText(L["options:general:npc-blacklist"]);
+		buttonNpcBlacklist:SetPoint("TOPLEFT", zoneTypesArea, "BOTTOMLEFT", 10, -10);
+		buttonNpcBlacklist:SetPoint("TOPRIGHT", zoneTypesArea, "BOTTOMRIGHT", -10, -10);
+		buttonNpcBlacklist:SetHeight(25);
+		buttonNpcBlacklist:SetScript("OnClick", function(self)
+			if (dropdownNpcBlacklist:IsShown()) then
+				dropdownNpcBlacklist:Hide();
+			else
+				local t = { };
+				for npcName in pairs(addonTable.db.NpcBlacklist) do
+					table_insert(t, {
+						text = npcName,
+						onCloseButtonClick = function()
+							addonTable.db.NpcBlacklist[npcName] = nil;
+							addonTable.IsNpcBlacklistEnabled = addonTable.table_count(addonTable.db.NpcBlacklist) > 0;
+							addonTable.UpdateAllNameplates(false);
+							-- close and then open list again
+							buttonNpcBlacklist:Click(); 
+							buttonNpcBlacklist:Click();
+						end,
+					});
+				end
+				table_sort(t, function(item1, item2) return item1.text < item2.text end);
+				dropdownNpcBlacklist:SetList(t);
+				dropdownNpcBlacklist:SetParent(self);
+				dropdownNpcBlacklist:Show();
+				dropdownNpcBlacklist.searchBox:SetFocus();
+				dropdownNpcBlacklist.searchBox:SetText("");
+			end
+		end);
+		buttonNpcBlacklist:SetScript("OnHide", function() dropdownNpcBlacklist:Hide() end);
+		table_insert(GUIFrame.Categories[index], buttonNpcBlacklist);
+	end
+
+	-- buttonNpcBlacklistAdd
+	do
+		buttonNpcBlacklistAdd = VGUI.CreateButton();
+		buttonNpcBlacklistAdd:SetParent(dropdownNpcBlacklist);
+		buttonNpcBlacklistAdd:SetText(L["options:general:npc-blacklist-add-button"]);
+		buttonNpcBlacklistAdd:SetWidth(dropdownNpcBlacklist:GetWidth() / 3);
+		buttonNpcBlacklistAdd:SetHeight(24);
+		buttonNpcBlacklistAdd:SetPoint("TOPRIGHT", dropdownNpcBlacklist, "BOTTOMRIGHT", 0, -8);
+		buttonNpcBlacklistAdd:SetScript("OnClick", function()
+			local text = editboxNpcBlacklistAdd:GetText();
+			if (text ~= nil and text ~= "") then
+				addonTable.db.NpcBlacklist[text] = true;
+				addonTable.IsNpcBlacklistEnabled = addonTable.table_count(addonTable.db.NpcBlacklist) > 0;
+				addonTable.UpdateAllNameplates(false);
+				buttonNpcBlacklist:Click();
+				buttonNpcBlacklist:Click();
+			end
+			editboxNpcBlacklistAdd:SetText("");
+		end);
+	end
+
+	-- editboxNpcBlacklistAdd
+	do
+		editboxNpcBlacklistAdd = CreateFrame("EditBox", nil, dropdownNpcBlacklist, "InputBoxTemplate");
+		editboxNpcBlacklistAdd:SetAutoFocus(false);
+		editboxNpcBlacklistAdd:SetFontObject(GameFontHighlightSmall);
+		editboxNpcBlacklistAdd:SetHeight(20);
+		editboxNpcBlacklistAdd:SetWidth(dropdownNpcBlacklist:GetWidth() - buttonNpcBlacklistAdd:GetWidth() - 10);
+		editboxNpcBlacklistAdd:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMLEFT", -5, 2);
+		editboxNpcBlacklistAdd:SetJustifyH("LEFT");
+		editboxNpcBlacklistAdd:EnableMouse(true);
+		editboxNpcBlacklistAdd:SetScript("OnEscapePressed", function() editboxNpcBlacklistAdd:ClearFocus() end);
+		editboxNpcBlacklistAdd:SetScript("OnEnterPressed", function() buttonNpcBlacklistAdd:Click() end);
+		local text = editboxNpcBlacklistAdd:CreateFontString(nil, "ARTWORK", "GameFontDisableTiny");
+		text:SetPoint("LEFT", 0, 0);
+		text:SetText(L["options:general:npc-blacklist-editbox-add"]);
+		editboxNpcBlacklistAdd:SetScript("OnEditFocusGained", function() text:Hide() end);
+		editboxNpcBlacklistAdd:SetScript("OnEditFocusLost", function() text:Show() end);
+	end
+
+	-- dropdownNpcBlacklist
+	do
+		dropdownNpcBlacklist.Background = dropdownNpcBlacklist:CreateTexture(nil, "BORDER");
+		dropdownNpcBlacklist.Background:SetPoint("TOPLEFT", dropdownNpcBlacklist, "TOPLEFT", -2, 2);
+		dropdownNpcBlacklist.Background:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMRIGHT",  2, -2);
+		dropdownNpcBlacklist.Background:SetColorTexture(1, 0.3, 0.3, 1);
+		dropdownNpcBlacklist.Border = dropdownNpcBlacklist:CreateTexture(nil, "BACKGROUND");
+		dropdownNpcBlacklist.Border:SetPoint("TOPLEFT", dropdownNpcBlacklist, "TOPLEFT", -3, 3);
+		dropdownNpcBlacklist.Border:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMRIGHT",  3, -3);
+		dropdownNpcBlacklist.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
+		dropdownNpcBlacklist:ClearAllPoints();
+		dropdownNpcBlacklist:SetPoint("TOPLEFT", buttonNpcBlacklist, "TOPRIGHT", 5, 0);
 	end
 
 end

@@ -4,7 +4,7 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip
+-- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName
 
 local _, addonTable = ...;
 
@@ -221,6 +221,7 @@ do
 				MaxAuras = nil,
 				ShowAurasOnTargetEvenInDisabledAreas = false,
 				AlwaysShowMyAurasBlacklist = {},
+				NpcBlacklist = {},
 			},
 		};
 
@@ -329,6 +330,8 @@ do
 				func();
 			end
 		end
+		-- //
+		addonTable.IsNpcBlacklistEnabled = addonTable.table_count(db.NpcBlacklist) > 0;
 		addonTable.UpdateAllNameplates(true);
 	end
 	addonTable.ReloadDB = ReloadDB;
@@ -906,6 +909,15 @@ do
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitIsPlayer = UnitIsPlayer(unitID);
 		local unitGUID = UnitGUID(unitID);
+
+		if (addonTable.IsNpcBlacklistEnabled and not unitIsPlayer and unitGUID ~= nil) then
+			local npcName = addonTable.NpcNameByGUID[unitGUID];
+			if (db.NpcBlacklist[npcName] == true) then
+				UpdateNameplate(frame, unitGUID);
+				return;
+			end
+		end
+
 		if (db.EnabledZoneTypes[InstanceType] or (db.ShowAurasOnTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
 			if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 				for i = 1, 40 do

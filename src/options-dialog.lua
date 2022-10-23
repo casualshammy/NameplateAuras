@@ -611,7 +611,8 @@ local function GUICategory_Fonts(index)
 		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea, checkboxShowCooldownText, auraTextArea, buttonFont, checkBoxUseRelativeFontSize, sliderTimerTextXOffset;
-	local dropdownTimerTextAnchor;
+	local dropdownTimerTextAnchor, checkBoxUseRelativeTextColor, colorPickerTimerTextZeroPercent, colorPickerTimerTextFiveSeconds, colorPickerTimerTextMinute, colorPickerTimerTextHundredPercent;
+	local colorPickerTimerTextMore;
 
 	-- // checkboxShowCooldownText
 	do
@@ -983,7 +984,7 @@ local function GUICategory_Fonts(index)
 		timerTextColorArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		timerTextColorArea:SetPoint("TOP", auraTextArea, "TOP", 0, -200);
 		timerTextColorArea:SetWidth(400);
-		timerTextColorArea:SetHeight(71);
+		timerTextColorArea:SetHeight(95);
 	end
 
 	-- // timerTextColorInfo
@@ -997,7 +998,7 @@ local function GUICategory_Fonts(index)
 
 	-- // colorPickerTimerTextFiveSeconds
 	do
-		local colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
+		colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
 		colorPickerTimerTextFiveSeconds:SetParent(timerTextColorArea);
 		colorPickerTimerTextFiveSeconds:SetPoint("TOPLEFT", 10, -40);
 		colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
@@ -1014,9 +1015,28 @@ local function GUICategory_Fonts(index)
 		end);
 	end
 
+	-- // colorPickerTimerTextZeroPercent
+	do
+		colorPickerTimerTextZeroPercent = VGUI.CreateColorPicker();
+		colorPickerTimerTextZeroPercent:SetParent(timerTextColorArea);
+		colorPickerTimerTextZeroPercent:SetPoint("TOPLEFT", 10, -40);
+		colorPickerTimerTextZeroPercent:SetText("0%");
+		local t = addonTable.db.TimerTextColorZeroPercent;
+		colorPickerTimerTextZeroPercent:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextZeroPercent.func = function(_, r, g, b, a)
+			addonTable.db.TimerTextColorZeroPercent = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		colorPickerTimerTextZeroPercent:Show();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t1 = addonTable.db.TimerTextColorZeroPercent;
+			colorPickerTimerTextZeroPercent:SetColor(t1[1], t1[2], t1[3], t1[4]);
+		end);
+	end
+
 	-- // colorPickerTimerTextMinute
 	do
-		local colorPickerTimerTextMinute = VGUI.CreateColorPicker();
+		colorPickerTimerTextMinute = VGUI.CreateColorPicker();
 		colorPickerTimerTextMinute:SetParent(timerTextColorArea);
 		colorPickerTimerTextMinute:SetPoint("TOPLEFT", 135, -40);
 		colorPickerTimerTextMinute:SetText(L["< 1min"]);
@@ -1033,9 +1053,28 @@ local function GUICategory_Fonts(index)
 		end);
 	end
 
+	-- // colorPickerTimerTextHundredPercent
+	do
+		colorPickerTimerTextHundredPercent = VGUI.CreateColorPicker();
+		colorPickerTimerTextHundredPercent:SetParent(timerTextColorArea);
+		colorPickerTimerTextHundredPercent:SetPoint("TOPLEFT", 135, -40);
+		colorPickerTimerTextHundredPercent:SetText("100%");
+		local t = addonTable.db.TimerTextColorHundredPercent;
+		colorPickerTimerTextHundredPercent:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextHundredPercent.func = function(_, r, g, b, a)
+			addonTable.db.TimerTextColorHundredPercent = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		colorPickerTimerTextHundredPercent:Show();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t1 = addonTable.db.TimerTextColorHundredPercent;
+			colorPickerTimerTextHundredPercent:SetColor(t1[1], t1[2], t1[3], t1[4]);
+		end);
+	end
+
 	-- // colorPickerTimerTextMore
 	do
-		local colorPickerTimerTextMore = VGUI.CreateColorPicker();
+		colorPickerTimerTextMore = VGUI.CreateColorPicker();
 		colorPickerTimerTextMore:SetParent(timerTextColorArea);
 		colorPickerTimerTextMore:SetPoint("TOPLEFT", 260, -40);
 		colorPickerTimerTextMore:SetText(L["> 1min"]);
@@ -1050,6 +1089,45 @@ local function GUICategory_Fonts(index)
 			local t1 = addonTable.db.TimerTextLongerColor;
 			colorPickerTimerTextMore:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
+	end
+
+	-- // checkBoxUseRelativeTextColor
+	do
+
+		local function OnPropertyChanged()
+			if (addonTable.db.TimerTextUseRelativeColor) then
+				colorPickerTimerTextFiveSeconds:Hide();
+				colorPickerTimerTextMinute:Hide();
+				colorPickerTimerTextMore:Hide();
+				colorPickerTimerTextZeroPercent:Show();
+				colorPickerTimerTextHundredPercent:Show();
+			else
+				colorPickerTimerTextFiveSeconds:Show();
+				colorPickerTimerTextMinute:Show();
+				colorPickerTimerTextMore:Show();
+				colorPickerTimerTextZeroPercent:Hide();
+				colorPickerTimerTextHundredPercent:Hide();
+			end
+		end
+
+		checkBoxUseRelativeTextColor = VGUI.CreateCheckBox();
+		checkBoxUseRelativeTextColor:SetText(L["options:timer-text:relative-color"]);
+		VGUI.SetTooltip(checkBoxUseRelativeTextColor, L["options:timer-text:relative-color:tooltip"]);
+		checkBoxUseRelativeTextColor:SetOnClickHandler(function(this)
+			addonTable.db.TimerTextUseRelativeColor = this:GetChecked();
+			OnPropertyChanged();
+		end);
+		checkBoxUseRelativeTextColor:SetChecked(addonTable.db.TimerTextUseRelativeColor);
+		checkBoxUseRelativeTextColor:SetParent(timerTextColorArea);
+		checkBoxUseRelativeTextColor:SetPoint("TOPLEFT", 10, -65);
+		table_insert(GUIFrame.Categories[index], checkBoxUseRelativeTextColor);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxUseRelativeTextColor:SetChecked(addonTable.db.TimerTextUseRelativeColor);
+		end);
+		checkBoxUseRelativeTextColor:HookScript("OnShow", function()
+			OnPropertyChanged();
+		end);
+
 	end
 
 	-- // tenthsOfSecondsArea

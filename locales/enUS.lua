@@ -221,4 +221,8 @@ L["options:general:npc-blacklist"] = "NPC blacklist"
 L["options:general:npc-blacklist-add-button"] = "Add NPC"
 L["options:general:npc-blacklist-editbox-add"] = "Please enter NPC name here"
 
+L["options:timer-text:relative-color"] = "Use gradient color"
+L["options:timer-text:relative-color:tooltip"] = [=[Timer text's color will be calculated dynamically,
+based on aura's duration and remaining time.]=]
+
 --@end-debug@

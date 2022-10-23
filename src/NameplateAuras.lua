@@ -222,6 +222,9 @@ do
 				ShowAurasOnTargetEvenInDisabledAreas = false,
 				AlwaysShowMyAurasBlacklist = {},
 				NpcBlacklist = {},
+				TimerTextUseRelativeColor = false,
+				TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
+				TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
 			},
 		};
 
@@ -541,6 +544,20 @@ do
 		end
 	end
 
+	local function CalculateRelativeColor(_colorMin, _colorMax, _percent)
+		local r = _colorMax[1] - _colorMin[1];
+		local g = _colorMax[2] - _colorMin[2];
+		local b = _colorMax[3] - _colorMin[3];
+		local a = _colorMax[4] - _colorMin[4];
+
+		return {
+			_colorMin[1] + r*_percent,
+			_colorMin[2] + g*_percent,
+			_colorMin[3] + b*_percent,
+			_colorMin[4] + a*_percent
+		};
+	end
+
 	local colortype_long, colortype_medium, colortype_short = 1, 2, 3;
 	local function IconSetCooldown(icon, remainingTime, spellInfo)
 		if (db.ShowCooldownText) then
@@ -566,23 +583,32 @@ do
 			end
 
 			-- cooldown text color
-			if (remainingTime >= 60 or spellInfo.duration == 0) then
-				if (icon.textColor ~= colortype_long) then
-					local color = db.TimerTextLongerColor;
+			if (db.TimerTextUseRelativeColor and spellInfo.duration ~= 0) then
+				local percent = math_floor(remainingTime * 10 / spellInfo.duration);
+				if (icon.textColor ~= percent) then
+					local color = CalculateRelativeColor(db.TimerTextColorZeroPercent, db.TimerTextColorHundredPercent, percent / 10);
 					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
-					icon.textColor = colortype_long;
-				end
-			elseif (remainingTime >= 5) then
-				if (icon.textColor ~= colortype_medium) then
-					local color = db.TimerTextUnderMinuteColor;
-					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
-					icon.textColor = colortype_medium;
+					icon.textColor = percent;
 				end
 			else
-				if (icon.textColor ~= colortype_short) then
-					local color = db.TimerTextSoonToExpireColor;
-					icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
-					icon.textColor = colortype_short;
+				if (remainingTime >= 60 or spellInfo.duration == 0) then
+					if (icon.textColor ~= colortype_long) then
+						local color = db.TimerTextLongerColor;
+						icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
+						icon.textColor = colortype_long;
+					end
+				elseif (remainingTime >= 5) then
+					if (icon.textColor ~= colortype_medium) then
+						local color = db.TimerTextUnderMinuteColor;
+						icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
+						icon.textColor = colortype_medium;
+					end
+				else
+					if (icon.textColor ~= colortype_short) then
+						local color = db.TimerTextSoonToExpireColor;
+						icon.cooldownText:SetTextColor(color[1], color[2], color[3], color[4]);
+						icon.textColor = colortype_short;
+					end
 				end
 			end
 		elseif (icon.text ~= "") then

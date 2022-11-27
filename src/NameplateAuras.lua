@@ -4,7 +4,8 @@
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName
+-- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
+-- luacheck: globals TooltipUtil
 
 local _, addonTable = ...;
 
@@ -26,7 +27,8 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
-local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo;
+local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo;
+local TooltipUtil = TooltipUtil;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType;
@@ -374,6 +376,19 @@ do
 		end,
 		[AURA_SORT_MODE_CUSTOM] = defaultCustomSortFunction,
 	};
+
+	local function GetAuraTextFromUnitAura(_unit, _index)
+		local data = C_TooltipInfo.GetUnitBuff(_unit, _index);
+
+		TooltipUtil.SurfaceArgs(data);
+		for _, line in ipairs(data.lines) do
+			TooltipUtil.SurfaceArgs(line);
+		end
+
+		local tooltip = data.lines[2].leftText;
+
+		return tooltip;
+	end
 
 	local spellCache = { };
 	function addonTable.RebuildSpellCache()

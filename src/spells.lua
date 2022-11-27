@@ -26,6 +26,7 @@ addonTable.Interrupts = {
 	[187707] = 3,	-- Muzzle (Hunter)
 	[212619] = 6,	-- Call Felhunter (Warlock)
 	[231665] = 3,	-- Avengers Shield (Paladin)
+	[351338] = 4,	-- Quell (Dracthyr)
 };
 
 addonTable.DefaultSpells2 = {

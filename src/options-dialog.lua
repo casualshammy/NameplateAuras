@@ -113,6 +113,9 @@ local function GUICategory_1(index)
 		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 			addonTable.db.HideBlizzardFrames = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
+			if (not addonTable.db.HideBlizzardFrames) then
+				addonTable.PopupReloadUI();
+			end
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
@@ -131,6 +134,9 @@ local function GUICategory_1(index)
 		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
 			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
+			if (not addonTable.db.HidePlayerBlizzardFrame) then
+				addonTable.PopupReloadUI();
+			end
 		end);
 		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
@@ -1814,7 +1820,7 @@ local function GUICategory_4(index)
 	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
-	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell;
+	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell, areaTooltip, editboxSpellTooltip;
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -2178,6 +2184,7 @@ local function GUICategory_4(index)
 			else
 				editboxSpellID:SetText("");
 			end
+			editboxSpellTooltip:SetText(spellInfo.spellTooltip or "");
 			checkboxShowOnFriends:SetChecked(spellInfo.showOnFriends);
 			checkboxShowOnEnemies:SetChecked(spellInfo.showOnEnemies);
 			if (spellInfo.enabledState == CONST_SPELL_MODE_DISABLED) then
@@ -3082,6 +3089,59 @@ local function GUICategory_4(index)
 
 	end
 
+	-- // areaTooltip
+	do
+
+		areaTooltip = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaTooltip:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaTooltip:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaTooltip:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaTooltip:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 0, 0);
+		areaTooltip:SetWidth(500);
+		areaTooltip:SetHeight(40);
+		table_insert(controls, areaTooltip);
+
+	end
+
+	-- // editboxSpellTooltip
+	do
+		
+		editboxSpellTooltip = CreateFrame("EditBox", nil, areaTooltip, BackdropTemplateMixin and "BackdropTemplate");
+		editboxSpellTooltip:SetAutoFocus(false);
+		editboxSpellTooltip:SetFontObject(GameFontHighlightSmall);
+		editboxSpellTooltip.text = editboxSpellTooltip:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		editboxSpellTooltip.text:SetPoint("TOPLEFT", areaTooltip, "TOPLEFT", 10, -10);
+		editboxSpellTooltip.text:SetText(L["options:spells:spell-tooltip"]);
+		editboxSpellTooltip:SetPoint("LEFT", editboxSpellTooltip.text, "RIGHT", 5, 0);
+		editboxSpellTooltip:SetPoint("RIGHT", areaTooltip, "RIGHT", -15, 0);
+		editboxSpellTooltip:SetHeight(20);
+		editboxSpellTooltip:SetJustifyH("LEFT");
+		editboxSpellTooltip:EnableMouse(true);
+		editboxSpellTooltip:SetBackdrop({
+			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			tile = true, edgeSize = 1, tileSize = 5,
+		});
+		editboxSpellTooltip:SetBackdropColor(0, 0, 0, 0.5);
+		editboxSpellTooltip:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+		editboxSpellTooltip:SetScript("OnEscapePressed", function() editboxSpellTooltip:ClearFocus(); end);
+		editboxSpellTooltip:SetScript("OnEnterPressed", function(self)
+			local text = self:GetText();
+			addonTable.db.CustomSpells2[selectedSpell].spellTooltip = (text ~= "") and text or nil;
+			addonTable.UpdateAllNameplates(true);
+			self:ClearFocus();
+		end);
+		table_insert(controls, editboxSpellTooltip);
+
+	end
+
 	-- // buttonDeleteSpell
 	do
 
@@ -3090,8 +3150,8 @@ local function GUICategory_4(index)
 		buttonDeleteSpell:SetText(L["Delete spell"]);
 		buttonDeleteSpell:SetWidth(90);
 		buttonDeleteSpell:SetHeight(20);
-		buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
-		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
+		buttonDeleteSpell:SetPoint("TOPLEFT", areaTooltip, "BOTTOMLEFT", 10, -10);
+		buttonDeleteSpell:SetPoint("TOPRIGHT", areaTooltip, "BOTTOMRIGHT", -10, -10);
 		buttonDeleteSpell:SetScript("OnClick", function()
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
 			addonTable.RebuildSpellCache();

@@ -335,6 +335,7 @@ local function FillInMissingEntriesIsSpells()
             -- useRelativeAnimationTimer may be nil
             -- checkSpellID may be nil
             -- showGlow may be nil
+            -- spellTooltip may be nil
             if (spellInfo.customBorderType == nil) then
                 spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
             end

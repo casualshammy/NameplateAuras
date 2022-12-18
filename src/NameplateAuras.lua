@@ -28,7 +28,7 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
 local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo;
-local TooltipUtil = TooltipUtil;
+local TooltipUtil_SurfaceArgs, C_TooltipInfo_GetUnitBuff = TooltipUtil.SurfaceArgs, C_TooltipInfo.GetUnitBuff;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType;
@@ -351,7 +351,7 @@ do
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM =
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
-	local SHOW_ON_PLAYERS_AND_NPC, SHOW_ON_PLAYERS, SHOW_ON_NPC = addonTable.SHOW_ON_PLAYERS_AND_NPC, addonTable.SHOW_ON_PLAYERS, addonTable.SHOW_ON_NPC;
+	local SHOW_ON_PLAYERS, SHOW_ON_NPC = addonTable.SHOW_ON_PLAYERS, addonTable.SHOW_ON_NPC;
 	local glowInfo = { };
 	local animationInfo = { };
 	local defaultCustomSortFunction = function(aura1, aura2) return aura1.spellName < aura2.spellName; end;
@@ -378,11 +378,14 @@ do
 	};
 
 	local function GetAuraTextFromUnitAura(_unit, _index)
-		local data = C_TooltipInfo.GetUnitBuff(_unit, _index);
+		local data = C_TooltipInfo_GetUnitBuff(_unit, _index);
+		if (data == nil) then
+			return nil;
+		end
 
-		TooltipUtil.SurfaceArgs(data);
+		TooltipUtil_SurfaceArgs(data);
 		for _, line in ipairs(data.lines) do
-			TooltipUtil.SurfaceArgs(line);
+			TooltipUtil_SurfaceArgs(line);
 		end
 
 		local tooltip = data.lines[2].leftText;
@@ -812,22 +815,40 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer)
-		if (dbEntry ~= nil) then
-			if (dbEntry.enabledState == CONST_SPELL_MODE_ALL or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and (auraCaster == "player" or auraCaster == "pet"))) then
-				if ((not unitIsFriend and dbEntry.showOnEnemies) or (unitIsFriend and dbEntry.showOnFriends)) then
-					if (dbEntry.auraType == AURA_TYPE_ANY or dbEntry.auraType == auraType) then
-						local playerNpcMode = dbEntry.playerNpcMode;
-						if (playerNpcMode == SHOW_ON_PLAYERS_AND_NPC or (playerNpcMode == SHOW_ON_PLAYERS and unitIsPlayer) or (playerNpcMode == SHOW_ON_NPC and not unitIsPlayer)) then
-							if (dbEntry.checkSpellID == nil or dbEntry.checkSpellID[auraSpellID]) then
-								return true;
-							end
-						end
-					end
-				end
+	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId)
+		if (dbEntry == nil) then
+			return false;
+		end
+
+		if (dbEntry.enabledState == CONST_SPELL_MODE_DISABLED or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster ~= "player" and auraCaster ~= "pet")) then
+			return false;
+		end
+
+		if ((unitIsFriend and not dbEntry.showOnFriends) or (not unitIsFriend and not dbEntry.showOnEnemies)) then
+			return false;
+		end
+
+		if (dbEntry.auraType ~= AURA_TYPE_ANY and dbEntry.auraType ~= auraType) then
+			return false;
+		end
+
+		local playerNpcMode = dbEntry.playerNpcMode;
+		if ((playerNpcMode == SHOW_ON_NPC and unitIsPlayer) or (playerNpcMode == SHOW_ON_PLAYERS and not unitIsPlayer)) then
+			return false;
+		end
+
+		if (dbEntry.checkSpellID ~= nil and not dbEntry.checkSpellID[auraSpellID]) then
+			return false;
+		end
+
+		if (dbEntry.spellTooltip ~= nil) then
+			local tooltip = GetAuraTextFromUnitAura(unitId, auraIndex);
+			if (not string_find(tooltip, dbEntry.spellTooltip, 1, true)) then
+				return false;
 			end
 		end
-		return false;
+
+		return true;
 	end
 
 	local function ProcAurasForNmplt_Additions(unitGUID, frame)
@@ -889,13 +910,13 @@ do
 		end
 	end
 
-	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer)
+	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer, auraIndex, unitId)
 		local foundInDB = false;
 		local tSize = #AurasPerNameplate[frame];
 		local cache = spellCache[auraName];
 		if (cache ~= nil) then
 			for _, dbEntry in pairs(cache) do
-				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer)) then
+				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId)) then
 					AurasPerNameplate[frame][tSize+1] = {
 						["duration"] = auraDuration,
 						["expires"] = auraExpires,
@@ -964,11 +985,11 @@ do
 				for i = 1, 40 do
 					local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
 					if (buffName ~= nil) then
-						ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer);
+						ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID);
 					end
 					local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
 					if (debuffName ~= nil) then
-						ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer);
+						ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID);
 					end
 					if (buffName == nil and debuffName == nil) then
 						break;
@@ -1244,15 +1265,11 @@ do
 		if (frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
 			if (unitGUID ~= LocalPlayerGUID) then
 				if (db.HideBlizzardFrames) then
-					frame.UnitFrame.BuffFrame:SetAlpha(0);
-				else
-					frame.UnitFrame.BuffFrame:SetAlpha(1);
+					frame.UnitFrame.BuffFrame:Hide();
 				end
 			else
 				if (db.HidePlayerBlizzardFrame) then
-					frame.UnitFrame.BuffFrame:SetAlpha(0);
-				else
-					frame.UnitFrame.BuffFrame:SetAlpha(1);
+					frame.UnitFrame.BuffFrame:Hide();
 				end
 			end
 		end

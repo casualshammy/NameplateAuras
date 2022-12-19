@@ -1261,18 +1261,6 @@ do
 				HideCDIcon(icon);
 			end
 		end
-		-- // hide/show standart buff frame
-		if (frame.UnitFrame ~= nil and frame.UnitFrame.BuffFrame ~= nil) then
-			if (unitGUID ~= LocalPlayerGUID) then
-				if (db.HideBlizzardFrames) then
-					frame.UnitFrame.BuffFrame:Hide();
-				end
-			else
-				if (db.HidePlayerBlizzardFrame) then
-					frame.UnitFrame.BuffFrame:Hide();
-				end
-			end
-		end
 	end
 
 	local function OnUpdate()
@@ -1373,6 +1361,20 @@ do
 			nameplate.NAurasFrame:Show();
 		end
 		EventFrame.UNIT_THREAT_LIST_UPDATE(unitID);
+
+		local unitGUID = UnitGUID(unitID);
+		-- // hide/show standart buff frame
+		if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
+			if (unitGUID ~= LocalPlayerGUID) then
+				if (db.HideBlizzardFrames) then
+					nameplate.UnitFrame.BuffFrame:Hide();
+				end
+			else
+				if (db.HidePlayerBlizzardFrame) then
+					nameplate.UnitFrame.BuffFrame:Hide();
+				end
+			end
+		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)

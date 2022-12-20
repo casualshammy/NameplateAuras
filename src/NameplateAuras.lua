@@ -5,7 +5,7 @@
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame
 
 local _, addonTable = ...;
 
@@ -1372,6 +1372,9 @@ do
 			else
 				if (db.HidePlayerBlizzardFrame) then
 					nameplate.UnitFrame.BuffFrame:Hide();
+					if (PersonalFriendlyBuffFrame ~= nil) then
+						PersonalFriendlyBuffFrame:Hide();
+					end
 				end
 			end
 		end

@@ -1367,13 +1367,16 @@ do
 		if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
 			if (unitGUID ~= LocalPlayerGUID) then
 				if (db.HideBlizzardFrames) then
-					nameplate.UnitFrame.BuffFrame:Hide();
+					nameplate.UnitFrame.BuffFrame:ClearAllPoints();
+					nameplate.UnitFrame.BuffFrame:SetAlpha(0);
 				end
 			else
 				if (db.HidePlayerBlizzardFrame) then
-					nameplate.UnitFrame.BuffFrame:Hide();
+					nameplate.UnitFrame.BuffFrame:ClearAllPoints();
+					nameplate.UnitFrame.BuffFrame:SetAlpha(0);
 					if (PersonalFriendlyBuffFrame ~= nil) then
-						PersonalFriendlyBuffFrame:Hide();
+						PersonalFriendlyBuffFrame:ClearAllPoints();
+						PersonalFriendlyBuffFrame:SetAlpha(0);
 					end
 				end
 			end

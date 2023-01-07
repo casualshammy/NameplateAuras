@@ -138,97 +138,101 @@ do
 				DBVersion = 0,
 				DefaultSpellsLastSetImported = 0,
 				CustomSpells2 = { },
-				IconXOffset = 0,
-				IconYOffset = 50,
-				Font = "NAuras_TeenBold",
 				HideBlizzardFrames = true,
-				SortMode = AURA_SORT_MODE_EXPIRETIME,
-				FontScale = 1,
-				TimerTextUseRelativeScale = true,
-				TimerTextSize = 20,
-				TimerTextAnchor = "CENTER",
-				TimerTextAnchorIcon = "CENTER",
-				TimerTextXOffset = 0,
-				TimerTextYOffset = 0,
-				TimerTextSoonToExpireColor = { 1, 0.1, 0.1, 1 },
-				TimerTextUnderMinuteColor = { 1, 1, 0.1, 1 },
-				TimerTextLongerColor = { 0.7, 1, 0, 1 },
-				StacksFont = "NAuras_TeenBold",
-				StacksFontScale = 1,
-				StacksTextAnchor = "BOTTOMRIGHT",
-				StacksTextAnchorIcon = "BOTTOMRIGHT",
-				StacksTextXOffset = -3,
-				StacksTextYOffset = 5,
-				StacksTextColor = { 1, 0.1, 0.1, 1 },
-				ShowBuffBorders = true,
-				BuffBordersColor = {0, 1, 0, 1},
-				ShowDebuffBorders = true,
-				DebuffBordersMagicColor = { 0.1, 1, 1, 1 },
-				DebuffBordersCurseColor = { 1, 0.1, 1, 1 },
-				DebuffBordersDiseaseColor = { 1, 0.5, 0.1, 1 },
-				DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
-				DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
-				ShowAurasOnPlayerNameplate = false,
-				IconSpacing = 1,
-				IconAnchor = "LEFT",
-				AlwaysShowMyAuras = false,
-				BorderThickness = 2,
-				ShowAboveFriendlyUnits = true,
-				FrameAnchor = "CENTER",
-				FrameAnchorToNameplate = "CENTER",
-				MinTimeToShowTenthsOfSeconds = 10,
-				InterruptsEnabled = true,
-				InterruptsIconSizeWidth = 45,
-				InterruptsIconSizeHeight = 45,
-				InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
-				InterruptsUseSharedIconTexture = false,
-				InterruptsShowOnlyOnPlayers = true,
-				Additions_ExplosiveOrbs = true,
-				ShowAuraTooltip = false,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
-				Additions_DispellableSpells = false,
-				Additions_DispellableSpells_Blacklist = {},
-				DispelIconSizeWidth = 45,
-				DispelIconSizeHeight = 45,
-				Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
-				IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
-				ShowStacks = true,
-				ShowCooldownText = true,
-				ShowCooldownAnimation = true,
-				IconAlpha = 1.0,
-				IconAlphaTarget = 1.0,
-				IconScaleTarget = 1.0,
-				TargetStrata = "HIGH",
-				NonTargetStrata = "MEDIUM",
-				BorderType = addonTable.BORDER_TYPE_BUILTIN,
-				BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
-				DefaultIconSizeWidth = 45,
-				DefaultIconSizeHeight = 45,
-				IconZoom = 0.07,
-				CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
-				Additions_DRPvP = false,
-				Additions_DRPvE = false,
-				ShowOnlyOnTarget = false,
-				UseTargetAlphaIfNotTargetSelected = false,
-				AffixSpiteful = true,
-				AffixSpitefulSound = 5274,
-				EnabledZoneTypes = {
-					[addonTable.INSTANCE_TYPE_NONE] =			true,
-					[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
-					[addonTable.INSTANCE_TYPE_PVP] = 			true,
-					[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
-					[addonTable.INSTANCE_TYPE_ARENA] = 			true,
-					[addonTable.INSTANCE_TYPE_PARTY] = 			true,
-					[addonTable.INSTANCE_TYPE_RAID] = 			true,
-					[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+				IconGroups = {
+					[1] = {
+						ShowAurasOnPlayerNameplate = false,
+						IconXOffset = 0,
+						IconYOffset = 50,
+						Font = "NAuras_TeenBold",
+						SortMode = AURA_SORT_MODE_EXPIRETIME,
+						FontScale = 1,
+						TimerTextUseRelativeScale = true,
+						TimerTextSize = 20,
+						TimerTextAnchor = "CENTER",
+						TimerTextAnchorIcon = "CENTER",
+						TimerTextXOffset = 0,
+						TimerTextYOffset = 0,
+						TimerTextSoonToExpireColor = { 1, 0.1, 0.1, 1 },
+						TimerTextUnderMinuteColor = { 1, 1, 0.1, 1 },
+						TimerTextLongerColor = { 0.7, 1, 0, 1 },
+						StacksFont = "NAuras_TeenBold",
+						StacksFontScale = 1,
+						StacksTextAnchor = "BOTTOMRIGHT",
+						StacksTextAnchorIcon = "BOTTOMRIGHT",
+						StacksTextXOffset = -3,
+						StacksTextYOffset = 5,
+						StacksTextColor = { 1, 0.1, 0.1, 1 },
+						ShowBuffBorders = true,
+						BuffBordersColor = {0, 1, 0, 1},
+						ShowDebuffBorders = true,
+						DebuffBordersMagicColor = { 0.1, 1, 1, 1 },
+						DebuffBordersCurseColor = { 1, 0.1, 1, 1 },
+						DebuffBordersDiseaseColor = { 1, 0.5, 0.1, 1 },
+						DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
+						DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
+						IconSpacing = 1,
+						IconAnchor = "LEFT",
+						AlwaysShowMyAuras = false,
+						BorderThickness = 2,
+						ShowAboveFriendlyUnits = true,
+						FrameAnchor = "CENTER",
+						FrameAnchorToNameplate = "CENTER",
+						MinTimeToShowTenthsOfSeconds = 10,
+						InterruptsEnabled = true,
+						InterruptsIconSizeWidth = 45,
+						InterruptsIconSizeHeight = 45,
+						InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
+						InterruptsUseSharedIconTexture = false,
+						InterruptsShowOnlyOnPlayers = true,
+						Additions_ExplosiveOrbs = true,
+						ShowAuraTooltip = false,
+						Additions_DispellableSpells = false,
+						Additions_DispellableSpells_Blacklist = {},
+						DispelIconSizeWidth = 45,
+						DispelIconSizeHeight = 45,
+						Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
+						IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
+						ShowStacks = true,
+						ShowCooldownText = true,
+						ShowCooldownAnimation = true,
+						IconAlpha = 1.0,
+						IconAlphaTarget = 1.0,
+						IconScaleTarget = 1.0,
+						TargetStrata = "HIGH",
+						NonTargetStrata = "MEDIUM",
+						BorderType = addonTable.BORDER_TYPE_BUILTIN,
+						BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
+						DefaultIconSizeWidth = 45,
+						DefaultIconSizeHeight = 45,
+						IconZoom = 0.07,
+						CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
+						Additions_DRPvP = false,
+						Additions_DRPvE = false,
+						ShowOnlyOnTarget = false,
+						UseTargetAlphaIfNotTargetSelected = false,
+						AffixSpiteful = true,
+						AffixSpitefulSound = 5274,
+						EnabledZoneTypes = {
+							[addonTable.INSTANCE_TYPE_NONE] =			true,
+							[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+							[addonTable.INSTANCE_TYPE_PVP] = 			true,
+							[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+							[addonTable.INSTANCE_TYPE_ARENA] = 			true,
+							[addonTable.INSTANCE_TYPE_PARTY] = 			true,
+							[addonTable.INSTANCE_TYPE_RAID] = 			true,
+							[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+						},
+						MaxAuras = nil,
+						ShowAurasOnTargetEvenInDisabledAreas = false,
+						AlwaysShowMyAurasBlacklist = {},
+						NpcBlacklist = {},
+						TimerTextUseRelativeColor = false,
+						TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
+						TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
+					},
 				},
-				MaxAuras = nil,
-				ShowAurasOnTargetEvenInDisabledAreas = false,
-				AlwaysShowMyAurasBlacklist = {},
-				NpcBlacklist = {},
-				TimerTextUseRelativeColor = false,
-				TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
-				TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
 			},
 		};
 
@@ -812,7 +816,7 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId)
+	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId, _iconGroupIndex)
 		if (dbEntry == nil) then
 			return false;
 		end
@@ -845,117 +849,47 @@ do
 			end
 		end
 
+		if (not dbEntry.iconGroups[_iconGroupIndex]) then
+			return false;
+		end
+
 		return true;
 	end
 
-	local function ProcAurasForNmplt_Additions(unitGUID, frame)
+	local function ProcAurasForNmplt_Additions(unitGUID, frame, _iconGroupsToUpdate)
 		if (unitGUID ~= nil) then
-			local _, _, _, _, _, npcID = strsplit("-", unitGUID);
-			if (db.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
-				local tSize = #AurasPerNameplate[frame];
-				AurasPerNameplate[frame][tSize+1] = {
-					["duration"] = 0,
-					["expires"] = 0,
-					["stacks"] = 1,
-					["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
-					["type"] = AURA_TYPE_DEBUFF,
-					["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
-					["dbEntry"] = {
-						["showGlow"] = GLOW_TIME_INFINITE,
-						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
-					},
-				};
-			end
-			if (db.AffixSpiteful and npcID == addonTable.SPITEFUL_NPC_ID_STRING and SpitefulMobs[unitGUID]) then
-				local tSize = #AurasPerNameplate[frame];
-				local iconSize = math_max(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);
-				AurasPerNameplate[frame][tSize+1] = {
-					["duration"] = 0,
-					["expires"] = 0,
-					["stacks"] = 1,
-					["spellID"] = addonTable.SPITEFUL_SPELL_ID,
-					["type"] = AURA_TYPE_DEBUFF,
-					["spellName"] = SpellNameByID[addonTable.SPITEFUL_SPELL_ID],
-					["dbEntry"] = {
-						["showGlow"] = GLOW_TIME_INFINITE,
-						["glowType"] = GLOW_TYPE_ACTIONBUTTON,
-						["iconSizeWidth"] = iconSize,
-						["iconSizeHeight"] = iconSize,
-					},
-				};
-			end
-		end
-	end
-
-	local function ProcAurasForNmplt_DR(unitGUID, frame)
-		if ((db.Additions_DRPvE or db.Additions_DRPvP) and unitGUID ~= nil and DRDataPerGUID[unitGUID] ~= nil) then
-			local tSize = #AurasPerNameplate[frame];
-			for category, categoryData in pairs(DRDataPerGUID[unitGUID]) do
-				if (categoryData.drAppliedCount > 0) then
-					AurasPerNameplate[frame][tSize+1] = {
-						["duration"] = categoryData.lastTimeDRApplied == 0 and 0 or DRResetTime,
-						["expires"] = categoryData.lastTimeDRApplied == 0 and 0 or (categoryData.lastTimeDRApplied + DRResetTime),
-						["stacks"] = (1 - DRList:GetNextDR(categoryData.drAppliedCount, category))*100, --25 + 25*categoryData.drAppliedCount,
-						["spellID"] = 222468, -- https://www.wowhead.com/spell=222468/immunepc
-						["type"] = AURA_TYPE_BUFF,
-						["spellName"] = SpellNameByID[222468], -- https://www.wowhead.com/spell=222468/immunepc
-						["overrideTexture"] = addonTable.DR_TEXTURES[category],
-					};
-					tSize = tSize + 1;
-				end
-			end
-		end
-	end
-
-	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer, auraIndex, unitId)
-		local foundInDB = false;
-		local tSize = #AurasPerNameplate[frame];
-		local cache = spellCache[auraName];
-		if (cache ~= nil) then
-			for _, dbEntry in pairs(cache) do
-				if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId)) then
-					AurasPerNameplate[frame][tSize+1] = {
-						["duration"] = auraDuration,
-						["expires"] = auraExpires,
-						["stacks"] = auraStack,
-						["spellID"] = auraSpellID,
-						["type"] = auraType,
-						["dispelType"] = auraDispelType,
-						["spellName"] = auraName,
-						["dbEntry"] = dbEntry,
-					};
-					tSize = tSize + 1;
-					foundInDB = true;
-				end
-			end
-		end
-		if (not foundInDB) then
-			if (db.AlwaysShowMyAuras and auraCaster == "player" and not db.AlwaysShowMyAurasBlacklist[auraName]) then
-				AurasPerNameplate[frame][tSize+1] = {
-					["duration"] = auraDuration,
-					["expires"] = auraExpires,
-					["stacks"] = auraStack,
-					["spellID"] = auraSpellID,
-					["type"] = auraType,
-					["dispelType"] = auraDispelType,
-					["spellName"] = auraName,
-				};
-				tSize = tSize + 1;
-			end
-			if (db.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
-				if (db.Additions_DispellableSpells_Blacklist[auraName] == nil) then
-					AurasPerNameplate[frame][tSize+1] = {
-						["duration"] = auraDuration,
-						["expires"] = auraExpires,
-						["stacks"] = auraStack,
-						["spellID"] = auraSpellID,
-						["type"] = auraType,
-						["spellName"] = auraName,
+			for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
+				local _, _, _, _, _, npcID = strsplit("-", unitGUID);
+				if (iconGroup.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
+					local tSize = #AurasPerNameplate[frame][iconGroupIndex];
+					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+						["duration"] = 0,
+						["expires"] = 0,
+						["stacks"] = 1,
+						["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
+						["type"] = AURA_TYPE_DEBUFF,
+						["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
 						["dbEntry"] = {
-							["iconSizeWidth"] = db.DispelIconSizeWidth,
-							["iconSizeHeight"] = db.DispelIconSizeHeight,
 							["showGlow"] = GLOW_TIME_INFINITE,
-							["glowType"] = db.Additions_DispellableSpells_GlowType,
+							["glowType"] = GLOW_TYPE_ACTIONBUTTON,
+						},
+					};
+				end
+				if (iconGroup.AffixSpiteful and npcID == addonTable.SPITEFUL_NPC_ID_STRING and SpitefulMobs[unitGUID]) then
+					local tSize = #AurasPerNameplate[frame][iconGroupIndex];
+					local iconSize = math_max(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);
+					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+						["duration"] = 0,
+						["expires"] = 0,
+						["stacks"] = 1,
+						["spellID"] = addonTable.SPITEFUL_SPELL_ID,
+						["type"] = AURA_TYPE_DEBUFF,
+						["spellName"] = SpellNameByID[addonTable.SPITEFUL_SPELL_ID],
+						["dbEntry"] = {
+							["showGlow"] = GLOW_TIME_INFINITE,
+							["glowType"] = GLOW_TYPE_ACTIONBUTTON,
+							["iconSizeWidth"] = iconSize,
+							["iconSizeHeight"] = iconSize,
 						},
 					};
 				end
@@ -963,8 +897,104 @@ do
 		end
 	end
 
+	local function ProcAurasForNmplt_DR(unitGUID, frame, _iconGroupsToUpdate)
+		for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
+			if ((iconGroup.Additions_DRPvE or iconGroup.Additions_DRPvP) and unitGUID ~= nil and DRDataPerGUID[unitGUID] ~= nil) then
+				local tSize = #AurasPerNameplate[frame][iconGroupIndex];
+				for category, categoryData in pairs(DRDataPerGUID[unitGUID]) do
+					if (categoryData.drAppliedCount > 0) then
+						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+							["duration"] = categoryData.lastTimeDRApplied == 0 and 0 or DRResetTime,
+							["expires"] = categoryData.lastTimeDRApplied == 0 and 0 or (categoryData.lastTimeDRApplied + DRResetTime),
+							["stacks"] = (1 - DRList:GetNextDR(categoryData.drAppliedCount, category))*100, --25 + 25*categoryData.drAppliedCount,
+							["spellID"] = 222468, -- https://www.wowhead.com/spell=222468/immunepc
+							["type"] = AURA_TYPE_BUFF,
+							["spellName"] = SpellNameByID[222468], -- https://www.wowhead.com/spell=222468/immunepc
+							["overrideTexture"] = addonTable.DR_TEXTURES[category],
+						};
+						tSize = tSize + 1;
+					end
+				end
+			end
+		end
+	end
+
+	local function ProcAurasForNmplt_Interrupts(unitGUID, frame, _iconGroupsToUpdate)
+		local now = GetTime();
+		local interrupt = InterruptsPerUnitGUID[unitGUID];
+		if (interrupt ~= nil and interrupt.expires - now > 0) then
+			for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
+				if (iconGroup.InterruptsEnabled) then
+					local tSize = #AurasPerNameplate[frame][iconGroupIndex];
+					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = interrupt;
+				end
+			end
+		end
+	end
+
+	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer, auraIndex, unitId, _iconGroupsToUpdate)
+		for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
+			local foundInDB = false;
+			local tSize = #AurasPerNameplate[frame][iconGroupIndex];
+			local cache = spellCache[auraName];
+			if (cache ~= nil) then
+				for _, dbEntry in pairs(cache) do
+					if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId, iconGroupIndex)) then
+						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+							["duration"] = auraDuration,
+							["expires"] = auraExpires,
+							["stacks"] = auraStack,
+							["spellID"] = auraSpellID,
+							["type"] = auraType,
+							["dispelType"] = auraDispelType,
+							["spellName"] = auraName,
+							["dbEntry"] = dbEntry,
+						};
+						tSize = tSize + 1;
+						foundInDB = true;
+					end
+				end
+			end
+			if (not foundInDB) then
+				if (iconGroup.AlwaysShowMyAuras and auraCaster == "player" and not iconGroup.AlwaysShowMyAurasBlacklist[auraName]) then
+					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+						["duration"] = auraDuration,
+						["expires"] = auraExpires,
+						["stacks"] = auraStack,
+						["spellID"] = auraSpellID,
+						["type"] = auraType,
+						["dispelType"] = auraDispelType,
+						["spellName"] = auraName,
+					};
+					tSize = tSize + 1;
+				end
+				if (iconGroup.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
+					if (iconGroup.Additions_DispellableSpells_Blacklist[auraName] == nil) then
+						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
+							["duration"] = auraDuration,
+							["expires"] = auraExpires,
+							["stacks"] = auraStack,
+							["spellID"] = auraSpellID,
+							["type"] = auraType,
+							["spellName"] = auraName,
+							["dbEntry"] = {
+								["iconSizeWidth"] = iconGroup.DispelIconSizeWidth,
+								["iconSizeHeight"] = iconGroup.DispelIconSizeHeight,
+								["showGlow"] = GLOW_TIME_INFINITE,
+								["glowType"] = iconGroup.Additions_DispellableSpells_GlowType,
+							},
+						};
+					end
+				end
+			end
+		end
+	end
+
 	function ProcessAurasForNameplate(frame, unitID)
-		wipe(AurasPerNameplate[frame]);
+		for iconGroupIndex in pairs(AurasPerNameplate[frame]) do
+			wipe(AurasPerNameplate[frame][iconGroupIndex]);
+		end
+
 		local unitIsFriend = (UnitReaction("player", unitID) or 0) > 4; -- 4 = neutral
 		local unitIsPlayer = UnitIsPlayer(unitID);
 		local unitGUID = UnitGUID(unitID);
@@ -977,32 +1007,33 @@ do
 			end
 		end
 
-		if (db.EnabledZoneTypes[InstanceType] or (db.ShowAurasOnTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
-			if ((LocalPlayerGUID ~= unitGUID or db.ShowAurasOnPlayerNameplate) and (db.ShowAboveFriendlyUnits or not unitIsFriend) and (not db.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
-				for i = 1, 40 do
-					local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
-					if (buffName ~= nil) then
-						ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID);
-					end
-					local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
-					if (debuffName ~= nil) then
-						ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID);
-					end
-					if (buffName == nil and debuffName == nil) then
-						break;
-					end
+		local iconGroupsToUpdate = {};
+		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
+			if (iconGroup.EnabledZoneTypes[InstanceType] or (iconGroup.ShowAurasOnTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
+				if ((LocalPlayerGUID ~= unitGUID or iconGroup.ShowAurasOnPlayerNameplate) and (iconGroup.ShowAboveFriendlyUnits or not unitIsFriend) and (not iconGroup.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
+					iconGroupsToUpdate[iconGroupIndex] = iconGroup;
 				end
-				if (db.InterruptsEnabled) then
-					local interrupt = InterruptsPerUnitGUID[unitGUID];
-					if (interrupt ~= nil and interrupt.expires - GetTime() > 0) then
-						local tSize = #AurasPerNameplate[frame];
-						AurasPerNameplate[frame][tSize+1] = interrupt;
-					end
-				end
-				ProcAurasForNmplt_Additions(unitGUID, frame);
-				ProcAurasForNmplt_DR(unitGUID, frame);
 			end
 		end
+
+		for i = 1, 40 do
+			local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
+			if (buffName ~= nil) then
+				ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID, iconGroupsToUpdate);
+			end
+			local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
+			if (debuffName ~= nil) then
+				ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID, iconGroupsToUpdate);
+			end
+			if (buffName == nil and debuffName == nil) then
+				break;
+			end
+		end
+
+		ProcAurasForNmplt_Interrupts(unitGUID, frame, iconGroupsToUpdate);
+		ProcAurasForNmplt_Additions(unitGUID, frame, iconGroupsToUpdate);
+		ProcAurasForNmplt_DR(unitGUID, frame, iconGroupsToUpdate);
+
 		UpdateNameplate(frame, unitGUID);
 	end
 

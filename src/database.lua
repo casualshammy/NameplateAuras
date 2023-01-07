@@ -289,6 +289,98 @@ local migrations = {
             db.AlwaysShowMyAurasBlacklist = {};
         end
     end,
+    [21] = function()
+        local db = addonTable.db;
+        local keys = {
+            "ShowAurasOnPlayerNameplate",
+            "IconXOffset",
+            "IconYOffset",
+            "Font",
+            "SortMode",
+            "FontScale",
+            "TimerTextUseRelativeScale",
+            "TimerTextSize",
+            "TimerTextAnchor",
+            "TimerTextAnchorIcon",
+            "TimerTextXOffset",
+            "TimerTextYOffset",
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksFont",
+            "StacksFontScale",
+            "StacksTextAnchor",
+            "StacksTextAnchorIcon",
+            "StacksTextXOffset",
+            "StacksTextYOffset",
+            "StacksTextColor",
+            "ShowBuffBorders",
+            "BuffBordersColor",
+            "ShowDebuffBorders",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "IconSpacing",
+            "IconAnchor",
+            "AlwaysShowMyAuras",
+            "BorderThickness",
+            "ShowAboveFriendlyUnits",
+            "FrameAnchor",
+            "FrameAnchorToNameplate",
+            "MinTimeToShowTenthsOfSeconds",
+            "InterruptsEnabled",
+            "InterruptsIconSizeWidth",
+            "InterruptsIconSizeHeight",
+            "InterruptsGlowType",
+            "InterruptsUseSharedIconTexture",
+            "InterruptsShowOnlyOnPlayers",
+            "Additions_ExplosiveOrbs",
+            "ShowAuraTooltip",
+            "Additions_DispellableSpells",
+            "Additions_DispellableSpells_Blacklist",
+            "DispelIconSizeWidth",
+            "DispelIconSizeHeight",
+            "Additions_DispellableSpells_GlowType",
+            "IconGrowDirection",
+            "ShowStacks",
+            "ShowCooldownText",
+            "ShowCooldownAnimation",
+            "IconAlpha",
+            "IconAlphaTarget",
+            "IconScaleTarget",
+            "TargetStrata",
+            "NonTargetStrata",
+            "BorderType",
+            "BorderFilePath",
+            "DefaultIconSizeWidth",
+            "DefaultIconSizeHeight",
+            "IconZoom",
+            "CustomSortMethod",
+            "Additions_DRPvP",
+            "Additions_DRPvE",
+            "ShowOnlyOnTarget",
+            "UseTargetAlphaIfNotTargetSelected",
+            "AffixSpiteful",
+            "AffixSpitefulSound",
+            "EnabledZoneTypes",
+            "MaxAuras",
+            "ShowAurasOnTargetEvenInDisabledAreas",
+            "AlwaysShowMyAurasBlacklist",
+            "NpcBlacklist",
+            "TimerTextUseRelativeColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+        };
+        for _, key in pairs(keys) do
+            local value = db[key];
+            if (value ~= nil) then
+                db.IconGroups[1][key] = value;
+                db[key] = nil;
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -298,6 +390,12 @@ local function FillInMissingEntriesIsSpells()
             -- we don't know what spell it is
             db.CustomSpells2[index] = nil;
         else
+            -- useRelativeGlowTimer may be nil
+            -- useRelativeAnimationTimer may be nil
+            -- checkSpellID may be nil
+            -- showGlow may be nil
+            -- spellTooltip may be nil
+            -- spellInfo.customBorderPath may be nil
             if (spellInfo.enabledState == nil) then
                 spellInfo.enabledState = CONST_SPELL_MODE_ALL;
             end
@@ -331,15 +429,9 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.iconSizeHeight == nil) then
                 spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
             end
-            -- useRelativeGlowTimer may be nil
-            -- useRelativeAnimationTimer may be nil
-            -- checkSpellID may be nil
-            -- showGlow may be nil
-            -- spellTooltip may be nil
             if (spellInfo.customBorderType == nil) then
                 spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
             end
-            -- spellInfo.customBorderPath may be nil
             if (spellInfo.customBorderSize == nil) then
                 spellInfo.customBorderSize = db.BorderThickness;
             end
@@ -357,12 +449,17 @@ local function FillInMissingEntriesIsSpells()
             elseif (spellInfo.enabledState == "my") then
                 spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
             end
+
             if (spellInfo.auraType == "buff") then
                 spellInfo.auraType = AURA_TYPE_BUFF;
             elseif (spellInfo.auraType == "debuff") then
                 spellInfo.auraType = AURA_TYPE_DEBUFF;
             elseif (spellInfo.auraType == "buff/debuff") then
                 spellInfo.auraType = AURA_TYPE_ANY;
+            end
+
+            if (spellInfo.iconGroups == nil or #spellInfo.iconGroups == 0) then
+                spellInfo.iconGroups = { [1] = true };
             end
         end
     end

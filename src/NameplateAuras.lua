@@ -5,7 +5,7 @@
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit
 
 local _, addonTable = ...;
 
@@ -29,9 +29,10 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
 local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo;
 local TooltipUtil_SurfaceArgs, C_TooltipInfo_GetUnitBuff = TooltipUtil.SurfaceArgs, C_TooltipInfo.GetUnitBuff;
+local UnitIsUnit = UnitIsUnit;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType;
+local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType, BuffFrameHookedNameplates;
 local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 local SpitefulMobs;
 do
@@ -44,6 +45,7 @@ do
 	DRResetTime								= DRList:GetResetTime();
 	SpitefulMobs							= { };
 	InstanceType							= addonTable.INSTANCE_TYPE_NONE;
+	BuffFrameHookedNameplates				= { };
 end
 
 -- // consts
@@ -527,11 +529,6 @@ do
 				else
 					nameplate.NAurasFrame:SetAlpha(db.IconAlpha);
 				end
-				-- if (unitGUID == TargetGUID) then
-				-- 	nameplate.NAurasFrame:SetScale(db.IconScaleTarget);
-				-- else
-				-- 	nameplate.NAurasFrame:SetScale(1.0);
-				-- end
 				if (unitGUID == TargetGUID) then
 					nameplate.NAurasFrame:SetFrameStrata(db.TargetStrata);
 				else
@@ -1327,6 +1324,35 @@ do
 	end
 	CTimerAfter(2, UpdateZoneType);
 
+	local function HideBuffFrame(_frame)
+		if (_frame == nil) then
+			return;
+		end
+
+		local unitId = _frame.unit;
+		if (unitId == nil) then
+			return;
+		end
+
+		if (UnitIsUnit(unitId, "player")) then
+			_frame:SetShown(not db.HidePlayerBlizzardFrame);
+		else
+			_frame:SetShown(not db.HideBlizzardFrames);
+		end
+
+		-- friendly buff frame may appear on non-player nameplate if this nameplate is "reused player nameplate"
+		-- thus we need to workaround this cases
+		if (PersonalFriendlyBuffFrame ~= nil) then
+			local parentNameplate = PersonalFriendlyBuffFrame:GetParent();
+			if (parentNameplate ~= nil and parentNameplate.UnitFrame ~= nil and not UnitIsUnit(parentNameplate.UnitFrame.unit, "player")) then
+				--addonTable.Print("PersonalFriendlyBuffFrame is attached to wrong nameplate, fixing...");
+				PersonalFriendlyBuffFrame:Hide();
+			else
+				PersonalFriendlyBuffFrame:SetShown(not db.HidePlayerBlizzardFrame);
+			end
+		end
+	end
+
 	function EventFrame.PLAYER_ENTERING_WORLD()
 		if (addonTable.OnStartup) then
 			addonTable.OnStartup();
@@ -1362,23 +1388,13 @@ do
 		end
 		EventFrame.UNIT_THREAT_LIST_UPDATE(unitID);
 
-		local unitGUID = UnitGUID(unitID);
-		-- // hide/show standart buff frame
-		if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
-			if (unitGUID ~= LocalPlayerGUID) then
-				if (db.HideBlizzardFrames) then
-					nameplate.UnitFrame.BuffFrame:ClearAllPoints();
-					nameplate.UnitFrame.BuffFrame:SetAlpha(0);
-				end
+		if (not BuffFrameHookedNameplates[nameplate]) then
+			if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
+				nameplate.UnitFrame.BuffFrame:HookScript("OnShow", HideBuffFrame);
+				HideBuffFrame(nameplate.UnitFrame.BuffFrame);
+				BuffFrameHookedNameplates[nameplate] = true;
 			else
-				if (db.HidePlayerBlizzardFrame) then
-					nameplate.UnitFrame.BuffFrame:ClearAllPoints();
-					nameplate.UnitFrame.BuffFrame:SetAlpha(0);
-					if (PersonalFriendlyBuffFrame ~= nil) then
-						PersonalFriendlyBuffFrame:ClearAllPoints();
-						PersonalFriendlyBuffFrame:SetAlpha(0);
-					end
-				end
+				error("Nameplate " .. nameplate:GetName() .. " doesn't have buff frame!");
 			end
 		end
 	end
@@ -1513,9 +1529,6 @@ do
 			SetAlphaScaleForNameplate(nameplate);
 		end
 		addonTable.UpdateAllNameplates(false);
-		-- if (db.ShowOnlyOnTarget) then
-		-- 	addonTable.UpdateAllNameplates(false);
-		-- end
 	end
 
 end

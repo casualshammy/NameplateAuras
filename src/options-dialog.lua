@@ -526,7 +526,6 @@ local function GUICategory_1(index)
 						text = npcName,
 						onCloseButtonClick = function()
 							addonTable.db.NpcBlacklist[npcName] = nil;
-							addonTable.IsNpcBlacklistEnabled = addonTable.table_count(addonTable.db.NpcBlacklist) > 0;
 							addonTable.UpdateAllNameplates(false);
 							-- close and then open list again
 							buttonNpcBlacklist:Click(); 
@@ -558,7 +557,6 @@ local function GUICategory_1(index)
 			local text = editboxNpcBlacklistAdd:GetText();
 			if (text ~= nil and text ~= "") then
 				addonTable.db.NpcBlacklist[text] = true;
-				addonTable.IsNpcBlacklistEnabled = addonTable.table_count(addonTable.db.NpcBlacklist) > 0;
 				addonTable.UpdateAllNameplates(false);
 				buttonNpcBlacklist:Click();
 				buttonNpcBlacklist:Click();

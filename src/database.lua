@@ -291,6 +291,10 @@ local migrations = {
     end,
     [21] = function()
         local db = addonTable.db;
+        db.MaxAuras = nil;
+    end,
+    [22] = function()
+        local db = addonTable.db;
         local keys = {
             "ShowAurasOnPlayerNameplate",
             "IconXOffset",

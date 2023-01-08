@@ -209,13 +209,13 @@ local migrations = {
     end,
     [12] = function()
         local db = addonTable.db;
-        if (#db.TimerTextSoonToExpireColor == 3) then
+        if (db.TimerTextSoonToExpireColor ~= nil and #db.TimerTextSoonToExpireColor == 3) then
             db.TimerTextSoonToExpireColor[#db.TimerTextSoonToExpireColor+1] = 1;
         end
-        if (#db.TimerTextUnderMinuteColor == 3) then
+        if (db.TimerTextUnderMinuteColor ~= nil and #db.TimerTextUnderMinuteColor == 3) then
             db.TimerTextUnderMinuteColor[#db.TimerTextUnderMinuteColor+1] = 1;
         end
-        if (#db.TimerTextLongerColor == 3) then
+        if (db.TimerTextLongerColor ~= nil and #db.TimerTextLongerColor == 3) then
             db.TimerTextLongerColor[#db.TimerTextLongerColor+1] = 1;
         end
     end,
@@ -257,7 +257,7 @@ local migrations = {
     end,
     [16] = function()
         local db = addonTable.db;
-        if (#db.StacksTextColor == 3) then
+        if (db.StacksTextColor ~= nil and #db.StacksTextColor == 3) then
             db.StacksTextColor[#db.StacksTextColor+1] = 1;
         end
     end,
@@ -265,7 +265,7 @@ local migrations = {
         local db = addonTable.db;
         local values = { "DebuffBordersMagicColor", "DebuffBordersCurseColor", "DebuffBordersDiseaseColor", "DebuffBordersPoisonColor", "DebuffBordersOtherColor", "BuffBordersColor" };
         for _, value in pairs(values) do
-            if (#db[value] == 3) then
+            if (db[value] ~= nil and #db[value] == 3) then
                 db[value][4] = 1;
             end
         end
@@ -377,6 +377,9 @@ local migrations = {
             "TimerTextColorZeroPercent",
             "TimerTextColorHundredPercent",
         };
+        if (db.IconGroups[1] == nil) then
+            db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
+        end
         for _, key in pairs(keys) do
             local value = db[key];
             if (value ~= nil) then
@@ -476,6 +479,11 @@ function addonTable.MigrateDB()
     end
     addonTable.db.DBVersion = table_count(migrations);
     FillInMissingEntriesIsSpells();
+
+    if (#addonTable.db.IconGroups == 0) then
+        addonTable.db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
+        addonTable.db.IconGroups[2] = addonTable.GetIconGroupDefaultOptions();
+    end
 end
 
 function addonTable.ImportNewSpells(force)

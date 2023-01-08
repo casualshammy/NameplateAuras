@@ -71,6 +71,99 @@ local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, ad
 --------------------------------------------------------------------------------------------------
 do
 
+	addonTable.GetIconGroupDefaultOptions = function()
+		return {
+			ShowAurasOnPlayerNameplate = false,
+			IconXOffset = 0,
+			IconYOffset = 50,
+			Font = "NAuras_TeenBold",
+			SortMode = AURA_SORT_MODE_EXPIRETIME,
+			FontScale = 1,
+			TimerTextUseRelativeScale = true,
+			TimerTextSize = 20,
+			TimerTextAnchor = "CENTER",
+			TimerTextAnchorIcon = "CENTER",
+			TimerTextXOffset = 0,
+			TimerTextYOffset = 0,
+			TimerTextSoonToExpireColor = { 1, 0.1, 0.1, 1 },
+			TimerTextUnderMinuteColor = { 1, 1, 0.1, 1 },
+			TimerTextLongerColor = { 0.7, 1, 0, 1 },
+			StacksFont = "NAuras_TeenBold",
+			StacksFontScale = 1,
+			StacksTextAnchor = "BOTTOMRIGHT",
+			StacksTextAnchorIcon = "BOTTOMRIGHT",
+			StacksTextXOffset = -3,
+			StacksTextYOffset = 5,
+			StacksTextColor = { 1, 0.1, 0.1, 1 },
+			ShowBuffBorders = true,
+			BuffBordersColor = {0, 1, 0, 1},
+			ShowDebuffBorders = true,
+			DebuffBordersMagicColor = { 0.1, 1, 1, 1 },
+			DebuffBordersCurseColor = { 1, 0.1, 1, 1 },
+			DebuffBordersDiseaseColor = { 1, 0.5, 0.1, 1 },
+			DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
+			DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
+			IconSpacing = 1,
+			IconAnchor = "LEFT",
+			AlwaysShowMyAuras = false,
+			BorderThickness = 2,
+			ShowAboveFriendlyUnits = true,
+			FrameAnchor = "CENTER",
+			FrameAnchorToNameplate = "CENTER",
+			MinTimeToShowTenthsOfSeconds = 10,
+			InterruptsEnabled = true,
+			InterruptsIconSizeWidth = 45,
+			InterruptsIconSizeHeight = 45,
+			InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
+			InterruptsUseSharedIconTexture = false,
+			InterruptsShowOnlyOnPlayers = true,
+			Additions_ExplosiveOrbs = true,
+			ShowAuraTooltip = false,
+			Additions_DispellableSpells = false,
+			Additions_DispellableSpells_Blacklist = {},
+			DispelIconSizeWidth = 45,
+			DispelIconSizeHeight = 45,
+			Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
+			IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
+			ShowStacks = true,
+			ShowCooldownText = true,
+			ShowCooldownAnimation = true,
+			IconAlpha = 1.0,
+			IconAlphaTarget = 1.0,
+			IconScaleTarget = 1.0,
+			TargetStrata = "HIGH",
+			NonTargetStrata = "MEDIUM",
+			BorderType = addonTable.BORDER_TYPE_BUILTIN,
+			BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
+			DefaultIconSizeWidth = 45,
+			DefaultIconSizeHeight = 45,
+			IconZoom = 0.07,
+			CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
+			Additions_DRPvP = false,
+			Additions_DRPvE = false,
+			ShowOnlyOnTarget = false,
+			UseTargetAlphaIfNotTargetSelected = false,
+			AffixSpiteful = true,
+			AffixSpitefulSound = 5274,
+			EnabledZoneTypes = {
+				[addonTable.INSTANCE_TYPE_NONE] =			true,
+				[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+				[addonTable.INSTANCE_TYPE_PVP] = 			true,
+				[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+				[addonTable.INSTANCE_TYPE_ARENA] = 			true,
+				[addonTable.INSTANCE_TYPE_PARTY] = 			true,
+				[addonTable.INSTANCE_TYPE_RAID] = 			true,
+				[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+			},
+			ShowAurasOnTargetEvenInDisabledAreas = false,
+			AlwaysShowMyAurasBlacklist = {},
+			NpcBlacklist = {},
+			TimerTextUseRelativeColor = false,
+			TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
+			TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
+		};
+	end
+
 	local ReloadDB;
 
 	local function OnAddonMessageReceived(prefix, text, distribution, sender)
@@ -140,100 +233,10 @@ do
 				CustomSpells2 = { },
 				HideBlizzardFrames = true,
 				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
-				IconGroups = {
-					[1] = {
-						ShowAurasOnPlayerNameplate = false,
-						IconXOffset = 0,
-						IconYOffset = 50,
-						Font = "NAuras_TeenBold",
-						SortMode = AURA_SORT_MODE_EXPIRETIME,
-						FontScale = 1,
-						TimerTextUseRelativeScale = true,
-						TimerTextSize = 20,
-						TimerTextAnchor = "CENTER",
-						TimerTextAnchorIcon = "CENTER",
-						TimerTextXOffset = 0,
-						TimerTextYOffset = 0,
-						TimerTextSoonToExpireColor = { 1, 0.1, 0.1, 1 },
-						TimerTextUnderMinuteColor = { 1, 1, 0.1, 1 },
-						TimerTextLongerColor = { 0.7, 1, 0, 1 },
-						StacksFont = "NAuras_TeenBold",
-						StacksFontScale = 1,
-						StacksTextAnchor = "BOTTOMRIGHT",
-						StacksTextAnchorIcon = "BOTTOMRIGHT",
-						StacksTextXOffset = -3,
-						StacksTextYOffset = 5,
-						StacksTextColor = { 1, 0.1, 0.1, 1 },
-						ShowBuffBorders = true,
-						BuffBordersColor = {0, 1, 0, 1},
-						ShowDebuffBorders = true,
-						DebuffBordersMagicColor = { 0.1, 1, 1, 1 },
-						DebuffBordersCurseColor = { 1, 0.1, 1, 1 },
-						DebuffBordersDiseaseColor = { 1, 0.5, 0.1, 1 },
-						DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
-						DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
-						IconSpacing = 1,
-						IconAnchor = "LEFT",
-						AlwaysShowMyAuras = false,
-						BorderThickness = 2,
-						ShowAboveFriendlyUnits = true,
-						FrameAnchor = "CENTER",
-						FrameAnchorToNameplate = "CENTER",
-						MinTimeToShowTenthsOfSeconds = 10,
-						InterruptsEnabled = true,
-						InterruptsIconSizeWidth = 45,
-						InterruptsIconSizeHeight = 45,
-						InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
-						InterruptsUseSharedIconTexture = false,
-						InterruptsShowOnlyOnPlayers = true,
-						Additions_ExplosiveOrbs = true,
-						ShowAuraTooltip = false,
-						Additions_DispellableSpells = false,
-						Additions_DispellableSpells_Blacklist = {},
-						DispelIconSizeWidth = 45,
-						DispelIconSizeHeight = 45,
-						Additions_DispellableSpells_GlowType = addonTable.GLOW_TYPE_PIXEL,
-						IconGrowDirection = addonTable.ICON_GROW_DIRECTION_RIGHT,
-						ShowStacks = true,
-						ShowCooldownText = true,
-						ShowCooldownAnimation = true,
-						IconAlpha = 1.0,
-						IconAlphaTarget = 1.0,
-						IconScaleTarget = 1.0,
-						TargetStrata = "HIGH",
-						NonTargetStrata = "MEDIUM",
-						BorderType = addonTable.BORDER_TYPE_BUILTIN,
-						BorderFilePath = "Interface\\AddOns\\NameplateAuras\\media\\custom-example.tga",
-						DefaultIconSizeWidth = 45,
-						DefaultIconSizeHeight = 45,
-						IconZoom = 0.07,
-						CustomSortMethod = "function(aura1, aura2) return aura1.spellName < aura2.spellName; end",
-						Additions_DRPvP = false,
-						Additions_DRPvE = false,
-						ShowOnlyOnTarget = false,
-						UseTargetAlphaIfNotTargetSelected = false,
-						AffixSpiteful = true,
-						AffixSpitefulSound = 5274,
-						EnabledZoneTypes = {
-							[addonTable.INSTANCE_TYPE_NONE] =			true,
-							[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
-							[addonTable.INSTANCE_TYPE_PVP] = 			true,
-							[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
-							[addonTable.INSTANCE_TYPE_ARENA] = 			true,
-							[addonTable.INSTANCE_TYPE_PARTY] = 			true,
-							[addonTable.INSTANCE_TYPE_RAID] = 			true,
-							[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
-						},
-						ShowAurasOnTargetEvenInDisabledAreas = false,
-						AlwaysShowMyAurasBlacklist = {},
-						NpcBlacklist = {},
-						TimerTextUseRelativeColor = false,
-						TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
-						TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
-					},
-				},
+				IconGroups = { },
 			},
 		};
+		addonTable.AceDBDefaults = addonTable.deepcopy(aceDBDefaults);
 
 		-- // ...
 		aceDB = LibStub("AceDB-3.0"):New("NameplateAurasAceDB", aceDBDefaults);
@@ -722,7 +725,7 @@ do
 		icon.border:SetAllPoints(icon);
 		icon.border:Hide();
 		local color = iconGroup.StacksTextColor;
-		icon.stacks:SetTextColor(color[1], color[2], color[3], color[4]);
+		icon.stacks:SetTextColor(color[1] or 0, color[2] or 0, color[3] or 0, color[4]);
 		icon.stacks:SetPoint(iconGroup.StacksTextAnchor, icon, iconGroup.StacksTextAnchorIcon, iconGroup.StacksTextXOffset, iconGroup.StacksTextYOffset);
 		icon.stacks:SetFont(SML:Fetch("font", iconGroup.StacksFont), math_ceil((math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight) / 4) * iconGroup.StacksFontScale), "OUTLINE");
 		icon.stackcount = 0;
@@ -1017,6 +1020,9 @@ do
 					end
 					if (add) then
 						iconGroupsToUpdate[iconGroupIndex] = iconGroup;
+						if (AurasPerNameplate[frame][iconGroupIndex] == nil) then
+							AurasPerNameplate[frame][iconGroupIndex] = {};
+						end
 					end
 				end
 			end
@@ -1320,10 +1326,12 @@ do
 							local last = spellInfo.expires - currentTime;
 							if (last > 0 or spellInfo.duration == 0) then
 								-- // getting reference to icon
-								local icon = nameplate.NAurasIcons[iconGroupIndex][counter];
-								-- // setting text
-								if (icon ~= nil) then icon:SetCooldown(last, spellInfo, iconGroup); end
-								counter = counter + 1;
+								if (nameplate.NAurasIcons[iconGroupIndex] ~= nil) then
+									local icon = nameplate.NAurasIcons[iconGroupIndex][counter];
+									-- // setting text
+									if (icon ~= nil) then icon:SetCooldown(last, spellInfo, iconGroup); end
+									counter = counter + 1;
+								end
 							end
 						end
 					end
@@ -1725,6 +1733,8 @@ do
 				if (AurasPerNameplate[nameplate][iconGroupIndex] == nil) then
 					AurasPerNameplate[nameplate][iconGroupIndex] = { };
 				end
+
+				wipe(AurasPerNameplate[nameplate][iconGroupIndex]);
 
 				for _, spell in pairs(GetSpells()) do
 					tinsert(AurasPerNameplate[nameplate][iconGroupIndex], spell);

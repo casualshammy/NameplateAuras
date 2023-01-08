@@ -5,7 +5,7 @@
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert
 
 local _, addonTable = ...;
 
@@ -104,7 +104,7 @@ do
 			DebuffBordersPoisonColor = { 0.1, 1, 0.1, 1 },
 			DebuffBordersOtherColor = { 1, 0.1, 0.1, 1 },
 			IconSpacing = 1,
-			IconAnchor = "LEFT",
+			IconAnchor = 1,
 			AlwaysShowMyAuras = false,
 			BorderThickness = 2,
 			ShowAboveFriendlyUnits = true,
@@ -1259,7 +1259,7 @@ do
 				if (iconGroup.SortMode == AURA_SORT_MODE_CUSTOM) then
 					table_sort(AurasPerNameplate[frame][iconGroupIndex], AuraSortFunctions[AURA_SORT_MODE_CUSTOM][iconGroupIndex]);
 				elseif (iconGroup.SortMode ~= AURA_SORT_MODE_NONE) then
-					table_sort(AurasPerNameplate[frame], AuraSortFunctions[iconGroup.SortMode]);
+					table_sort(AurasPerNameplate[frame][iconGroupIndex], AuraSortFunctions[iconGroup.SortMode]);
 				end
 				for _, spellInfo in pairs(AurasPerNameplate[frame][iconGroupIndex]) do
 					local last = spellInfo.expires - currentTime;
@@ -1728,6 +1728,7 @@ do
 	end
 
 	local function Ticker_OnTick()
+		local spells = GetSpells();
 		for nameplate, unitID in pairs(NameplatesVisible) do
 			for iconGroupIndex in pairs(db.IconGroups) do
 				if (AurasPerNameplate[nameplate][iconGroupIndex] == nil) then
@@ -1736,7 +1737,7 @@ do
 
 				wipe(AurasPerNameplate[nameplate][iconGroupIndex]);
 
-				for _, spell in pairs(GetSpells()) do
+				for _, spell in pairs(spells) do
 					tinsert(AurasPerNameplate[nameplate][iconGroupIndex], spell);
 				end
 

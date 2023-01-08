@@ -379,6 +379,7 @@ local migrations = {
         };
         if (db.IconGroups[1] == nil) then
             db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
+            db.IconGroups[2] = addonTable.GetIconGroupDefaultOptions();
         end
         for _, key in pairs(keys) do
             local value = db[key];

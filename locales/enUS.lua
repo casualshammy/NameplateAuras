@@ -226,4 +226,19 @@ based on aura's duration and remaining time.]=]
 L["options:spells:spell-tooltip"] = [=[Spell tooltip
 must contain text]=]
 
+L["options:icon-groups:editbox-add-text"] = "Enter name and hit Enter key to add new icon group"
+L["options:icon-groups:dropdown-list"] = "Icon groups"
+L["options:category:icon-groups"] = "Icon groups"
+L["options:icon-groups:remove"] = "Delete"
+L["options:general:current-icon-group"] = "Current icon group"
+L["options:icon-groups:description"] =
+[=[Icon group is a set of icons with independent settings.
+For example, you can create separate icon group for debuffs,
+separate icon group for interrupts, and separate icon group for
+important boss buffs. Then you can place these icon groups around
+nameplate independently.
+Pay attention: spells are shared between icon groups, but you can create
+multiple spells with the same name but with different options, and then
+set link to different icon groups.]=]
+
 --@end-debug@

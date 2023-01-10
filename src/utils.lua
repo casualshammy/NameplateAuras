@@ -138,6 +138,24 @@ function addonTable.table_count(t)
 	return count;
 end
 
+function addonTable.array_delete_and_shift(_array, _index)
+	_array[_index] = nil;
+	local tmpArray = {};
+	for key, value in pairs(_array) do
+		if (key > _index) then
+			tmpArray[key] = value;
+		end
+	end
+	local lastKey;
+	for key, value in pairs(tmpArray) do
+		_array[key-1] = value;
+		lastKey = key;
+	end
+	if (lastKey ~= nil) then
+		_array[lastKey] = nil;
+	end
+end
+
 function addonTable.ColorizeText(text, r, g, b)
 	return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 end

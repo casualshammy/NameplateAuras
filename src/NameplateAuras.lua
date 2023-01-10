@@ -5,7 +5,7 @@
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date
 
 local _, addonTable = ...;
 
@@ -71,8 +71,9 @@ local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, ad
 --------------------------------------------------------------------------------------------------
 do
 
-	addonTable.GetIconGroupDefaultOptions = function()
+	addonTable.GetIconGroupDefaultOptions = function(_iconGroupName)
 		return {
+			IconGroupName = _iconGroupName or "IG " .. date("%Y-%m-%d-%H-%M-%S"),
 			ShowAurasOnPlayerNameplate = false,
 			IconXOffset = 0,
 			IconYOffset = 50,
@@ -314,14 +315,14 @@ do
 	function ReloadDB()
 		db = aceDB.profile;
 		addonTable.db = aceDB.profile;
-		-- set texture for interrupt spells
-		for spellID in pairs(addonTable.Interrupts) do
-			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
-		end
 		-- // convert values
 		addonTable.MigrateDB();
 		-- // import default spells
 		addonTable.ImportNewSpells();
+		-- set texture for interrupt spells
+		for spellID in pairs(addonTable.Interrupts) do
+			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+		end
 		-- //
 		if (addonTable.GUIFrame) then
 			for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do

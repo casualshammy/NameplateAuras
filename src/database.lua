@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals wipe
+-- luacheck: globals wipe date
 
 local _, addonTable = ...;
 
@@ -377,15 +377,53 @@ local migrations = {
             "TimerTextColorZeroPercent",
             "TimerTextColorHundredPercent",
         };
-        if (db.IconGroups[1] == nil) then
-            db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
-            db.IconGroups[2] = addonTable.GetIconGroupDefaultOptions();
+        if (db.IconGroups == nil or db.IconGroups[1] == nil) then
+            db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions("First Icon Group");
         end
         for _, key in pairs(keys) do
             local value = db[key];
             if (value ~= nil) then
                 db.IconGroups[1][key] = value;
                 db[key] = nil;
+            end
+        end
+    end,
+    [23] = function()
+        local db = addonTable.db;
+        for igIndex, igData in pairs(db.IconGroups) do
+            if (igData.IconGroupName == nil or igData.IconGroupName == "") then
+                igData.IconGroupName = "[" .. tostring(igIndex) .. "] " .. date("%Y-%m-%d-%H-%M-%S");
+            end
+        end
+    end,
+    [24] = function()
+        local db = addonTable.db;
+        local ref = addonTable.GetIconGroupDefaultOptions();
+        local colorKeys = {
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksTextColor",
+            "BuffBordersColor",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+        };
+        for _, igData in pairs(db.IconGroups) do
+            for _, key in pairs(colorKeys) do
+                local entry = igData[key];
+                local refEntry = ref[key];
+                if (entry ~= nil and refEntry ~= nil) then
+                    for refKey, refValue in pairs(refEntry) do
+                        if (entry[refKey] == nil) then
+                            entry[refKey] = refValue;
+                        end
+                    end
+                end
             end
         end
     end,

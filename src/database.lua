@@ -376,6 +376,8 @@ local migrations = {
             "TimerTextUseRelativeColor",
             "TimerTextColorZeroPercent",
             "TimerTextColorHundredPercent",
+            "KeepAspectRatio",
+            "UseDefaultAuraTooltip",
         };
         if (db.IconGroups == nil or db.IconGroups[1] == nil) then
             db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions("First Icon Group");

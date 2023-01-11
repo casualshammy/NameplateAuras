@@ -49,6 +49,7 @@ function addonTable.OnIconGroupChanged()
 	end
 	GUIFrame.CategoryButtons[activeCategory]:Click();
 	UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
+	addonTable.CompileSortFunction();
 end
 
 local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)

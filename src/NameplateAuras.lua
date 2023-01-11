@@ -162,6 +162,8 @@ do
 			TimerTextUseRelativeColor = false,
 			TimerTextColorZeroPercent = {1, 0.1, 0.1, 1},
 			TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
+			KeepAspectRatio = true,
+			UseDefaultAuraTooltip = false,
 		};
 	end
 
@@ -1014,8 +1016,8 @@ do
 				if ((LocalPlayerGUID ~= unitGUID or iconGroup.ShowAurasOnPlayerNameplate) and (iconGroup.ShowAboveFriendlyUnits or not unitIsFriend) and (not iconGroup.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 					local add = true;
 					if (not unitIsPlayer and unitGUID ~= nil) then
-						local npcName = addonTable.NpcNameByGUID[unitGUID];
-						if (iconGroup.NpcBlacklist[npcName] == true) then
+						local unitName = addonTable.GetUnitNameByGuid(unitID, unitGUID);
+						if (unitName ~= nil and iconGroup.NpcBlacklist[unitName] == true) then
 							add = false;
 						end
 					end

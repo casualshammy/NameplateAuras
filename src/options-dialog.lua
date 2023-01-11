@@ -5185,7 +5185,7 @@ local function InitializeGUI()
 			b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
 		elseif (value == L["options:category:icon-groups"]) then
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 46);
-		elseif (index >= #categories - 3) then
+		elseif (index >= #categories - 4) then
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 		else
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);

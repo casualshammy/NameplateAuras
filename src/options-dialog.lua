@@ -41,14 +41,21 @@ function addonTable.OnSpellInfoCachesReady()
 
 end
 
+function addonTable.GuiOnProfileChanged()
+	CurrentIconGroup = 1;
+	addonTable.OnIconGroupChanged();
+end
+
 function addonTable.OnIconGroupChanged()
-	IconGroupsList.Reinitialize();
-	local activeCategory = GUIFrame.ActiveCategory;
-	for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
-		func();
+	if (GUIFrame ~= nil) then
+		IconGroupsList.Reinitialize();
+		local activeCategory = GUIFrame.ActiveCategory;
+		for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
+			func();
+		end
+		GUIFrame.CategoryButtons[activeCategory]:Click();
+		UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
 	end
-	GUIFrame.CategoryButtons[activeCategory]:Click();
-	UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
 	addonTable.CompileSortFunction();
 end
 
@@ -2314,6 +2321,30 @@ local function GUICategory_4(index)
 			selectSpell.icon:Hide();
 		end
 
+		dropdownMenuSpells:SetCustomSearchHandler(function(_text)
+			local list = dropdownMenuSpells:GetList();
+			local t = {};
+
+			local igPattern = "^group:(%d+)$";
+			local igMatchRaw = string.match(_text, igPattern);
+			if (igMatchRaw ~= nil) then
+				local igMatch = tonumber(igMatchRaw);
+				for _, value in pairs(list) do
+					if (value.info.iconGroups ~= nil and value.info.iconGroups[igMatch] == true) then
+						table_insert(t, value);
+					end
+				end
+			else
+				for _, value in pairs(list) do
+					if (string.find(value.text:lower(), _text:lower())) then
+						table_insert(t, value);
+					end
+				end
+			end
+			return t;
+		end);
+		dropdownMenuSpells:SetSearchBoxHint("You can use filters:\n\ngroup:{group index} -- ex: `group:1`");
+
 		selectSpell = VGUI.CreateButton();
 		selectSpell:SetParent(GUIFrame);
 		selectSpell:SetText(L["Click to select spell"]);
@@ -3532,7 +3563,6 @@ local function GUICategory_Interrupts(index)
 		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.IconGroups[CurrentIconGroup].InterruptsGlowType]); end);
-
 	end
 
 end
@@ -5161,7 +5191,7 @@ local function InitializeGUI()
 	GUIFrame.ControlsFrame:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -12, 12);
 	GUIFrame.ControlsFrame:Hide();
 
-	local closeButton = VGUI.CreateButton();-- CreateFrame("Button", nil, GUIFrame, "UIPanelButtonTemplate");
+	local closeButton = VGUI.CreateButton();
 	closeButton:SetParent(GUIFrame);
 	closeButton:SetText("Close");
 	closeButton:SetWidth(60);
@@ -5194,27 +5224,27 @@ local function InitializeGUI()
 		GUIFrame.Categories[index] = {};
 
 		if (value == L["General"]) then
-			GUICategory_1(index, value);
+			GUICategory_1(index);
 		elseif (value == L["Timer text"]) then
-			GUICategory_Fonts(index, value);
+			GUICategory_Fonts(index);
 		elseif (value == L["Stack text"]) then
-			GUICategory_AuraStackFont(index, value);
+			GUICategory_AuraStackFont(index);
 		elseif (value == L["Icon borders"]) then
-			GUICategory_Borders(index, value);
+			GUICategory_Borders(index);
 		elseif (value == L["Spells"]) then
-			GUICategory_4(index, value);
+			GUICategory_4(index);
 		elseif (value == L["options:category:interrupts"]) then
-			GUICategory_Interrupts(index, value);
+			GUICategory_Interrupts(index);
 		elseif (value == L["options:category:apps"]) then
-			GUICategory_Additions(index, value);
+			GUICategory_Additions(index);
 		elseif (value == L["options:category:size-and-position"]) then
-			GUICategory_SizeAndPosition(index, value);
+			GUICategory_SizeAndPosition(index);
 		elseif (value == L["options:category:dispel"]) then
-			GUICategory_Dispel(index, value);
+			GUICategory_Dispel(index);
 		elseif (value == L["options:category:alpha"]) then
-			GUICategory_Alpha(index, value);
+			GUICategory_Alpha(index);
 		elseif (value == L["options:category:icon-groups"]) then
-			GUICategory_IconGroups(index, value);
+			GUICategory_IconGroups(index);
 		end
 	end
 

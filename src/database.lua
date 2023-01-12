@@ -523,7 +523,6 @@ function addonTable.MigrateDB()
 
     if (#addonTable.db.IconGroups == 0) then
         addonTable.db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
-        addonTable.db.IconGroups[2] = addonTable.GetIconGroupDefaultOptions();
     end
 end
 
@@ -554,11 +553,13 @@ function addonTable.ImportNewSpells(force)
             end
             FillInMissingEntriesIsSpells();
         else
-            if (table_count(allNewSpells) > 0) then
-                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
+            local allNewSpellsCount = table_count(allNewSpells);
+            if (allNewSpellsCount > 0) then
+                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells? (Total: " .. allNewSpellsCount .. ")",
                     function()
                         for _, spellInfo in pairs(allNewSpells) do
                             table.insert(db.CustomSpells2, spellInfo);
+                            Print("Imported '" .. spellInfo.spellName .. "'");
                         end
                         FillInMissingEntriesIsSpells();
                         Print("Imported successfully");

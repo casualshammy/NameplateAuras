@@ -326,11 +326,7 @@ do
 			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- //
-		if (addonTable.GUIFrame) then
-			for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
-				func();
-			end
-		end
+		addonTable.GuiOnProfileChanged();
 		-- //
 		addonTable.UpdateAllNameplates(true);
 	end
@@ -1435,13 +1431,17 @@ do
 			Nameplates[nameplate] = true;
 			AurasPerNameplate[nameplate] = {};
 		end
+
+		local unitGuid = UnitGUID(unitID);
+		local now = GetTime();
+
 		ProcessAurasForNameplate(nameplate, unitID);
 
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
 			if (iconGroup.InterruptsEnabled and InterruptsPerUnitGUID[iconGroupIndex] ~= nil) then
-				local interrupt = InterruptsPerUnitGUID[iconGroupIndex][UnitGUID(unitID)];
+				local interrupt = InterruptsPerUnitGUID[iconGroupIndex][unitGuid];
 				if (interrupt ~= nil) then
-					local remainingTime = interrupt.expires - GetTime();
+					local remainingTime = interrupt.expires - now;
 					if (remainingTime > 0) then
 						CTimerAfter(remainingTime, function() ProcessAurasForNameplate(nameplate, unitID); end);
 					end

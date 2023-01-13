@@ -5,7 +5,7 @@
 -- luacheck: globals IsAddOnLoaded InterfaceOptionsFrameCancel GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date AuraUtil C_UnitAuras
 
 local _, addonTable = ...;
 
@@ -22,23 +22,27 @@ local LRD = LibStub("LibRedDropdown-1.0");
 local DRList = LibStub("DRList-1.0");
 
 -- // upvalues
-local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
+local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table_sort, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
-		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
+		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
 local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo;
-local TooltipUtil_SurfaceArgs, C_TooltipInfo_GetUnitBuff = TooltipUtil.SurfaceArgs, C_TooltipInfo.GetUnitBuff;
-local UnitIsUnit = UnitIsUnit;
+local TooltipUtil_SurfaceArgs = TooltipUtil.SurfaceArgs;
+local C_TooltipInfo_GetUnitBuffByAuraInstanceID = C_TooltipInfo.GetUnitBuffByAuraInstanceID;
+local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffByAuraInstanceID;
+local UnitIsUnit, AuraUtil_ForEachAura = UnitIsUnit, AuraUtil.ForEachAura;
+local C_UnitAuras_GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, DRResetTime, InstanceType, BuffFrameHookedNameplates;
+local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType, BuffFrameHookedNameplates;
 local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
-local SpitefulMobs;
+local SpitefulMobs, PlayerAurasPerGuid;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
 	Nameplates, NameplatesVisible 			= { }, { };
+	NameplatesVisibleGuid					= { };
 	addonTable.Nameplates					= Nameplates;
 	addonTable.AllAuraIconFrames			= { };
 	DRDataPerGUID							= { };
@@ -46,6 +50,7 @@ do
 	SpitefulMobs							= { };
 	InstanceType							= addonTable.INSTANCE_TYPE_NONE;
 	BuffFrameHookedNameplates				= { };
+	PlayerAurasPerGuid 						= { };
 end
 
 -- // consts
@@ -65,6 +70,51 @@ end
 
 -- // utilities
 local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
+
+-- /dump NAuras_Full, NAuras_Inc
+NAuras_Full = 0;
+NAuras_Inc = 0;
+
+local function UpdateUnitAurasFull(_unitId, _unitGuid)
+	if (PlayerAurasPerGuid[_unitGuid] == nil) then
+		PlayerAurasPerGuid[_unitGuid] = { };
+	else
+		wipe(PlayerAurasPerGuid[_unitGuid]);
+	end
+
+	local function handleAura(_unitAuraInfo)
+		PlayerAurasPerGuid[_unitGuid][_unitAuraInfo.auraInstanceID] = _unitAuraInfo;
+	end
+
+	local batchCount = nil;
+	local usePackedAura = true;
+	AuraUtil_ForEachAura(_unitId, "HELPFUL", batchCount, handleAura, usePackedAura);
+	AuraUtil_ForEachAura(_unitId, "HARMFUL", batchCount, handleAura, usePackedAura);
+
+	NAuras_Full = NAuras_Full + 1;
+end
+
+local function UpdateUnitAurasIncremental(_unitId, _unitGuid, _unitAuraUpdateInfo)
+	if (_unitAuraUpdateInfo.addedAuras ~= nil) then
+		for _, aura in pairs(_unitAuraUpdateInfo.addedAuras) do
+			PlayerAurasPerGuid[_unitGuid][aura.auraInstanceID] = aura;
+		end
+	end
+
+	if (_unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil) then
+		for _, auraInstanceID in pairs(_unitAuraUpdateInfo.updatedAuraInstanceIDs) do
+			PlayerAurasPerGuid[_unitGuid][auraInstanceID] = C_UnitAuras_GetAuraDataByAuraInstanceID(_unitId, auraInstanceID);
+		end
+	end
+
+	if (_unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil) then
+		for _, auraInstanceID in pairs(_unitAuraUpdateInfo.removedAuraInstanceIDs) do
+			PlayerAurasPerGuid[_unitGuid][auraInstanceID] = nil;
+		end
+	end
+
+	NAuras_Inc = NAuras_Inc + 1;
+end
 
 --------------------------------------------------------------------------------------------------
 ----- db, on start routines...
@@ -369,8 +419,14 @@ do
 		[AURA_SORT_MODE_CUSTOM] = customSortFunctions,
 	};
 
-	local function GetAuraTextFromUnitAura(_unit, _index)
-		local data = C_TooltipInfo_GetUnitBuff(_unit, _index);
+	local function GetAuraTextFromUnitAura(_unit, _auraData)
+		local data;
+		if (_auraData.isHarmful) then
+			data = C_TooltipInfo_GetUnitDebuffByAuraInstanceID(_unit, _auraData.auraInstanceID);
+		else
+			data = C_TooltipInfo_GetUnitBuffByAuraInstanceID(_unit, _auraData.auraInstanceID);
+		end
+
 		if (data == nil) then
 			return nil;
 		end
@@ -817,18 +873,28 @@ do
 		end
 		for nameplate in pairs(Nameplates) do
 			if (nameplate.NAurasFrames and nameplate.UnitFrame ~= nil and nameplate.UnitFrame.unit ~= nil) then
+				local unitId = NameplatesVisible[nameplate];
+				local unitGuid = NameplatesVisibleGuid[nameplate];
+				if (unitId ~= nil and unitGuid ~= nil) then
+					UpdateUnitAurasFull(unitId, unitGuid);
+				end
+
 				ProcessAurasForNameplate(nameplate, nameplate.UnitFrame.unit);
 			end
 		end
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId, _iconGroupIndex)
+	local function ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, unitIsPlayer, unitId, _iconGroupIndex)
 		if (dbEntry == nil) then
 			return false;
 		end
 
-		if (dbEntry.enabledState == CONST_SPELL_MODE_DISABLED or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and auraCaster ~= "player" and auraCaster ~= "pet")) then
+		if (not dbEntry.iconGroups[_iconGroupIndex]) then
+			return false;
+		end
+
+		if (dbEntry.enabledState == CONST_SPELL_MODE_DISABLED or (dbEntry.enabledState == CONST_SPELL_MODE_MYAURAS and _auraData.sourceUnit ~= "player" and _auraData.sourceUnit ~= "pet")) then
 			return false;
 		end
 
@@ -845,19 +911,15 @@ do
 			return false;
 		end
 
-		if (dbEntry.checkSpellID ~= nil and not dbEntry.checkSpellID[auraSpellID]) then
+		if (dbEntry.checkSpellID ~= nil and not dbEntry.checkSpellID[_auraData.spellId]) then
 			return false;
 		end
 
 		if (dbEntry.spellTooltip ~= nil) then
-			local tooltip = GetAuraTextFromUnitAura(unitId, auraIndex);
+			local tooltip = GetAuraTextFromUnitAura(unitId, _auraData);
 			if (not string_find(tooltip, dbEntry.spellTooltip, 1, true)) then
 				return false;
 			end
-		end
-
-		if (not dbEntry.iconGroups[_iconGroupIndex]) then
-			return false;
 		end
 
 		return true;
@@ -939,21 +1001,23 @@ do
 		end
 	end
 
-	local function ProcAurasForNmplt_OnNewAura(auraType, auraName, auraStack, auraDispelType, auraDuration, auraExpires, auraCaster, auraIsStealable, auraSpellID, unitIsFriend, frame, unitIsPlayer, auraIndex, unitId, _iconGroupsToUpdate)
+	local function ProcAurasForNmplt_OnNewAuraEx(_auraData, unitIsFriend, frame, unitIsPlayer, unitId, _iconGroupsToUpdate)
+		local auraType = _auraData.isHarmful and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
+		local auraName = _auraData.name;
 		for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
 			local foundInDB = false;
 			local tSize = #AurasPerNameplate[frame][iconGroupIndex];
 			local cache = spellCache[auraName];
 			if (cache ~= nil) then
 				for _, dbEntry in pairs(cache) do
-					if (ProcAurasForNmplt_Filter(auraType, auraCaster, auraSpellID, unitIsFriend, dbEntry, unitIsPlayer, auraIndex, unitId, iconGroupIndex)) then
+					if (ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, unitIsPlayer, unitId, iconGroupIndex)) then
 						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
-							["duration"] = auraDuration,
-							["expires"] = auraExpires,
-							["stacks"] = auraStack,
-							["spellID"] = auraSpellID,
+							["duration"] = _auraData.duration,
+							["expires"] = _auraData.expirationTime,
+							["stacks"] = _auraData.applications,
+							["spellID"] = _auraData.spellId,
 							["type"] = auraType,
-							["dispelType"] = auraDispelType,
+							["dispelType"] = _auraData.dispelName,
 							["spellName"] = auraName,
 							["dbEntry"] = dbEntry,
 						};
@@ -963,25 +1027,25 @@ do
 				end
 			end
 			if (not foundInDB) then
-				if (iconGroup.AlwaysShowMyAuras and auraCaster == "player" and not iconGroup.AlwaysShowMyAurasBlacklist[auraName]) then
+				if (iconGroup.AlwaysShowMyAuras and _auraData.sourceUnit == "player" and not iconGroup.AlwaysShowMyAurasBlacklist[auraName]) then
 					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
-						["duration"] = auraDuration,
-						["expires"] = auraExpires,
-						["stacks"] = auraStack,
-						["spellID"] = auraSpellID,
+						["duration"] = _auraData.duration,
+						["expires"] = _auraData.expirationTime,
+						["stacks"] = _auraData.applications,
+						["spellID"] = _auraData.spellId,
 						["type"] = auraType,
-						["dispelType"] = auraDispelType,
+						["dispelType"] = _auraData.dispelName,
 						["spellName"] = auraName,
 					};
 					tSize = tSize + 1;
 				end
-				if (iconGroup.Additions_DispellableSpells and not unitIsFriend and auraIsStealable) then
+				if (iconGroup.Additions_DispellableSpells and not unitIsFriend and _auraData.isStealable) then
 					if (iconGroup.Additions_DispellableSpells_Blacklist[auraName] == nil) then
 						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
-							["duration"] = auraDuration,
-							["expires"] = auraExpires,
-							["stacks"] = auraStack,
-							["spellID"] = auraSpellID,
+							["duration"] = _auraData.duration,
+							["expires"] = _auraData.expirationTime,
+							["stacks"] = _auraData.applications,
+							["spellID"] = _auraData.spellId,
 							["type"] = auraType,
 							["spellName"] = auraName,
 							["dbEntry"] = {
@@ -1012,7 +1076,7 @@ do
 				if ((LocalPlayerGUID ~= unitGUID or iconGroup.ShowAurasOnPlayerNameplate) and (iconGroup.ShowAboveFriendlyUnits or not unitIsFriend) and (not iconGroup.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
 					local add = true;
 					if (not unitIsPlayer and unitGUID ~= nil) then
-						local unitName = addonTable.GetUnitNameByGuid(unitID, unitGUID);
+						local unitName = addonTable.GetOrAddUnitNameByGuid(unitGUID, unitID);
 						if (unitName ~= nil and iconGroup.NpcBlacklist[unitName] == true) then
 							add = false;
 						end
@@ -1028,17 +1092,10 @@ do
 		end
 
 		if (#iconGroupsToUpdate > 0) then
-			for i = 1, 40 do
-				local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(unitID, i);
-				if (buffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_BUFF, buffName, buffStack, nil, buffDuration, buffExpires, buffCaster, buffIsStealable, buffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID, iconGroupsToUpdate);
-				end
-				local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(unitID, i);
-				if (debuffName ~= nil) then
-					ProcAurasForNmplt_OnNewAura(AURA_TYPE_DEBUFF, debuffName, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, nil, debuffSpellID, unitIsFriend, frame, unitIsPlayer, i, unitID, iconGroupsToUpdate);
-				end
-				if (buffName == nil and debuffName == nil) then
-					break;
+			local auras = PlayerAurasPerGuid[unitGUID];
+			if (auras ~= nil) then
+				for _, auraData in pairs(auras) do
+					ProcAurasForNmplt_OnNewAuraEx(auraData, unitIsFriend, frame, unitIsPlayer, unitID, iconGroupsToUpdate);
 				end
 			end
 
@@ -1423,7 +1480,6 @@ do
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
-		NameplatesVisible[nameplate] = unitID;
 		if (not Nameplates[nameplate]) then
 			nameplate.NAurasIcons = {};
 			nameplate.NAurasIconsCount = {};
@@ -1435,6 +1491,10 @@ do
 		local unitGuid = UnitGUID(unitID);
 		local now = GetTime();
 
+		NameplatesVisible[nameplate] = unitID;
+		NameplatesVisibleGuid[nameplate] = unitGuid;
+
+		UpdateUnitAurasFull(unitID, unitGuid);
 		ProcessAurasForNameplate(nameplate, unitID);
 
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
@@ -1473,16 +1533,31 @@ do
 			wipe(AurasPerNameplate[nameplate]);
 		end
 
-		for iconGroupIndex in pairs(db.IconGroups) do
+		for iconGroupIndex in pairs(nameplate.NAurasFrames) do
 			if (nameplate.NAurasFrames[iconGroupIndex] ~= nil) then
 				nameplate.NAurasFrames[iconGroupIndex]:Hide();
 			end
 		end
+
+		local unitGuid = NameplatesVisibleGuid[nameplate];
+		if (unitGuid ~= nil and PlayerAurasPerGuid[unitGuid] ~= nil) then
+			wipe(PlayerAurasPerGuid[unitGuid]);
+			NameplatesVisibleGuid[nameplate] = nil;
+		end
+
+		addonTable.Print("NAME_PLATE_UNIT_REMOVED");
 	end
 
-	function EventFrame.UNIT_AURA(unitID)
+	function EventFrame.UNIT_AURA(unitID, _unitAuraUpdateInfo)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and AurasPerNameplate[nameplate] ~= nil) then
+			local unitGuid = UnitGUID(unitID);
+			if (_unitAuraUpdateInfo == nil or _unitAuraUpdateInfo.isFullUpdate or PlayerAurasPerGuid[unitGuid] == nil) then
+				UpdateUnitAurasFull(unitID, unitGuid);
+			else
+				UpdateUnitAurasIncremental(unitID, unitGuid, _unitAuraUpdateInfo);
+			end
+
 			ProcessAurasForNameplate(nameplate, unitID);
 		end
 	end

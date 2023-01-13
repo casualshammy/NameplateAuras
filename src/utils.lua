@@ -151,10 +151,14 @@ function addonTable.ColorizeText(text, r, g, b)
 	return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 end
 
-function addonTable.GetUnitNameByGuid(_unitId, _unitGuid)
+function addonTable.GetOrAddUnitNameByGuid(_unitGuid, _unitId)
 	local cachedValue = p_unitNameByGuid[_unitGuid];
 	if (cachedValue ~= nil) then
 		return cachedValue;
+	end
+
+	if (_unitId == nil) then
+		return nil;
 	end
 
 	local unitName = GetUnitName(_unitId);
@@ -167,6 +171,10 @@ function addonTable.GetUnitNameByGuid(_unitId, _unitGuid)
 		p_unitNameByGuid[_unitGuid] = unitName;
 		return unitName;
 	end
+end
+
+function NAurasDebug0()
+	return addonTable.table_count(p_unitNameByGuid);
 end
 
 -- // CoroutineProcessor

@@ -1544,8 +1544,6 @@ do
 			wipe(PlayerAurasPerGuid[unitGuid]);
 			NameplatesVisibleGuid[nameplate] = nil;
 		end
-
-		addonTable.Print("NAME_PLATE_UNIT_REMOVED");
 	end
 
 	function EventFrame.UNIT_AURA(unitID, _unitAuraUpdateInfo)

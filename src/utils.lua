@@ -165,16 +165,11 @@ function addonTable.GetOrAddUnitNameByGuid(_unitGuid, _unitId)
 	if (unitName ~= nil) then
 		if (addonTable.table_count(p_unitNameByGuid) > 1000) then
 			wipe(p_unitNameByGuid);
-			addonTable.Print("NPC name cache is wiped");
 		end
 
 		p_unitNameByGuid[_unitGuid] = unitName;
 		return unitName;
 	end
-end
-
-function NAurasDebug0()
-	return addonTable.table_count(p_unitNameByGuid);
 end
 
 -- // CoroutineProcessor

@@ -225,7 +225,6 @@ L["options:timer-text:relative-color:tooltip"] = [=[Timer text's color will be c
 based on aura's duration and remaining time.]=]
 L["options:spells:spell-tooltip"] = [=[Spell tooltip
 must contain text]=]
-
 L["options:icon-groups:editbox-add-text"] = "Enter name and hit Enter key to add new icon group"
 L["options:icon-groups:dropdown-list"] = "Icon groups"
 L["options:category:icon-groups"] = "Icon groups"
@@ -236,7 +235,8 @@ L["options:icon-groups:description"] =
 For example, you can create separate icon group for debuffs,
 separate icon group for interrupts, and separate icon group for
 important boss buffs. Then you can place these icon groups around
-nameplate independently.
+nameplate independently. FYI addons can't distinguish buffs and debuffs,
+so populating groups with spells is, unfortunately, your responsibility. :)
 Pay attention: spells are shared between icon groups, but you can create
 multiple spells with the same name but with different options, and then
 set link to different icon groups.]=]

@@ -10,7 +10,7 @@ NameplateAuras displays buffs/debuffs of players above their nameplates. The dev
 *   NameplateAuras works along with any non-default nameplates (ofc default nameplates are supported too).
 *   Various per-spell filters are included.
 *   A lot of customizations: text styles, animations styles, colours, alpha, etc.
-*   Built-in list of spells contains important PvP and PvE spells. Also you can add your own spells.
+*   Built-in list of spells contains important PvP and PvE spells; also you can add your own spells.
 *   NameplateAuras has a little impact on performance.
 
 ## Chat commands
@@ -18,7 +18,6 @@ NameplateAuras displays buffs/debuffs of players above their nameplates. The dev
 **/nauras** - opens options dialog  
 **/nauras ver** - asks raid/guild members if they have NAuras installed  
 **/nauras test** - enables/disables test mode
-**/nauras max-auras N** - sets the maximum number of icons you want to see on every nameplate. N is number of icons, N = 0 disables this function
 
 ## Call to arms
 

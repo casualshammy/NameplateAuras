@@ -4944,7 +4944,8 @@ local function GUICategory_IconGroups(_index)
 
 		local text = description:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 		text:SetJustifyH("CENTER");
-		text:SetPoint("CENTER", description, "CENTER", 0, 0);
+		text:SetPoint("TOPLEFT", description, "TOPLEFT", 10, -10);
+		text:SetPoint("TOPRIGHT", description, "TOPRIGHT", -10, -10);
 		text:SetText(L["options:icon-groups:description"]);
 
 		table_insert(GUIFrame.Categories[_index], description);
@@ -4997,6 +4998,7 @@ local function GUICategory_IconGroups(_index)
 				local newIg = addonTable.deepcopy(addonTable.db.IconGroups[CurrentIconGroup]);
 				newIg.IconGroupName = text;
 				table.insert(addonTable.db.IconGroups, newIg);
+				CurrentIconGroup = #addonTable.db.IconGroups;
 				OnIconGroupsChanged();
 				self:SetText("");
 			end

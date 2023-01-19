@@ -297,7 +297,7 @@ do
 		InitializeDB();
 		-- // ...
 		ReloadDB();
-		addonTable.CompileSortFunction();
+		addonTable.RebuildAuraSortFunctions();
 		addonTable.RebuildSpellCache();
 		-- // starting listening for events
 		EventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED");
@@ -348,23 +348,9 @@ do
 	local customSortFunctions = { };
 	local AuraSortFunctions;
 	AuraSortFunctions = {
-		[AURA_SORT_MODE_EXPIRETIME] = function(item1, item2)
-			local expires1, expires2 = item1.expires, item2.expires;
-			if (expires1 == 0) then expires1 = VERY_LONG_COOLDOWN_DURATION; end
-			if (expires2 == 0) then expires2 = VERY_LONG_COOLDOWN_DURATION; end
-			return expires1 < expires2;
-		end,
-		[AURA_SORT_MODE_ICONSIZE] = function(item1, item2)
-			local size1 = (item1.dbEntry == nil and math_min(db.DefaultIconSizeHeight, db.DefaultIconSizeWidth) or math_min(item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight));
-			local size2 = (item2.dbEntry == nil and math_min(db.DefaultIconSizeHeight, db.DefaultIconSizeWidth) or math_min(item2.dbEntry.iconSizeWidth, item2.dbEntry.iconSizeHeight));
-			return size1 < size2;
-		end,
-		[AURA_SORT_MODE_AURATYPE_EXPIRE] = function(item1, item2)
-			if (item1.type ~= item2.type) then
-				return (item1.type == AURA_TYPE_DEBUFF) and true or false;
-			end
-			return AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME](item1, item2);
-		end,
+		[AURA_SORT_MODE_EXPIRETIME] = {},
+		[AURA_SORT_MODE_ICONSIZE] = {},
+		[AURA_SORT_MODE_AURATYPE_EXPIRE] = {},
 		[AURA_SORT_MODE_CUSTOM] = customSortFunctions,
 	};
 
@@ -379,23 +365,53 @@ do
 		end
 	end
 
+	function addonTable.RebuildAuraSortFunctions()
+		wipe(AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME]);
+		wipe(AuraSortFunctions[AURA_SORT_MODE_ICONSIZE]);
+		wipe(AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE]);
+
+		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
+			AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex] = function(item1, item2)
+				local expires1, expires2 = item1.expires, item2.expires;
+				if (expires1 == 0) then expires1 = VERY_LONG_COOLDOWN_DURATION; end
+				if (expires2 == 0) then expires2 = VERY_LONG_COOLDOWN_DURATION; end
+				return expires1 < expires2;
+			end
+			AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][iconGroupIndex] = function(item1, item2)
+				print(item1.dbEntry == nil, iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth, item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight)
+				local size1 = (item1.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight));
+				local size2 = (item2.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item2.dbEntry.iconSizeWidth, item2.dbEntry.iconSizeHeight));
+				return size1 < size2;
+			end
+			AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE][iconGroupIndex] = function(item1, item2)
+				if (item1.type ~= item2.type) then
+					return (item1.type == AURA_TYPE_DEBUFF) and true or false;
+				end
+				return AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex](item1, item2);
+			end
+		end
+
+		addonTable.CompileSortFunction();
+	end
+
 	function addonTable.CompileSortFunction()
 		wipe(customSortFunctions);
 
-		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME];
-		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE];
-		local exec_env = setmetatable({}, { __index =
-			function(t, k) -- luacheck: ignore
-				if (k == "sort_time") then
-					return sort_time;
-				elseif (k == "sort_size") then
-					return sort_size;
-				else
-					return _G[k];
-				end
-			end
-		});
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
+			local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex];
+			local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][iconGroupIndex];
+			local exec_env = setmetatable({}, { __index =
+				function(t, k) -- luacheck: ignore
+					if (k == "sort_time") then
+						return sort_time;
+					elseif (k == "sort_size") then
+						return sort_size;
+					else
+						return _G[k];
+					end
+				end
+			});
+
 			local script = iconGroup.CustomSortMethod;
 			script = "return " .. script;
 			local func, errorMsg = loadstring(script);
@@ -1234,10 +1250,8 @@ do
 			local totalWidth = 0;
 			local totalHeight = 0;
 			if (AurasPerNameplate[frame][iconGroupIndex]) then
-				if (iconGroup.SortMode == AURA_SORT_MODE_CUSTOM) then
-					table_sort(AurasPerNameplate[frame][iconGroupIndex], AuraSortFunctions[AURA_SORT_MODE_CUSTOM][iconGroupIndex]);
-				elseif (iconGroup.SortMode ~= AURA_SORT_MODE_NONE) then
-					table_sort(AurasPerNameplate[frame][iconGroupIndex], AuraSortFunctions[iconGroup.SortMode]);
+				if (iconGroup.SortMode ~= AURA_SORT_MODE_NONE) then
+					table_sort(AurasPerNameplate[frame][iconGroupIndex], AuraSortFunctions[iconGroup.SortMode][iconGroupIndex]);
 				end
 				for _, spellInfo in pairs(AurasPerNameplate[frame][iconGroupIndex]) do
 					local last = spellInfo.expires - currentTime;
@@ -1601,14 +1615,14 @@ do
 	local intervalBetweenRefreshes = 13;
 	local ticker = nil;
 	local spellsLastTimeUpdated = GetTime() - intervalBetweenRefreshes;
-	local testTable;
+	local testTable = {};
 
-	local function GetSpells()
+	local function GetSpells(_iconGroupIndex)
 		if (GetTime() - spellsLastTimeUpdated >= intervalBetweenRefreshes) then
 			spellsLastTimeUpdated = GetTime();
 		end
-		if (testTable == nil) then
-			testTable = {
+		if (testTable[_iconGroupIndex] == nil) then
+			testTable[_iconGroupIndex] = {
 				{
 					["duration"] = intervalBetweenRefreshes-3,
 					["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3,
@@ -1655,32 +1669,32 @@ do
 					["dispelType"] = "Curse",
 					["spellName"] = SpellNameByID[66843],
 					["dbEntry"] = {
-						["iconSizeWidth"] = db.DefaultIconSizeWidth,
-						["iconSizeHeight"] = db.DefaultIconSizeHeight,
+						["iconSizeWidth"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeWidth,
+						["iconSizeHeight"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeHeight,
 						["showGlow"] = GLOW_TIME_INFINITE,
-						["glowType"] = db.Additions_DispellableSpells_GlowType,
+						["glowType"] = db.IconGroups[_iconGroupIndex].Additions_DispellableSpells_GlowType,
 					},
 				},
 			};
 		else
-			testTable[1]["duration"] = intervalBetweenRefreshes-3;
-			testTable[1]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3;
+			testTable[_iconGroupIndex][1]["duration"] = intervalBetweenRefreshes-3;
+			testTable[_iconGroupIndex][1]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes-3;
 
-			testTable[2]["duration"] = intervalBetweenRefreshes*20;
-			testTable[2]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20;
+			testTable[_iconGroupIndex][2]["duration"] = intervalBetweenRefreshes*20;
+			testTable[_iconGroupIndex][2]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*20;
 
-			testTable[3]["duration"] = intervalBetweenRefreshes*2;
-			testTable[3]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2;
+			testTable[_iconGroupIndex][3]["duration"] = intervalBetweenRefreshes*2;
+			testTable[_iconGroupIndex][3]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes*2;
 
-			testTable[4]["dbEntry"]["iconSizeWidth"] = db.DefaultIconSizeWidth;
-			testTable[4]["dbEntry"]["iconSizeHeight"] = db.DefaultIconSizeHeight;
-			testTable[4]["dbEntry"]["glowType"] = db.Additions_DispellableSpells_GlowType;
+			testTable[_iconGroupIndex][4]["dbEntry"]["iconSizeWidth"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeWidth;
+			testTable[_iconGroupIndex][4]["dbEntry"]["iconSizeHeight"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeHeight;
+			testTable[_iconGroupIndex][4]["dbEntry"]["glowType"] = db.IconGroups[_iconGroupIndex].Additions_DispellableSpells_GlowType;
 		end
 		if (addonTable.GetCurrentlyEditingSpell ~= nil) then
 			local dbEntry, spellID = addonTable.GetCurrentlyEditingSpell();
 			if (dbEntry ~= nil and spellID ~= nil) then
-				if (testTable[5] == nil) then
-					testTable[5] = {
+				if (testTable[_iconGroupIndex][5] == nil) then
+					testTable[_iconGroupIndex][5] = {
 						["duration"] = intervalBetweenRefreshes,
 						["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes,
 						["stacks"] = 5,
@@ -1691,26 +1705,27 @@ do
 						["dbEntry"] = dbEntry,
 					};
 				else
-					testTable[5]["duration"] = intervalBetweenRefreshes;
-					testTable[5]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes;
-					testTable[5]["spellID"] = spellID;
-					testTable[5]["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
-					testTable[5]["spellName"] = SpellNameByID[spellID];
-					testTable[5]["dbEntry"] = dbEntry;
+					testTable[_iconGroupIndex][5]["duration"] = intervalBetweenRefreshes;
+					testTable[_iconGroupIndex][5]["expires"] = spellsLastTimeUpdated + intervalBetweenRefreshes;
+					testTable[_iconGroupIndex][5]["spellID"] = spellID;
+					testTable[_iconGroupIndex][5]["type"] = (dbEntry.auraType == AURA_TYPE_DEBUFF) and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
+					testTable[_iconGroupIndex][5]["spellName"] = SpellNameByID[spellID];
+					testTable[_iconGroupIndex][5]["dbEntry"] = dbEntry;
 				end
 			else
-				testTable[5] = nil;
+				testTable[_iconGroupIndex][5] = nil;
 			end
 		else
-			testTable[5] = nil;
+			testTable[_iconGroupIndex][5] = nil;
 		end
-		return testTable;
+		return testTable[_iconGroupIndex];
 	end
 
 	local function Ticker_OnTick()
-		local spells = GetSpells();
 		for nameplate, unitID in pairs(NameplatesVisible) do
 			for iconGroupIndex in pairs(db.IconGroups) do
+				local spells = GetSpells(iconGroupIndex);
+
 				if (AurasPerNameplate[nameplate][iconGroupIndex] == nil) then
 					AurasPerNameplate[nameplate][iconGroupIndex] = { };
 				end

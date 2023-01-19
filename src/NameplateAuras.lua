@@ -71,49 +71,57 @@ end
 -- // utilities
 local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
 
+local UpdateUnitAurasFull, UpdateUnitAurasIncremental;
 -- /dump NAuras_Full, NAuras_Inc
-NAuras_Full = 0;
-NAuras_Inc = 0;
+do
+	NAuras_Full = 0;
+	NAuras_Inc = 0;
+	local p_updateAurasCurrentUnit = nil;
 
-local function UpdateUnitAurasFull(_unitId, _unitGuid)
-	if (PlayerAurasPerGuid[_unitGuid] == nil) then
-		PlayerAurasPerGuid[_unitGuid] = { };
-	else
-		wipe(PlayerAurasPerGuid[_unitGuid]);
+	local function UpdateUnitAuras_HandleAura(_unitAuraInfo)
+		PlayerAurasPerGuid[p_updateAurasCurrentUnit][_unitAuraInfo.auraInstanceID] = _unitAuraInfo;
 	end
 
-	local function handleAura(_unitAuraInfo)
-		PlayerAurasPerGuid[_unitGuid][_unitAuraInfo.auraInstanceID] = _unitAuraInfo;
-	end
-
-	local batchCount = nil;
-	local usePackedAura = true;
-	AuraUtil_ForEachAura(_unitId, "HELPFUL", batchCount, handleAura, usePackedAura);
-	AuraUtil_ForEachAura(_unitId, "HARMFUL", batchCount, handleAura, usePackedAura);
-
-	NAuras_Full = NAuras_Full + 1;
-end
-
-local function UpdateUnitAurasIncremental(_unitId, _unitGuid, _unitAuraUpdateInfo)
-	if (_unitAuraUpdateInfo.addedAuras ~= nil) then
-		for _, aura in pairs(_unitAuraUpdateInfo.addedAuras) do
-			PlayerAurasPerGuid[_unitGuid][aura.auraInstanceID] = aura;
+	function UpdateUnitAurasFull(_unitId, _unitGuid)
+		if (PlayerAurasPerGuid[_unitGuid] == nil) then
+			PlayerAurasPerGuid[_unitGuid] = { };
+		else
+			wipe(PlayerAurasPerGuid[_unitGuid]);
 		end
+
+		p_updateAurasCurrentUnit = _unitGuid;
+
+		local batchCount = nil;
+		local usePackedAura = true;
+		AuraUtil_ForEachAura(_unitId, "HELPFUL", batchCount, UpdateUnitAuras_HandleAura, usePackedAura);
+		AuraUtil_ForEachAura(_unitId, "HARMFUL", batchCount, UpdateUnitAuras_HandleAura, usePackedAura);
+
+		p_updateAurasCurrentUnit = nil;
+
+		NAuras_Full = NAuras_Full + 1;
 	end
 
-	if (_unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil) then
-		for _, auraInstanceID in pairs(_unitAuraUpdateInfo.updatedAuraInstanceIDs) do
-			PlayerAurasPerGuid[_unitGuid][auraInstanceID] = C_UnitAuras_GetAuraDataByAuraInstanceID(_unitId, auraInstanceID);
+	function UpdateUnitAurasIncremental(_unitId, _unitGuid, _unitAuraUpdateInfo)
+		if (_unitAuraUpdateInfo.addedAuras ~= nil) then
+			for _, aura in pairs(_unitAuraUpdateInfo.addedAuras) do
+				PlayerAurasPerGuid[_unitGuid][aura.auraInstanceID] = aura;
+			end
 		end
-	end
 
-	if (_unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil) then
-		for _, auraInstanceID in pairs(_unitAuraUpdateInfo.removedAuraInstanceIDs) do
-			PlayerAurasPerGuid[_unitGuid][auraInstanceID] = nil;
+		if (_unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil) then
+			for _, auraInstanceID in pairs(_unitAuraUpdateInfo.updatedAuraInstanceIDs) do
+				PlayerAurasPerGuid[_unitGuid][auraInstanceID] = C_UnitAuras_GetAuraDataByAuraInstanceID(_unitId, auraInstanceID);
+			end
 		end
-	end
 
-	NAuras_Inc = NAuras_Inc + 1;
+		if (_unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil) then
+			for _, auraInstanceID in pairs(_unitAuraUpdateInfo.removedAuraInstanceIDs) do
+				PlayerAurasPerGuid[_unitGuid][auraInstanceID] = nil;
+			end
+		end
+
+		NAuras_Inc = NAuras_Inc + 1;
+	end
 end
 
 --------------------------------------------------------------------------------------------------

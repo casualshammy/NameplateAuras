@@ -34,17 +34,37 @@ do
 		addonTable.Print, addonTable.msg, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.CoroutineProcessor;
 end
 
+local CurrentIconGroup = 1;
+local IconGroupsList;
 
 function addonTable.OnSpellInfoCachesReady()
 
+end
+
+function addonTable.GuiOnProfileChanged()
+	CurrentIconGroup = 1;
+	addonTable.OnIconGroupChanged();
+end
+
+function addonTable.OnIconGroupChanged()
+	if (GUIFrame ~= nil) then
+		IconGroupsList.Reinitialize();
+		local activeCategory = GUIFrame.ActiveCategory;
+		for _, func in pairs(addonTable.GUIFrame.OnDBChangedHandlers) do
+			func();
+		end
+		GUIFrame.CategoryButtons[activeCategory]:Click();
+		UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
+	end
+	addonTable.CompileSortFunction();
 end
 
 local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 	return {
 		["enabledState"] =				enabledState,
 		["auraType"] =					AURA_TYPE_ANY,
-		["iconSizeWidth"] =				addonTable.db.DefaultIconSizeWidth,
-		["iconSizeHeight"] =			addonTable.db.DefaultIconSizeHeight,
+		["iconSizeWidth"] =				addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth,
+		["iconSizeHeight"] =			addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight,
 		["spellName"] =					spellName,
 		["checkSpellID"] =				checkSpellID,
 		["showOnFriends"] =				true,
@@ -56,9 +76,10 @@ local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
 		["animationTimer"] =			10,
 		["animationDisplayMode"] =		addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE,
 		["customBorderColor"] = 		{ 1, 0.1, 0.1, 1 },
-		["customBorderSize"] = 			addonTable.db.BorderThickness,
+		["customBorderSize"] = 			addonTable.db.IconGroups[CurrentIconGroup].BorderThickness,
 		["customBorderType"] = 			addonTable.BORDER_TYPE_DISABLED,
 		["customBorderPath"] = 			"",
+		["iconGroups"] =				{[1] = true},
 	};
 end
 
@@ -101,8 +122,10 @@ local function GUICategory_1(index)
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
-		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist;
+		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
+		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
+	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
 
 	-- checkBoxHideBlizzardFrames
 	do
@@ -111,6 +134,9 @@ local function GUICategory_1(index)
 		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
 			addonTable.db.HideBlizzardFrames = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
+			if (not addonTable.db.HideBlizzardFrames) then
+				addonTable.PopupReloadUI();
+			end
 		end);
 		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
 		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
@@ -129,6 +155,9 @@ local function GUICategory_1(index)
 		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
 			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
+			if (not addonTable.db.HidePlayerBlizzardFrame) then
+				addonTable.PopupReloadUI();
+			end
 		end);
 		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
 		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
@@ -145,13 +174,13 @@ local function GUICategory_1(index)
 		checkBoxShowAurasOnPlayerNameplate = VGUI.CreateCheckBox();
 		checkBoxShowAurasOnPlayerNameplate:SetText(L["Display auras on player's nameplate"]);
 		checkBoxShowAurasOnPlayerNameplate:SetOnClickHandler(function(this)
-			addonTable.db.ShowAurasOnPlayerNameplate = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnPlayerNameplate = this:GetChecked();
 		end);
-		checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate);
+		checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnPlayerNameplate);
 		checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
 		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", checkBoxHidePlayerBlizzardFrame, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.ShowAurasOnPlayerNameplate); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnPlayerNameplate); end);
 
 	end
 
@@ -160,14 +189,14 @@ local function GUICategory_1(index)
 		checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
 		checkBoxShowAboveFriendlyUnits:SetText(L["Display auras on nameplates of friendly units"]);
 		checkBoxShowAboveFriendlyUnits:SetOnClickHandler(function(this)
-			addonTable.db.ShowAboveFriendlyUnits = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits = this:GetChecked();
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits);
+		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits);
 		checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
 		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.ShowAboveFriendlyUnits); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits); end);
 
 	end
 
@@ -176,15 +205,15 @@ local function GUICategory_1(index)
 		checkBoxShowMyAuras = VGUI.CreateCheckBox();
 		checkBoxShowMyAuras:SetText(L["Always show auras cast by myself"]);
 		checkBoxShowMyAuras:SetOnClickHandler(function(this)
-			addonTable.db.AlwaysShowMyAuras = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAuras = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
 		end);
-		checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras);
+		checkBoxShowMyAuras:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAuras);
 		checkBoxShowMyAuras:SetParent(GUIFrame);
 		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAboveFriendlyUnits, "BOTTOMLEFT", 0, 0);
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.AlwaysShowMyAuras); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAuras); end);
 
 	end
 
@@ -202,12 +231,12 @@ local function GUICategory_1(index)
 				dropdownAlwaysShowMyAurasBlacklist:Hide();
 			else
 				local t = { };
-				for spellName in pairs(addonTable.db.AlwaysShowMyAurasBlacklist) do
+				for spellName in pairs(addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAurasBlacklist) do
 					table_insert(t, {
 						text = spellName,
 						icon = AllSpellIDsAndIconsByName[spellName] ~= nil and SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])] or 136243,
 						onCloseButtonClick = function()
-							addonTable.db.AlwaysShowMyAurasBlacklist[spellName] = nil;
+							addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAurasBlacklist[spellName] = nil;
 							addonTable.UpdateAllNameplates(false);
 							-- close and then open list again
 							buttonAlwaysShowMyAurasBlacklist:Click(); buttonAlwaysShowMyAurasBlacklist:Click();
@@ -255,7 +284,7 @@ local function GUICategory_1(index)
 				if (not spellExist) then
 					msg(L["Spell seems to be nonexistent"]);
 				else
-					addonTable.db.AlwaysShowMyAurasBlacklist[text] = true;
+					addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAurasBlacklist[text] = true;
 					addonTable.UpdateAllNameplates(false);
 					-- close and then open list again
 					buttonAlwaysShowMyAurasBlacklist:Click(); buttonAlwaysShowMyAurasBlacklist:Click();
@@ -308,38 +337,19 @@ local function GUICategory_1(index)
 		dropdownAlwaysShowMyAurasBlacklist:SetPoint("TOPLEFT", buttonAlwaysShowMyAurasBlacklist, "TOPRIGHT", 5, 0);
 	end
 
-	-- // checkboxAuraTooltip
-	do
-		checkboxAuraTooltip = VGUI.CreateCheckBox();
-		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
-		checkboxAuraTooltip:SetOnClickHandler(function(this)
-			addonTable.db.ShowAuraTooltip = this:GetChecked();
-			for _, icon in pairs(addonTable.AllAuraIconFrames) do
-				addonTable.AllocateIcon_SetAuraTooltip(icon);
-			end
-			GameTooltip:Hide();
-		end);
-		checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip);
-		checkboxAuraTooltip:SetParent(GUIFrame);
-		checkboxAuraTooltip:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.ShowAuraTooltip); end);
-
-	end
-
 	-- // checkboxShowCooldownAnimation
 	do
 		checkboxShowCooldownAnimation = VGUI.CreateCheckBox();
 		checkboxShowCooldownAnimation:SetText(L["options:general:show-cooldown-animation"]);
 		checkboxShowCooldownAnimation:SetOnClickHandler(function(this)
-			addonTable.db.ShowCooldownAnimation = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownAnimation = this:GetChecked();
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation);
+		checkboxShowCooldownAnimation:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownAnimation);
 		checkboxShowCooldownAnimation:SetParent(GUIFrame);
-		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxShowCooldownAnimation:SetPoint("TOPLEFT", checkBoxShowMyAuras, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownAnimation);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.ShowCooldownAnimation); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowCooldownAnimation:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownAnimation); end);
 	end
 
 	-- // checkboxShowOnlyOnTarget
@@ -347,14 +357,62 @@ local function GUICategory_1(index)
 		checkboxShowOnlyOnTarget = VGUI.CreateCheckBox();
 		checkboxShowOnlyOnTarget:SetText(L["options:general:show-on-target-only"]);
 		checkboxShowOnlyOnTarget:SetOnClickHandler(function(this)
-			addonTable.db.ShowOnlyOnTarget = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowOnlyOnTarget = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
 		end);
-		checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget);
+		checkboxShowOnlyOnTarget:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowOnlyOnTarget);
 		checkboxShowOnlyOnTarget:SetParent(GUIFrame);
 		checkboxShowOnlyOnTarget:SetPoint("TOPLEFT", checkboxShowCooldownAnimation, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkboxShowOnlyOnTarget);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.ShowOnlyOnTarget); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowOnlyOnTarget:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowOnlyOnTarget); end);
+	end
+
+	-- // checkboxAuraTooltip
+	do
+		checkboxAuraTooltip = VGUI.CreateCheckBox();
+		checkboxAuraTooltip:SetText(L["options:general:show-aura-tooltip"]);
+		checkboxAuraTooltip:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip = this:GetChecked();
+			for _, icon in pairs(addonTable.AllAuraIconFrames) do
+				addonTable.AllocateIcon_SetAuraTooltip(icon);
+			end
+			GameTooltip:Hide();
+			if (addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip) then
+				checkboxUseDefaultAuraTooltip:Show();
+			else
+				checkboxUseDefaultAuraTooltip:Hide();
+			end
+		end);
+		checkboxAuraTooltip:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip);
+		checkboxAuraTooltip:SetParent(GUIFrame);
+		checkboxAuraTooltip:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxAuraTooltip);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxAuraTooltip:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip); end);
+
+	end
+
+	-- // checkboxUseDefaultAuraTooltip
+	do
+		checkboxUseDefaultAuraTooltip = VGUI.CreateCheckBox();
+		checkboxUseDefaultAuraTooltip:SetText(L["options:general:use-default-tooltip"]);
+		checkboxUseDefaultAuraTooltip:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].UseDefaultAuraTooltip = this:GetChecked();
+			for _, icon in pairs(addonTable.AllAuraIconFrames) do
+				addonTable.AllocateIcon_SetAuraTooltip(icon);
+			end
+			GameTooltip:Hide();
+		end);
+		checkboxUseDefaultAuraTooltip:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].UseDefaultAuraTooltip);
+		checkboxUseDefaultAuraTooltip:SetParent(GUIFrame);
+		checkboxUseDefaultAuraTooltip:SetPoint("TOPLEFT", checkboxAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxUseDefaultAuraTooltip:HookScript("OnShow", function(self)
+			if (not addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip) then
+				self:Hide();
+			end
+		end);
+		table_insert(GUIFrame.Categories[index], checkboxUseDefaultAuraTooltip);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxUseDefaultAuraTooltip:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].UseDefaultAuraTooltip); end);
+		
 	end
 
 	-- // zoneTypesArea
@@ -371,7 +429,7 @@ local function GUICategory_1(index)
 		});
 		zoneTypesArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		zoneTypesArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		zoneTypesArea:SetPoint("TOPLEFT", checkboxShowOnlyOnTarget, "BOTTOMLEFT", 0, -10);
+		zoneTypesArea:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, -10);
 		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		zoneTypesArea:SetWidth(360);
 		zoneTypesArea:SetHeight(90);
@@ -419,11 +477,11 @@ local function GUICategory_1(index)
 						if (btn) then
 							info.disabled = not info.disabled;
 							btn:SetGray(info.disabled);
-							addonTable.db.EnabledZoneTypes[info.instanceType] = not info.disabled;
+							addonTable.db.IconGroups[CurrentIconGroup].EnabledZoneTypes[info.instanceType] = not info.disabled;
 						end
 						addonTable.UpdateAllNameplates();
 					end,
-					["disabled"] = not addonTable.db.EnabledZoneTypes[instanceType],
+					["disabled"] = not addonTable.db.IconGroups[CurrentIconGroup].EnabledZoneTypes[instanceType],
 					["dontCloseOnClick"] = true,
 					["instanceType"] = instanceType,
 				});
@@ -461,14 +519,104 @@ local function GUICategory_1(index)
 		checkboxShowAurasOnTargetEvenInDisabledAreas = VGUI.CreateCheckBox();
 		checkboxShowAurasOnTargetEvenInDisabledAreas:SetText(L["options:general:show-on-target-even-in-disabled-area-types"]);
 		checkboxShowAurasOnTargetEvenInDisabledAreas:SetOnClickHandler(function(this)
-			addonTable.db.ShowAurasOnTargetEvenInDisabledAreas = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
 		end);
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.ShowAurasOnTargetEvenInDisabledAreas);
+		checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas);
 		checkboxShowAurasOnTargetEvenInDisabledAreas:SetParent(zoneTypesArea);
 		checkboxShowAurasOnTargetEvenInDisabledAreas:SetPoint("TOPLEFT", buttonInstances, "BOTTOMLEFT", 0, -10);
 		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnTargetEvenInDisabledAreas);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.ShowAurasOnTargetEvenInDisabledAreas); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas); end);
+	end
+
+	-- // buttonNpcBlacklist
+	do
+		buttonNpcBlacklist = VGUI.CreateButton();
+		buttonNpcBlacklist:SetParent(GUIFrame);
+		buttonNpcBlacklist:SetText(L["options:general:npc-blacklist"]);
+		buttonNpcBlacklist:SetPoint("TOPLEFT", zoneTypesArea, "BOTTOMLEFT", 10, -10);
+		buttonNpcBlacklist:SetPoint("TOPRIGHT", zoneTypesArea, "BOTTOMRIGHT", -10, -10);
+		buttonNpcBlacklist:SetHeight(25);
+		buttonNpcBlacklist:SetScript("OnClick", function(self)
+			if (dropdownNpcBlacklist:IsShown()) then
+				dropdownNpcBlacklist:Hide();
+			else
+				local t = { };
+				for npcName in pairs(addonTable.db.IconGroups[CurrentIconGroup].NpcBlacklist) do
+					table_insert(t, {
+						text = npcName,
+						onCloseButtonClick = function()
+							addonTable.db.IconGroups[CurrentIconGroup].NpcBlacklist[npcName] = nil;
+							addonTable.UpdateAllNameplates(false);
+							-- close and then open list again
+							buttonNpcBlacklist:Click(); 
+							buttonNpcBlacklist:Click();
+						end,
+					});
+				end
+				table_sort(t, function(item1, item2) return item1.text < item2.text end);
+				dropdownNpcBlacklist:SetList(t);
+				dropdownNpcBlacklist:SetParent(self);
+				dropdownNpcBlacklist:Show();
+				dropdownNpcBlacklist.searchBox:SetFocus();
+				dropdownNpcBlacklist.searchBox:SetText("");
+			end
+		end);
+		buttonNpcBlacklist:SetScript("OnHide", function() dropdownNpcBlacklist:Hide() end);
+		table_insert(GUIFrame.Categories[index], buttonNpcBlacklist);
+	end
+
+	-- buttonNpcBlacklistAdd
+	do
+		buttonNpcBlacklistAdd = VGUI.CreateButton();
+		buttonNpcBlacklistAdd:SetParent(dropdownNpcBlacklist);
+		buttonNpcBlacklistAdd:SetText(L["options:general:npc-blacklist-add-button"]);
+		buttonNpcBlacklistAdd:SetWidth(dropdownNpcBlacklist:GetWidth() / 3);
+		buttonNpcBlacklistAdd:SetHeight(24);
+		buttonNpcBlacklistAdd:SetPoint("TOPRIGHT", dropdownNpcBlacklist, "BOTTOMRIGHT", 0, -8);
+		buttonNpcBlacklistAdd:SetScript("OnClick", function()
+			local text = editboxNpcBlacklistAdd:GetText();
+			if (text ~= nil and text ~= "") then
+				addonTable.db.IconGroups[CurrentIconGroup].NpcBlacklist[text] = true;
+				addonTable.UpdateAllNameplates(false);
+				buttonNpcBlacklist:Click();
+				buttonNpcBlacklist:Click();
+			end
+			editboxNpcBlacklistAdd:SetText("");
+		end);
+	end
+
+	-- editboxNpcBlacklistAdd
+	do
+		editboxNpcBlacklistAdd = CreateFrame("EditBox", nil, dropdownNpcBlacklist, "InputBoxTemplate");
+		editboxNpcBlacklistAdd:SetAutoFocus(false);
+		editboxNpcBlacklistAdd:SetFontObject(GameFontHighlightSmall);
+		editboxNpcBlacklistAdd:SetHeight(20);
+		editboxNpcBlacklistAdd:SetWidth(dropdownNpcBlacklist:GetWidth() - buttonNpcBlacklistAdd:GetWidth() - 10);
+		editboxNpcBlacklistAdd:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMLEFT", -5, 2);
+		editboxNpcBlacklistAdd:SetJustifyH("LEFT");
+		editboxNpcBlacklistAdd:EnableMouse(true);
+		editboxNpcBlacklistAdd:SetScript("OnEscapePressed", function() editboxNpcBlacklistAdd:ClearFocus() end);
+		editboxNpcBlacklistAdd:SetScript("OnEnterPressed", function() buttonNpcBlacklistAdd:Click() end);
+		local text = editboxNpcBlacklistAdd:CreateFontString(nil, "ARTWORK", "GameFontDisableTiny");
+		text:SetPoint("LEFT", 0, 0);
+		text:SetText(L["options:general:npc-blacklist-editbox-add"]);
+		editboxNpcBlacklistAdd:SetScript("OnEditFocusGained", function() text:Hide() end);
+		editboxNpcBlacklistAdd:SetScript("OnEditFocusLost", function() text:Show() end);
+	end
+
+	-- dropdownNpcBlacklist
+	do
+		dropdownNpcBlacklist.Background = dropdownNpcBlacklist:CreateTexture(nil, "BORDER");
+		dropdownNpcBlacklist.Background:SetPoint("TOPLEFT", dropdownNpcBlacklist, "TOPLEFT", -2, 2);
+		dropdownNpcBlacklist.Background:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMRIGHT",  2, -2);
+		dropdownNpcBlacklist.Background:SetColorTexture(1, 0.3, 0.3, 1);
+		dropdownNpcBlacklist.Border = dropdownNpcBlacklist:CreateTexture(nil, "BACKGROUND");
+		dropdownNpcBlacklist.Border:SetPoint("TOPLEFT", dropdownNpcBlacklist, "TOPLEFT", -3, 3);
+		dropdownNpcBlacklist.Border:SetPoint("BOTTOMRIGHT", buttonNpcBlacklistAdd, "BOTTOMRIGHT",  3, -3);
+		dropdownNpcBlacklist.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
+		dropdownNpcBlacklist:ClearAllPoints();
+		dropdownNpcBlacklist:SetPoint("TOPLEFT", buttonNpcBlacklist, "TOPRIGHT", 5, 0);
 	end
 
 end
@@ -488,31 +636,32 @@ local function GUICategory_Fonts(index)
 		[textAnchors[9]] = L["anchor-point:bottomleft"]
 	};
 	local sliderTimerFontScale, sliderTimerFontSize, timerTextColorArea, tenthsOfSecondsArea, checkboxShowCooldownText, auraTextArea, buttonFont, checkBoxUseRelativeFontSize, sliderTimerTextXOffset;
-	local dropdownTimerTextAnchor;
+	local dropdownTimerTextAnchor, checkBoxUseRelativeTextColor, colorPickerTimerTextZeroPercent, colorPickerTimerTextFiveSeconds, colorPickerTimerTextMinute, colorPickerTimerTextHundredPercent;
+	local colorPickerTimerTextMore;
 
 	-- // checkboxShowCooldownText
 	do
 		checkboxShowCooldownText = VGUI.CreateCheckBox();
 		checkboxShowCooldownText:SetText(L["options:general:show-cooldown-text"]);
 		checkboxShowCooldownText:SetOnClickHandler(function(this)
-			addonTable.db.ShowCooldownText = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownText = this:GetChecked();
 			addonTable.UpdateAllNameplates(true);
-			if (addonTable.db.ShowCooldownText) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownText) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
 			end
 		end);
-		checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+		checkboxShowCooldownText:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownText);
 		checkboxShowCooldownText:SetParent(GUIFrame);
 		checkboxShowCooldownText:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
 		table_insert(GUIFrame.Categories[index], checkboxShowCooldownText);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxShowCooldownText:SetChecked(addonTable.db.ShowCooldownText);
+			checkboxShowCooldownText:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownText);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		checkboxShowCooldownText:SetScript("OnShow", function()
-			if (addonTable.db.ShowCooldownText) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownText) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
@@ -546,7 +695,7 @@ local function GUICategory_Fonts(index)
 		local fonts = { };
 		buttonFont = VGUI.CreateButton();
 		buttonFont:SetParent(auraTextArea);
-		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.Font);
+		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.IconGroups[CurrentIconGroup].Font);
 
 		for _, font in next, SML:List("font") do
 			table_insert(fonts, {
@@ -554,7 +703,7 @@ local function GUICategory_Fonts(index)
 				["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
 				["func"] = function(info)
 					buttonFont.Text:SetText(L["Font"] .. ": " .. info.text);
-					addonTable.db.Font = info.text;
+					addonTable.db.IconGroups[CurrentIconGroup].Font = info.text;
 					addonTable.UpdateAllNameplates(true);
 				end,
 				["font"] = SML:Fetch("font", font),
@@ -584,8 +733,8 @@ local function GUICategory_Fonts(index)
 		checkBoxUseRelativeFontSize = VGUI.CreateCheckBox();
 		checkBoxUseRelativeFontSize:SetText(L["options:timer-text:scale-font-size"]);
 		checkBoxUseRelativeFontSize:SetOnClickHandler(function(this)
-			addonTable.db.TimerTextUseRelativeScale = this:GetChecked();
-			if (addonTable.db.TimerTextUseRelativeScale) then
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeScale = this:GetChecked();
+			if (addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeScale) then
 				sliderTimerFontScale:Show();
 				sliderTimerFontSize:Hide();
 			else
@@ -593,15 +742,15 @@ local function GUICategory_Fonts(index)
 				sliderTimerFontSize:Show();
 			end
 		end);
-		checkBoxUseRelativeFontSize:SetChecked(addonTable.db.TimerTextUseRelativeScale);
+		checkBoxUseRelativeFontSize:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeScale);
 		checkBoxUseRelativeFontSize:SetParent(auraTextArea);
 		checkBoxUseRelativeFontSize:SetPoint("TOPLEFT", buttonFont, "BOTTOMLEFT", 0, -10);
 		table_insert(GUIFrame.Categories[index], checkBoxUseRelativeFontSize);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxUseRelativeFontSize:SetChecked(addonTable.db.TimerTextUseRelativeScale);
+			checkBoxUseRelativeFontSize:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeScale);
 		end);
 		checkBoxUseRelativeFontSize:SetScript("OnShow", function()
-			if (addonTable.db.TimerTextUseRelativeScale) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeScale) then
 				sliderTimerFontScale:Show();
 				sliderTimerFontSize:Hide();
 			else
@@ -626,19 +775,19 @@ local function GUICategory_Fonts(index)
 		sliderTimerFontScale.label:SetText(L["Font scale"]);
 		sliderTimerFontScale.slider:SetValueStep(0.1);
 		sliderTimerFontScale.slider:SetMinMaxValues(minValue, maxValue);
-		sliderTimerFontScale.slider:SetValue(addonTable.db.FontScale);
+		sliderTimerFontScale.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].FontScale);
 		sliderTimerFontScale.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderTimerFontScale.editbox:SetText(tostring(actualValue));
-			addonTable.db.FontScale = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].FontScale = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.FontScale));
+		sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].FontScale));
 		sliderTimerFontScale.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerFontScale.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerFontScale.editbox:GetText());
 				if (v == nil) then
-					sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.FontScale));
+					sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].FontScale));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -655,8 +804,8 @@ local function GUICategory_Fonts(index)
 		sliderTimerFontScale.lowtext:SetText(tostring(minValue));
 		sliderTimerFontScale.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.FontScale));
-			sliderTimerFontScale.slider:SetValue(addonTable.db.FontScale);
+			sliderTimerFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].FontScale));
+			sliderTimerFontScale.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].FontScale);
 		end);
 	end
 
@@ -670,19 +819,19 @@ local function GUICategory_Fonts(index)
 		sliderTimerTextXOffset.label:SetText(L["X offset"]);
 		sliderTimerTextXOffset.slider:SetValueStep(1);
 		sliderTimerTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
-		sliderTimerTextXOffset.slider:SetValue(addonTable.db.TimerTextXOffset);
+		sliderTimerTextXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset);
 		sliderTimerTextXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextXOffset.editbox:SetText(tostring(actualValue));
-			addonTable.db.TimerTextXOffset = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset));
+		sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset));
 		sliderTimerTextXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerTextXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerTextXOffset.editbox:GetText());
 				if (v == nil) then
-					sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset));
+					sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -699,8 +848,8 @@ local function GUICategory_Fonts(index)
 		sliderTimerTextXOffset.lowtext:SetText(tostring(minValue));
 		sliderTimerTextXOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.TimerTextXOffset));
-			sliderTimerTextXOffset.slider:SetValue(addonTable.db.TimerTextXOffset);
+			sliderTimerTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset));
+			sliderTimerTextXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextXOffset);
 		end);
 		sliderTimerTextXOffset:Show();
 	end
@@ -715,19 +864,19 @@ local function GUICategory_Fonts(index)
 		sliderTimerTextYOffset.label:SetText(L["Y offset"]);
 		sliderTimerTextYOffset.slider:SetValueStep(1);
 		sliderTimerTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
-		sliderTimerTextYOffset.slider:SetValue(addonTable.db.TimerTextYOffset);
+		sliderTimerTextYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset);
 		sliderTimerTextYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerTextYOffset.editbox:SetText(tostring(actualValue));
-			addonTable.db.TimerTextYOffset = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset));
+		sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset));
 		sliderTimerTextYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerTextYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerTextYOffset.editbox:GetText());
 				if (v == nil) then
-					sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset));
+					sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -744,8 +893,8 @@ local function GUICategory_Fonts(index)
 		sliderTimerTextYOffset.lowtext:SetText(tostring(minValue));
 		sliderTimerTextYOffset.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.TimerTextYOffset));
-			sliderTimerTextYOffset.slider:SetValue(addonTable.db.TimerTextYOffset);
+			sliderTimerTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset));
+			sliderTimerTextYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextYOffset);
 		end);
 		sliderTimerTextYOffset:Show();
 	end
@@ -760,19 +909,19 @@ local function GUICategory_Fonts(index)
 		sliderTimerFontSize.label:SetText(L["Font size"]);
 		sliderTimerFontSize.slider:SetValueStep(1);
 		sliderTimerFontSize.slider:SetMinMaxValues(minValue, maxValue);
-		sliderTimerFontSize.slider:SetValue(addonTable.db.TimerTextSize);
+		sliderTimerFontSize.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize);
 		sliderTimerFontSize.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderTimerFontSize.editbox:SetText(tostring(actualValue));
-			addonTable.db.TimerTextSize = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.TimerTextSize));
+		sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize));
 		sliderTimerFontSize.editbox:SetScript("OnEnterPressed", function()
 			if (sliderTimerFontSize.editbox:GetText() ~= "") then
 				local v = tonumber(sliderTimerFontSize.editbox:GetText());
 				if (v == nil) then
-					sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.TimerTextSize));
+					sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -788,7 +937,10 @@ local function GUICategory_Fonts(index)
 		end);
 		sliderTimerFontSize.lowtext:SetText(tostring(minValue));
 		sliderTimerFontSize.hightext:SetText(tostring(maxValue));
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.TimerTextSize)); sliderTimerFontSize.slider:SetValue(addonTable.db.TimerTextSize); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderTimerFontSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize));
+			sliderTimerFontSize.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].TimerTextSize);
+		end);
 	end
 
 	-- // dropdownTimerTextAnchor
@@ -803,19 +955,21 @@ local function GUICategory_Fonts(index)
 				info.text = textAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.TimerTextAnchor = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchor = self.value;
 					_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = anchorPoint == addonTable.db.TimerTextAnchor;
+				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchor;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]);
+		_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchor]);
 		dropdownTimerTextAnchor.text = dropdownTimerTextAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownTimerTextAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownTimerTextAnchor.text:SetText(L["Anchor point"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownTimerTextAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchor]);
+		end);
 	end
 
 	-- // dropdownTimerTextAnchorIcon
@@ -830,19 +984,21 @@ local function GUICategory_Fonts(index)
 				info.text = textAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.TimerTextAnchorIcon = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchorIcon = self.value;
 					_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = anchorPoint == addonTable.db.TimerTextAnchorIcon;
+				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchorIcon;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]);
+		_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchorIcon]);
 		dropdownTimerTextAnchorIcon.text = dropdownTimerTextAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownTimerTextAnchorIcon.text:SetPoint("LEFT", 20, 20);
 		dropdownTimerTextAnchorIcon.text:SetText(L["Anchor to icon"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.TimerTextAnchorIcon]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownTimerTextAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].TimerTextAnchorIcon]);
+		end);
 	end
 
 	-- // timerTextColorArea
@@ -860,7 +1016,7 @@ local function GUICategory_Fonts(index)
 		timerTextColorArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		timerTextColorArea:SetPoint("TOP", auraTextArea, "TOP", 0, -200);
 		timerTextColorArea:SetWidth(400);
-		timerTextColorArea:SetHeight(71);
+		timerTextColorArea:SetHeight(95);
 	end
 
 	-- // timerTextColorInfo
@@ -874,59 +1030,136 @@ local function GUICategory_Fonts(index)
 
 	-- // colorPickerTimerTextFiveSeconds
 	do
-		local colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
+		colorPickerTimerTextFiveSeconds = VGUI.CreateColorPicker();
 		colorPickerTimerTextFiveSeconds:SetParent(timerTextColorArea);
 		colorPickerTimerTextFiveSeconds:SetPoint("TOPLEFT", 10, -40);
 		colorPickerTimerTextFiveSeconds:SetText(L["< 5sec"]);
-		local t = addonTable.db.TimerTextSoonToExpireColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].TimerTextSoonToExpireColor;
 		colorPickerTimerTextFiveSeconds:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerTimerTextFiveSeconds.func = function(_, r, g, b, a)
-			addonTable.db.TimerTextSoonToExpireColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextSoonToExpireColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextFiveSeconds:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.TimerTextSoonToExpireColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].TimerTextSoonToExpireColor;
 			colorPickerTimerTextFiveSeconds:SetColor(t1[1], t1[2], t1[3], t1[4]);
+		end);
+	end
+
+	-- // colorPickerTimerTextZeroPercent
+	do
+		colorPickerTimerTextZeroPercent = VGUI.CreateColorPicker();
+		colorPickerTimerTextZeroPercent:SetParent(timerTextColorArea);
+		colorPickerTimerTextZeroPercent:SetPoint("TOPLEFT", 10, -40);
+		colorPickerTimerTextZeroPercent:SetText("0%");
+		local t = addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorZeroPercent;
+		colorPickerTimerTextZeroPercent:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextZeroPercent.func = function(_, r, g, b, a)
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorZeroPercent = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		colorPickerTimerTextZeroPercent:Show();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorZeroPercent;
+			colorPickerTimerTextZeroPercent:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
 	-- // colorPickerTimerTextMinute
 	do
-		local colorPickerTimerTextMinute = VGUI.CreateColorPicker();
+		colorPickerTimerTextMinute = VGUI.CreateColorPicker();
 		colorPickerTimerTextMinute:SetParent(timerTextColorArea);
 		colorPickerTimerTextMinute:SetPoint("TOPLEFT", 135, -40);
 		colorPickerTimerTextMinute:SetText(L["< 1min"]);
-		local t = addonTable.db.TimerTextUnderMinuteColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].TimerTextUnderMinuteColor;
 		colorPickerTimerTextMinute:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerTimerTextMinute.func = function(_, r, g, b, a)
-			addonTable.db.TimerTextUnderMinuteColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextUnderMinuteColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMinute:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.TimerTextUnderMinuteColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].TimerTextUnderMinuteColor;
 			colorPickerTimerTextMinute:SetColor(t1[1], t1[2], t1[3], t1[4]);
+		end);
+	end
+
+	-- // colorPickerTimerTextHundredPercent
+	do
+		colorPickerTimerTextHundredPercent = VGUI.CreateColorPicker();
+		colorPickerTimerTextHundredPercent:SetParent(timerTextColorArea);
+		colorPickerTimerTextHundredPercent:SetPoint("TOPLEFT", 135, -40);
+		colorPickerTimerTextHundredPercent:SetText("100%");
+		local t = addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorHundredPercent;
+		colorPickerTimerTextHundredPercent:SetColor(t[1], t[2], t[3], t[4]);
+		colorPickerTimerTextHundredPercent.func = function(_, r, g, b, a)
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorHundredPercent = {r, g, b, a};
+			addonTable.UpdateAllNameplates(true);
+		end
+		colorPickerTimerTextHundredPercent:Show();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].TimerTextColorHundredPercent;
+			colorPickerTimerTextHundredPercent:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
 
 	-- // colorPickerTimerTextMore
 	do
-		local colorPickerTimerTextMore = VGUI.CreateColorPicker();
+		colorPickerTimerTextMore = VGUI.CreateColorPicker();
 		colorPickerTimerTextMore:SetParent(timerTextColorArea);
 		colorPickerTimerTextMore:SetPoint("TOPLEFT", 260, -40);
 		colorPickerTimerTextMore:SetText(L["> 1min"]);
-		local t = addonTable.db.TimerTextLongerColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].TimerTextLongerColor;
 		colorPickerTimerTextMore:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerTimerTextMore.func = function(_, r, g, b, a)
-			addonTable.db.TimerTextLongerColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextLongerColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		colorPickerTimerTextMore:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.TimerTextLongerColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].TimerTextLongerColor;
 			colorPickerTimerTextMore:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
+	end
+
+	-- // checkBoxUseRelativeTextColor
+	do
+
+		local function OnPropertyChanged()
+			if (addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeColor) then
+				colorPickerTimerTextFiveSeconds:Hide();
+				colorPickerTimerTextMinute:Hide();
+				colorPickerTimerTextMore:Hide();
+				colorPickerTimerTextZeroPercent:Show();
+				colorPickerTimerTextHundredPercent:Show();
+			else
+				colorPickerTimerTextFiveSeconds:Show();
+				colorPickerTimerTextMinute:Show();
+				colorPickerTimerTextMore:Show();
+				colorPickerTimerTextZeroPercent:Hide();
+				colorPickerTimerTextHundredPercent:Hide();
+			end
+		end
+
+		checkBoxUseRelativeTextColor = VGUI.CreateCheckBox();
+		checkBoxUseRelativeTextColor:SetText(L["options:timer-text:relative-color"]);
+		VGUI.SetTooltip(checkBoxUseRelativeTextColor, L["options:timer-text:relative-color:tooltip"]);
+		checkBoxUseRelativeTextColor:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeColor = this:GetChecked();
+			OnPropertyChanged();
+		end);
+		checkBoxUseRelativeTextColor:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeColor);
+		checkBoxUseRelativeTextColor:SetParent(timerTextColorArea);
+		checkBoxUseRelativeTextColor:SetPoint("TOPLEFT", 10, -65);
+		table_insert(GUIFrame.Categories[index], checkBoxUseRelativeTextColor);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxUseRelativeTextColor:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].TimerTextUseRelativeColor);
+		end);
+		checkBoxUseRelativeTextColor:HookScript("OnShow", function()
+			OnPropertyChanged();
+		end);
+
 	end
 
 	-- // tenthsOfSecondsArea
@@ -957,18 +1190,18 @@ local function GUICategory_Fonts(index)
 		sliderDisplayTenthsOfSeconds.label:SetText(L["options:timer-text:min-duration-to-display-tenths-of-seconds"]);
 		sliderDisplayTenthsOfSeconds.slider:SetValueStep(0.1);
 		sliderDisplayTenthsOfSeconds.slider:SetMinMaxValues(minValue, maxValue);
-		sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.MinTimeToShowTenthsOfSeconds);
+		sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds);
 		sliderDisplayTenthsOfSeconds.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(actualValue));
-			addonTable.db.MinTimeToShowTenthsOfSeconds = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds = actualValue;
 		end);
-		sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds));
+		sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds));
 		sliderDisplayTenthsOfSeconds.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
-					self:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds));
+					self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -981,15 +1214,15 @@ local function GUICategory_Fonts(index)
 				end
 				self:ClearFocus();
 			else
-				self:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds));
+				self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds));
 				msg(L["Value must be a number"]);
 			end
 		end);
 		sliderDisplayTenthsOfSeconds.lowtext:SetText(tostring(minValue));
 		sliderDisplayTenthsOfSeconds.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.MinTimeToShowTenthsOfSeconds));
-			sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.MinTimeToShowTenthsOfSeconds);
+			sliderDisplayTenthsOfSeconds.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds));
+			sliderDisplayTenthsOfSeconds.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].MinTimeToShowTenthsOfSeconds);
 		end);
 		sliderDisplayTenthsOfSeconds:Show();
 	end
@@ -1017,24 +1250,24 @@ local function GUICategory_AuraStackFont(index)
 		checkboxShowStacks = VGUI.CreateCheckBox();
 		checkboxShowStacks:SetText(L["options:general:show-stacks"]);
 		checkboxShowStacks:SetOnClickHandler(function(this)
-			addonTable.db.ShowStacks = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowStacks = this:GetChecked();
 			addonTable.UpdateAllNameplates(true);
-			if (addonTable.db.ShowStacks) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].ShowStacks) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
 			end
 		end);
-		checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+		checkboxShowStacks:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowStacks);
 		checkboxShowStacks:SetParent(GUIFrame);
 		checkboxShowStacks:SetPoint("TOPLEFT", GUIFrame, "TOPLEFT", 160, -20);
 		table_insert(GUIFrame.Categories[index], checkboxShowStacks);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxShowStacks:SetChecked(addonTable.db.ShowStacks);
+			checkboxShowStacks:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowStacks);
 			addonTable.UpdateAllNameplates(true);
 		end);
 		checkboxShowStacks:SetScript("OnShow", function()
-			if (addonTable.db.ShowStacks) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].ShowStacks) then
 				auraTextArea:Show();
 			else
 				auraTextArea:Hide();
@@ -1068,7 +1301,7 @@ local function GUICategory_AuraStackFont(index)
 		local fonts = { };
 		buttonFont = VGUI.CreateButton();
 		buttonFont:SetParent(auraTextArea);
-		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.StacksFont);
+		buttonFont:SetText(L["Font"] .. ": " .. addonTable.db.IconGroups[CurrentIconGroup].StacksFont);
 
 		for _, font in next, SML:List("font") do
 			table_insert(fonts, {
@@ -1076,7 +1309,7 @@ local function GUICategory_AuraStackFont(index)
 				["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
 				["func"] = function(info)
 					buttonFont.Text:SetText(L["Font"] .. ": " .. info.text);
-					addonTable.db.StacksFont = info.text;
+					addonTable.db.IconGroups[CurrentIconGroup].StacksFont = info.text;
 					addonTable.UpdateAllNameplates(true);
 				end,
 				["font"] = SML:Fetch("font", font),
@@ -1112,19 +1345,19 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksFontScale.label:SetText(L["Font scale"]);
 		sliderStacksFontScale.slider:SetValueStep(0.1);
 		sliderStacksFontScale.slider:SetMinMaxValues(minValue, maxValue);
-		sliderStacksFontScale.slider:SetValue(addonTable.db.StacksFontScale);
+		sliderStacksFontScale.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale);
 		sliderStacksFontScale.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderStacksFontScale.editbox:SetText(tostring(actualValue));
-			addonTable.db.StacksFontScale = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.StacksFontScale));
+		sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale));
 		sliderStacksFontScale.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksFontScale.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksFontScale.editbox:GetText());
 				if (v == nil) then
-					sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.StacksFontScale));
+					sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -1141,7 +1374,10 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksFontScale.lowtext:SetText(tostring(minValue));
 		sliderStacksFontScale.hightext:SetText(tostring(maxValue));
 		sliderStacksFontScale:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.StacksFontScale)); sliderStacksFontScale.slider:SetValue(addonTable.db.StacksFontScale); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderStacksFontScale.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale));
+			sliderStacksFontScale.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksFontScale);
+		end);
 
 	end
 
@@ -1156,19 +1392,19 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksTextXOffset.label:SetText(L["X offset"]);
 		sliderStacksTextXOffset.slider:SetValueStep(1);
 		sliderStacksTextXOffset.slider:SetMinMaxValues(minValue, maxValue);
-		sliderStacksTextXOffset.slider:SetValue(addonTable.db.StacksTextXOffset);
+		sliderStacksTextXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset);
 		sliderStacksTextXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextXOffset.editbox:SetText(tostring(actualValue));
-			addonTable.db.StacksTextXOffset = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset));
+		sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset));
 		sliderStacksTextXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksTextXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksTextXOffset.editbox:GetText());
 				if (v == nil) then
-					sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset));
+					sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -1185,7 +1421,10 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksTextXOffset.lowtext:SetText(tostring(minValue));
 		sliderStacksTextXOffset.hightext:SetText(tostring(maxValue));
 		sliderStacksTextXOffset:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.StacksTextXOffset)); sliderStacksTextXOffset.slider:SetValue(addonTable.db.StacksTextXOffset); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderStacksTextXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset));
+			sliderStacksTextXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksTextXOffset);
+		end);
 
 	end
 
@@ -1200,19 +1439,19 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksTextYOffset.label:SetText(L["Y offset"]);
 		sliderStacksTextYOffset.slider:SetValueStep(1);
 		sliderStacksTextYOffset.slider:SetMinMaxValues(minValue, maxValue);
-		sliderStacksTextYOffset.slider:SetValue(addonTable.db.StacksTextYOffset);
+		sliderStacksTextYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset);
 		sliderStacksTextYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderStacksTextYOffset.editbox:SetText(tostring(actualValue));
-			addonTable.db.StacksTextYOffset = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset));
+		sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset));
 		sliderStacksTextYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderStacksTextYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderStacksTextYOffset.editbox:GetText());
 				if (v == nil) then
-					sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset));
+					sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -1229,7 +1468,10 @@ local function GUICategory_AuraStackFont(index)
 		sliderStacksTextYOffset.lowtext:SetText(tostring(minValue));
 		sliderStacksTextYOffset.hightext:SetText(tostring(maxValue));
 		sliderStacksTextYOffset:Show();
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.StacksTextYOffset)); sliderStacksTextYOffset.slider:SetValue(addonTable.db.StacksTextYOffset); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderStacksTextYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset));
+			sliderStacksTextYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].StacksTextYOffset);
+		end);
 
 	end
 
@@ -1245,19 +1487,21 @@ local function GUICategory_AuraStackFont(index)
 				info.text = textAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.StacksTextAnchor = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchor = self.value;
 					_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = anchorPoint == addonTable.db.StacksTextAnchor;
+				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchor;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]);
+		_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchor]);
 		dropdownStacksAnchor.text = dropdownStacksAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownStacksAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownStacksAnchor.text:SetText(L["Anchor point"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownStacksAnchor:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchor]);
+		end);
 	end
 
 	-- // dropdownStacksAnchorIcon
@@ -1273,19 +1517,21 @@ local function GUICategory_AuraStackFont(index)
 				info.text = textAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.StacksTextAnchorIcon = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchorIcon = self.value;
 					_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = anchorPoint == addonTable.db.StacksTextAnchorIcon;
+				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchorIcon;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]);
+		_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchorIcon]);
 		dropdownStacksAnchorIcon.text = dropdownStacksAnchorIcon:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownStacksAnchorIcon.text:SetPoint("LEFT", 20, 20);
 		dropdownStacksAnchorIcon.text:SetText(L["Anchor to icon"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.StacksTextAnchorIcon]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownStacksAnchorIcon:GetName() .. "Text"]:SetText(textAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].StacksTextAnchorIcon]);
+		end);
 
 	end
 
@@ -1295,14 +1541,14 @@ local function GUICategory_AuraStackFont(index)
 		colorPickerStacksTextColor:SetParent(auraTextArea);
 		colorPickerStacksTextColor:SetPoint("TOPLEFT", dropdownStacksAnchor, "BOTTOMLEFT", 20, -20);
 		colorPickerStacksTextColor:SetText(L["Text color"]);
-		local t = addonTable.db.StacksTextColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].StacksTextColor;
 		colorPickerStacksTextColor:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerStacksTextColor.func = function(_, r, g, b, a)
-			addonTable.db.StacksTextColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].StacksTextColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.StacksTextColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].StacksTextColor;
 			colorPickerStacksTextColor:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 		colorPickerStacksTextColor:Show();
@@ -1331,25 +1577,25 @@ local function GUICategory_Borders(index)
 				info.text = borderTypeL;
 				info.value = borderType;
 				info.func = function(self)
-					addonTable.db.BorderType = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].BorderType = self.value;
 					_G[dropdownBorderType:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 					SetControls();
 				end
-				info.checked = borderType == addonTable.db.BorderType;
+				info.checked = borderType == addonTable.db.IconGroups[CurrentIconGroup].BorderType;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
+		_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.IconGroups[CurrentIconGroup].BorderType]);
 		dropdownBorderType.text = dropdownBorderType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownBorderType.text:SetPoint("LEFT", 20, 20);
 		dropdownBorderType.text:SetText(L["options:borders:border-type"]);
 
 		function SetControls()
-			if (addonTable.db.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].BorderType == addonTable.BORDER_TYPE_BUILTIN) then
 				editBoxBorderFilePath:Hide();
 				sliderBorderThickness:Show();
-			elseif (addonTable.db.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
+			elseif (addonTable.db.IconGroups[CurrentIconGroup].BorderType == addonTable.BORDER_TYPE_CUSTOM) then
 				editBoxBorderFilePath:Show();
 				sliderBorderThickness:Hide();
 			end
@@ -1357,7 +1603,7 @@ local function GUICategory_Borders(index)
 
 		table_insert(GUIFrame.Categories[index], dropdownBorderType);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.BorderType]);
+			_G[dropdownBorderType:GetName() .. "Text"]:SetText(borderTypes[addonTable.db.IconGroups[CurrentIconGroup].BorderType]);
 			addonTable.UpdateAllNameplates(true);
 			SetControls();
 		end);
@@ -1377,15 +1623,15 @@ local function GUICategory_Borders(index)
 		editBoxBorderFilePath:SetScript("OnEnterPressed", function() editBoxBorderFilePath:ClearFocus(); end);
 		editBoxBorderFilePath:SetScript("OnTextChanged", function(self)
 			local inputText = self:GetText();
-			addonTable.db.BorderFilePath = inputText;
+			addonTable.db.IconGroups[CurrentIconGroup].BorderFilePath = inputText;
 			addonTable.UpdateAllNameplates(true);
 		end);
 		local text = editBoxBorderFilePath:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		text:SetPoint("LEFT", 0, 15);
 		text:SetText(L["options:borders:border-file-path"]);
-		editBoxBorderFilePath:SetText(addonTable.db.BorderFilePath or "");
+		editBoxBorderFilePath:SetText(addonTable.db.IconGroups[CurrentIconGroup].BorderFilePath or "");
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			editBoxBorderFilePath:SetText(addonTable.db.BorderFilePath or "");
+			editBoxBorderFilePath:SetText(addonTable.db.IconGroups[CurrentIconGroup].BorderFilePath or "");
 		end);
 	end
 
@@ -1401,19 +1647,19 @@ local function GUICategory_Borders(index)
 		sliderBorderThickness.label:SetText(L["Border thickness"]);
 		sliderBorderThickness.slider:SetValueStep(1);
 		sliderBorderThickness.slider:SetMinMaxValues(minValue, maxValue);
-		sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness);
+		sliderBorderThickness.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].BorderThickness);
 		sliderBorderThickness.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.0f", value));
 			sliderBorderThickness.editbox:SetText(tostring(actualValue));
-			addonTable.db.BorderThickness = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].BorderThickness = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
+		sliderBorderThickness.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].BorderThickness));
 		sliderBorderThickness.editbox:SetScript("OnEnterPressed", function()
 			if (sliderBorderThickness.editbox:GetText() ~= "") then
 				local v = tonumber(sliderBorderThickness.editbox:GetText());
 				if (v == nil) then
-					sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
+					sliderBorderThickness.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].BorderThickness));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -1430,8 +1676,8 @@ local function GUICategory_Borders(index)
 		sliderBorderThickness.lowtext:SetText(tostring(minValue));
 		sliderBorderThickness.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderBorderThickness.editbox:SetText(tostring(addonTable.db.BorderThickness));
-			sliderBorderThickness.slider:SetValue(addonTable.db.BorderThickness);
+			sliderBorderThickness.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].BorderThickness));
+			sliderBorderThickness.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].BorderThickness);
 			addonTable.UpdateAllNameplates(true);
 		end);
 
@@ -1464,14 +1710,16 @@ local function GUICategory_Borders(index)
 		local checkBoxDebuffBorder = VGUI.CreateCheckBox();
 		checkBoxDebuffBorder:SetText(L["Show border around debuff icons"]);
 		checkBoxDebuffBorder:SetOnClickHandler(function(this)
-			addonTable.db.ShowDebuffBorders = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowDebuffBorders = this:GetChecked();
 			addonTable.UpdateAllNameplates();
 		end);
 		checkBoxDebuffBorder:SetParent(debuffArea);
 		checkBoxDebuffBorder:SetPoint("TOPLEFT", 15, -15);
-		checkBoxDebuffBorder:SetChecked(addonTable.db.ShowDebuffBorders);
+		checkBoxDebuffBorder:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowDebuffBorders);
 		table_insert(GUIFrame.Categories[index], checkBoxDebuffBorder);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxDebuffBorder:SetChecked(addonTable.db.ShowDebuffBorders); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkBoxDebuffBorder:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowDebuffBorders);
+		end);
 
 	end
 
@@ -1481,15 +1729,15 @@ local function GUICategory_Borders(index)
 		colorPickerDebuffMagic:SetParent(debuffArea);
 		colorPickerDebuffMagic:SetPoint("TOPLEFT", 15, -45);
 		colorPickerDebuffMagic:SetText(L["Magic"]);
-		local t = addonTable.db.DebuffBordersMagicColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersMagicColor;
 		colorPickerDebuffMagic:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerDebuffMagic.func = function(_, r, g, b, a)
-			addonTable.db.DebuffBordersMagicColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersMagicColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffMagic);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.DebuffBordersMagicColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersMagicColor;
 			colorPickerDebuffMagic:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
@@ -1501,15 +1749,15 @@ local function GUICategory_Borders(index)
 		colorPickerDebuffCurse:SetParent(debuffArea);
 		colorPickerDebuffCurse:SetPoint("TOPLEFT", 135, -45);
 		colorPickerDebuffCurse:SetText(L["Curse"]);
-		local t = addonTable.db.DebuffBordersCurseColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersCurseColor;
 		colorPickerDebuffCurse:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerDebuffCurse.func = function(_, r, g, b, a)
-			addonTable.db.DebuffBordersCurseColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersCurseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffCurse);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.DebuffBordersCurseColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersCurseColor;
 			colorPickerDebuffCurse:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
@@ -1522,15 +1770,15 @@ local function GUICategory_Borders(index)
 		colorPickerDebuffDisease:SetParent(debuffArea);
 		colorPickerDebuffDisease:SetPoint("TOPLEFT", 255, -45);
 		colorPickerDebuffDisease:SetText(L["Disease"]);
-		local t = addonTable.db.DebuffBordersDiseaseColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersDiseaseColor;
 		colorPickerDebuffDisease:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerDebuffDisease.func = function(_, r, g, b, a)
-			addonTable.db.DebuffBordersDiseaseColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersDiseaseColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffDisease);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.DebuffBordersDiseaseColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersDiseaseColor;
 			colorPickerDebuffDisease:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
@@ -1543,15 +1791,15 @@ local function GUICategory_Borders(index)
 		colorPickerDebuffPoison:SetParent(debuffArea);
 		colorPickerDebuffPoison:SetPoint("TOPLEFT", 375, -45);
 		colorPickerDebuffPoison:SetText(L["Poison"]);
-		local t = addonTable.db.DebuffBordersPoisonColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersPoisonColor;
 		colorPickerDebuffPoison:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerDebuffPoison.func = function(_, r, g, b, a)
-			addonTable.db.DebuffBordersPoisonColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersPoisonColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffPoison);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.DebuffBordersPoisonColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersPoisonColor;
 			colorPickerDebuffPoison:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
@@ -1563,15 +1811,15 @@ local function GUICategory_Borders(index)
 		colorPickerDebuffOther:SetParent(debuffArea);
 		colorPickerDebuffOther:SetPoint("TOPLEFT", 15, -70);
 		colorPickerDebuffOther:SetText(L["Other"]);
-		local t = addonTable.db.DebuffBordersOtherColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersOtherColor;
 		colorPickerDebuffOther:SetColor(t[1], t[2], t[3], t[4]);
 		colorPickerDebuffOther.func = function(_, r, g, b, a)
-			addonTable.db.DebuffBordersOtherColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersOtherColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], colorPickerDebuffOther);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			local t1 = addonTable.db.DebuffBordersOtherColor;
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].DebuffBordersOtherColor;
 			colorPickerDebuffOther:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 	end
@@ -1582,22 +1830,22 @@ local function GUICategory_Borders(index)
 		local checkBoxBuffBorder = VGUI.CreateCheckBoxWithColorPicker();
 		checkBoxBuffBorder:SetText(L["Show border around buff icons"]);
 		checkBoxBuffBorder:SetOnClickHandler(function(this)
-			addonTable.db.ShowBuffBorders = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].ShowBuffBorders = this:GetChecked();
 			addonTable.UpdateAllNameplates();
 		end);
-		checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
+		checkBoxBuffBorder:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowBuffBorders);
 		checkBoxBuffBorder:SetParent(GUIFrame);
 		checkBoxBuffBorder:SetPoint("TOPLEFT", debuffArea, "BOTTOMLEFT", 0, -10);
-		local t = addonTable.db.BuffBordersColor;
+		local t = addonTable.db.IconGroups[CurrentIconGroup].BuffBordersColor;
 		checkBoxBuffBorder.ColorButton:SetColor(t[1], t[2], t[3], t[4]);
 		checkBoxBuffBorder.ColorButton.func = function(_, r, g, b, a)
-			addonTable.db.BuffBordersColor = {r, g, b, a};
+			addonTable.db.IconGroups[CurrentIconGroup].BuffBordersColor = {r, g, b, a};
 			addonTable.UpdateAllNameplates(true);
 		end
 		table_insert(GUIFrame.Categories[index], checkBoxBuffBorder);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxBuffBorder:SetChecked(addonTable.db.ShowBuffBorders);
-			local t1 = addonTable.db.BuffBordersColor;
+			checkBoxBuffBorder:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowBuffBorders);
+			local t1 = addonTable.db.IconGroups[CurrentIconGroup].BuffBordersColor;
 			checkBoxBuffBorder.ColorButton:SetColor(t1[1], t1[2], t1[3], t1[4]);
 		end);
 
@@ -1613,7 +1861,9 @@ local function GUICategory_4(index)
 	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
-	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell;
+	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell, areaTooltip;
+	local areaIconGroups, dropdownIconGroups;
+
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
 		[AURA_TYPE_DEBUFF] =	L["Debuff"],
@@ -1820,7 +2070,7 @@ local function GUICategory_4(index)
 		spellArea.controlsFrame = CreateFrame("Frame", nil, spellArea.scrollArea);
 		spellArea.scrollArea:SetScrollChild(spellArea.controlsFrame);
 		spellArea.controlsFrame:SetWidth(360);
-		spellArea.controlsFrame:SetHeight(spellArea:GetHeight() + 150);
+		spellArea.controlsFrame:SetHeight(spellArea:GetHeight() + 170);
 
 		spellArea.scrollBG = CreateFrame("Frame", nil, spellArea, BackdropTemplateMixin and "BackdropTemplate")
 		spellArea.scrollBG:SetBackdrop({
@@ -2070,6 +2320,30 @@ local function GUICategory_4(index)
 			selectSpell.icon:Hide();
 		end
 
+		dropdownMenuSpells:SetCustomSearchHandler(function(_text)
+			local list = dropdownMenuSpells:GetList();
+			local t = {};
+
+			local igPattern = "^group:(%d+)$";
+			local igMatchRaw = string.match(_text, igPattern);
+			if (igMatchRaw ~= nil) then
+				local igMatch = tonumber(igMatchRaw);
+				for _, value in pairs(list) do
+					if (value.info.iconGroups ~= nil and value.info.iconGroups[igMatch] == true) then
+						table_insert(t, value);
+					end
+				end
+			else
+				for _, value in pairs(list) do
+					if (string.find(value.text:lower(), _text:lower())) then
+						table_insert(t, value);
+					end
+				end
+			end
+			return t;
+		end);
+		dropdownMenuSpells:SetSearchBoxHint("You can use filters:\n\ngroup:{group index} -- ex: `group:1`");
+
 		selectSpell = VGUI.CreateButton();
 		selectSpell:SetParent(GUIFrame);
 		selectSpell:SetText(L["Click to select spell"]);
@@ -2176,7 +2450,7 @@ local function GUICategory_4(index)
 		checkboxShowOnFriends:SetText(L["Show this aura on nameplates of allies"]);
 		checkboxShowOnFriends:SetOnClickHandler(function(this)
 			addonTable.db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
-			if (this:GetChecked() and not addonTable.db.ShowAboveFriendlyUnits) then
+			if (this:GetChecked() and not addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits) then
 				msg(L["options:spells:show-on-friends:warning0"]);
 			end
 			addonTable.UpdateAllNameplates(false);
@@ -2508,7 +2782,7 @@ local function GUICategory_4(index)
 		checkboxAnimationRelative:SetPoint("LEFT", sliderAnimationThreshold, "RIGHT", 10, 0);
 		table_insert(controls, checkboxAnimationRelative);
 	end
-	-- local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor;
+
 	-- areaCustomBorder
 	do
 		areaCustomBorder = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
@@ -2881,16 +3155,96 @@ local function GUICategory_4(index)
 
 	end
 
+	-- // areaTooltip
+	do
+
+		areaTooltip = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaTooltip:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaTooltip:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaTooltip:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaTooltip:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 0, 0);
+		areaTooltip:SetWidth(500);
+		areaTooltip:SetHeight(40);
+		table_insert(controls, areaTooltip);
+
+	end
+
+	-- // areaIconGroups
+	do
+
+		areaIconGroups = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
+		areaIconGroups:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		areaIconGroups:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		areaIconGroups:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		areaIconGroups:SetPoint("TOPLEFT", areaTooltip, "BOTTOMLEFT", 0, 0);
+		areaIconGroups:SetWidth(500);
+		areaIconGroups:SetHeight(40);
+		table_insert(controls, areaIconGroups);
+
+	end
+
+	-- // dropdownIconGroups
+	do
+
+		local function initialize(_self, _level, _menuList)
+			local info = UIDropDownMenu_CreateInfo();
+			for index, igData in pairs(addonTable.db.IconGroups) do
+				info.text = igData.IconGroupName;
+				info.value = index;
+				info.checked = function() 
+					if (selectedSpell ~= nil and selectedSpell ~= 0) then
+						return addonTable.db.CustomSpells2[selectedSpell].iconGroups[index];
+					else
+						return false;
+					end
+				end;
+				info.func = function()
+					addonTable.db.CustomSpells2[selectedSpell].iconGroups[index] = not addonTable.db.CustomSpells2[selectedSpell].iconGroups[index];
+					addonTable.UpdateAllNameplates(true);
+				end;
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+
+		addonTable.GuiSpellsDropdownIconGroups = "NAuras.GUIFrame.Spells.DropdownIconGroups";
+		dropdownIconGroups = CreateFrame("Frame", addonTable.GuiSpellsDropdownIconGroups, areaIconGroups, "UIDropDownMenuTemplate");
+		dropdownIconGroups:SetPoint("LEFT", areaIconGroups, "LEFT", -3, -2);
+		dropdownIconGroups.Reinitialize = function()
+			UIDropDownMenu_Initialize(dropdownIconGroups, initialize);
+		end
+
+		UIDropDownMenu_Initialize(dropdownIconGroups, initialize);
+		UIDropDownMenu_SetWidth(dropdownIconGroups, 130);
+		UIDropDownMenu_SetText(dropdownIconGroups, "Icon Groups");
+
+		areaIconGroups:SetWidth(dropdownIconGroups:GetWidth());
+
+	end
+
 	-- // buttonDeleteSpell
 	do
 
 		buttonDeleteSpell = VGUI.CreateButton();
 		buttonDeleteSpell:SetParent(spellArea.controlsFrame);
 		buttonDeleteSpell:SetText(L["Delete spell"]);
-		buttonDeleteSpell:SetWidth(90);
+		--buttonDeleteSpell:SetWidth(90);
 		buttonDeleteSpell:SetHeight(20);
-		buttonDeleteSpell:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 10, -10);
-		buttonDeleteSpell:SetPoint("TOPRIGHT", areaIDs, "BOTTOMRIGHT", -10, -10);
+		buttonDeleteSpell:SetPoint("TOPLEFT", areaIconGroups, "BOTTOMLEFT", 10, -10);
+		buttonDeleteSpell:SetPoint("RIGHT", spellArea.scrollArea, "RIGHT", -10, 0);
 		buttonDeleteSpell:SetScript("OnClick", function()
 			addonTable.db.CustomSpells2[selectedSpell] = nil;
 			addonTable.RebuildSpellCache();
@@ -2912,7 +3266,7 @@ local function GUICategory_4(index)
 		buttonExportSpell = VGUI.CreateButton();
 		buttonExportSpell:SetParent(spellArea.controlsFrame);
 		buttonExportSpell:SetText(L["options:spells:export-spell"]);
-		buttonExportSpell:SetWidth(90);
+		--buttonExportSpell:SetWidth(90);
 		buttonExportSpell:SetHeight(20);
 		buttonExportSpell:SetPoint("TOPLEFT", buttonDeleteSpell, "BOTTOMLEFT", 0, -10);
 		buttonExportSpell:SetPoint("TOPRIGHT", buttonDeleteSpell, "BOTTOMRIGHT", 0, -10);
@@ -2943,21 +3297,21 @@ local function GUICategory_Interrupts(index)
 		checkBoxInterrupts = VGUI.CreateCheckBox();
 		checkBoxInterrupts:SetText(L["options:interrupts:enable-interrupts"]);
 		checkBoxInterrupts:SetOnClickHandler(function(this)
-			addonTable.db.InterruptsEnabled = this:GetChecked();
-			if (addonTable.db.InterruptsEnabled) then
+			addonTable.db.IconGroups[CurrentIconGroup].InterruptsEnabled = this:GetChecked();
+			if (addonTable.db.IconGroups[CurrentIconGroup].InterruptsEnabled) then
 				interruptOptionsArea:Show();
 			else
 				interruptOptionsArea:Hide();
 			end
 		end);
-		checkBoxInterrupts:SetChecked(addonTable.db.InterruptsEnabled);
+		checkBoxInterrupts:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsEnabled);
 		checkBoxInterrupts:SetParent(GUIFrame);
 		checkBoxInterrupts:SetPoint("TOPLEFT", 160, -20);
-		checkBoxInterrupts:HookScript("OnShow", function() if (addonTable.db.InterruptsEnabled) then interruptOptionsArea:Show(); end end);
+		checkBoxInterrupts:HookScript("OnShow", function() if (addonTable.db.IconGroups[CurrentIconGroup].InterruptsEnabled) then interruptOptionsArea:Show(); end end);
 		checkBoxInterrupts:HookScript("OnHide", function() interruptOptionsArea:Hide(); end);
 		table_insert(GUIFrame.Categories[index], checkBoxInterrupts);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxInterrupts:SetChecked(addonTable.db.InterruptsEnabled);
+			checkBoxInterrupts:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsEnabled);
 		end);
 
 	end
@@ -2988,18 +3342,18 @@ local function GUICategory_Interrupts(index)
 		checkBoxUseSharedIconTexture = VGUI.CreateCheckBox();
 		checkBoxUseSharedIconTexture:SetText(L["options:interrupts:use-shared-icon-texture"]);
 		checkBoxUseSharedIconTexture:SetOnClickHandler(function(this)
-			addonTable.db.InterruptsUseSharedIconTexture = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].InterruptsUseSharedIconTexture = this:GetChecked();
 			for spellID in pairs(addonTable.Interrupts) do
-				SpellTextureByID[spellID] = addonTable.db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or SpellTextureByID[spellID]; -- // icon of Interrupting Shout
+				SpellTextureByID[spellID] = addonTable.db.IconGroups[CurrentIconGroup].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or SpellTextureByID[spellID]; -- // icon of Interrupting Shout
 			end
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkBoxUseSharedIconTexture:SetChecked(addonTable.db.InterruptsUseSharedIconTexture);
+		checkBoxUseSharedIconTexture:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsUseSharedIconTexture);
 		checkBoxUseSharedIconTexture:SetParent(interruptOptionsArea);
 		checkBoxUseSharedIconTexture:SetPoint("TOPLEFT", 20, -10);
 		checkBoxUseSharedIconTexture:Show();
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxUseSharedIconTexture:SetChecked(addonTable.db.InterruptsUseSharedIconTexture);
+			checkBoxUseSharedIconTexture:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsUseSharedIconTexture);
 		end);
 
 	end
@@ -3010,14 +3364,14 @@ local function GUICategory_Interrupts(index)
 		checkBoxEnableOnlyInPvPMode:Show();
 		checkBoxEnableOnlyInPvPMode:SetText(L["options:interrupts:enable-only-during-pvp-battles"]);
 		checkBoxEnableOnlyInPvPMode:SetOnClickHandler(function(this)
-			addonTable.db.InterruptsShowOnlyOnPlayers = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].InterruptsShowOnlyOnPlayers = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
 		end);
-		checkBoxEnableOnlyInPvPMode:SetChecked(addonTable.db.InterruptsShowOnlyOnPlayers);
+		checkBoxEnableOnlyInPvPMode:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsShowOnlyOnPlayers);
 		checkBoxEnableOnlyInPvPMode:SetParent(interruptOptionsArea);
 		checkBoxEnableOnlyInPvPMode:SetPoint("TOPLEFT", checkBoxUseSharedIconTexture, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxEnableOnlyInPvPMode:SetChecked(addonTable.db.InterruptsShowOnlyOnPlayers);
+			checkBoxEnableOnlyInPvPMode:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].InterruptsShowOnlyOnPlayers);
 		end);
 	end
 
@@ -3060,14 +3414,14 @@ local function GUICategory_Interrupts(index)
 		sliderInterruptIconSizeWidth.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderInterruptIconSizeWidth.slider:SetScript("OnValueChanged", function(_, value)
 			sliderInterruptIconSizeWidth.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.InterruptsIconSizeWidth = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderInterruptIconSizeWidth.editbox:SetScript("OnEnterPressed", function()
 			if (sliderInterruptIconSizeWidth.editbox:GetText() ~= "") then
 				local v = tonumber(sliderInterruptIconSizeWidth.editbox:GetText());
 				if (v == nil) then
-					sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeWidth));
+					sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth));
 					Print(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -3083,11 +3437,11 @@ local function GUICategory_Interrupts(index)
 		end);
 		sliderInterruptIconSizeWidth.lowtext:SetText("1");
 		sliderInterruptIconSizeWidth.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		sliderInterruptIconSizeWidth.slider:SetValue(addonTable.db.InterruptsIconSizeWidth);
-		sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeWidth));
+		sliderInterruptIconSizeWidth.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth);
+		sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderInterruptIconSizeWidth.slider:SetValue(addonTable.db.InterruptsIconSizeWidth);
-			sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeWidth));
+			sliderInterruptIconSizeWidth.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth);
+			sliderInterruptIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeWidth));
 		end);
 
 	end
@@ -3111,14 +3465,14 @@ local function GUICategory_Interrupts(index)
 		sliderInterruptIconSizeHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderInterruptIconSizeHeight.slider:SetScript("OnValueChanged", function(_, value)
 			sliderInterruptIconSizeHeight.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.InterruptsIconSizeHeight = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderInterruptIconSizeHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderInterruptIconSizeHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderInterruptIconSizeHeight.editbox:GetText());
 				if (v == nil) then
-					sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeHeight));
+					sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight));
 					Print(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -3134,11 +3488,11 @@ local function GUICategory_Interrupts(index)
 		end);
 		sliderInterruptIconSizeHeight.lowtext:SetText("1");
 		sliderInterruptIconSizeHeight.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		sliderInterruptIconSizeHeight.slider:SetValue(addonTable.db.InterruptsIconSizeHeight);
-		sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeHeight));
+		sliderInterruptIconSizeHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight);
+		sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderInterruptIconSizeHeight.slider:SetValue(addonTable.db.InterruptsIconSizeHeight);
-			sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.InterruptsIconSizeHeight));
+			sliderInterruptIconSizeHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight);
+			sliderInterruptIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].InterruptsIconSizeHeight));
 		end);
 
 	end
@@ -3163,69 +3517,25 @@ local function GUICategory_Interrupts(index)
 				info.text = glowTypeLocalized;
 				info.value = glowType;
 				info.func = function(self)
-					addonTable.db.InterruptsGlowType = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].InterruptsGlowType = self.value;
 					_G[dropdownGlowType:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = glowType == addonTable.db.InterruptsGlowType;
+				info.checked = glowType == addonTable.db.IconGroups[CurrentIconGroup].InterruptsGlowType;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.InterruptsGlowType]);
+		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.IconGroups[CurrentIconGroup].InterruptsGlowType]);
 		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.InterruptsGlowType]); end);
-
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.IconGroups[CurrentIconGroup].InterruptsGlowType]); end);
 	end
 
 end
 
 local function GUICategory_Additions(index)
-	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP, area3;
-
-	-- // area1
-	do
-
-		area1 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
-		area1:SetBackdrop({
-			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = 1,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		area1:SetBackdropColor(0.1, 0.1, 0.2, 1);
-		area1:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area1:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, 0);
-		area1:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
-		area1:SetHeight(80);
-		table_insert(GUIFrame.Categories[index], area1);
-
-	end
-
-	-- // checkBoxExplosiveOrbs
-	do
-		checkBoxExplosiveOrbs = VGUI.CreateCheckBox();
-		checkBoxExplosiveOrbs:SetText(L["options:apps:explosive-orbs:tooltip"]);
-		checkBoxExplosiveOrbs.Text:SetPoint("TOPLEFT");
-		checkBoxExplosiveOrbs.Text:SetPoint("TOPRIGHT");
-		checkBoxExplosiveOrbs.Text:SetJustifyH("CENTER");
-		checkBoxExplosiveOrbs:SetOnClickHandler(function(this)
-			addonTable.db.Additions_ExplosiveOrbs = this:GetChecked();
-			if (not addonTable.db.Additions_ExplosiveOrbs) then
-				addonTable.UpdateAllNameplates(true);
-			end
-		end);
-		checkBoxExplosiveOrbs:SetChecked(addonTable.db.Additions_ExplosiveOrbs);
-		checkBoxExplosiveOrbs:SetParent(GUIFrame);
-		checkBoxExplosiveOrbs:SetPoint("LEFT", area1, "LEFT", 10, 0);
-		table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxExplosiveOrbs:SetChecked(addonTable.db.Additions_ExplosiveOrbs);
-		end);
-	end
+	local area2, checkBoxDRPvP;
 
 	-- area2
 	do
@@ -3240,8 +3550,8 @@ local function GUICategory_Additions(index)
 		});
 		area2:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		area2:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area2:SetPoint("TOPLEFT", area1, "BOTTOMLEFT", 0, 0);
-		area2:SetPoint("TOPRIGHT", area1, "BOTTOMRIGHT", 0, 0);
+		area2:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, 0);
+		area2:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		area2:SetHeight(85);
 		table_insert(GUIFrame.Categories[index], area2);
 	end
@@ -3258,17 +3568,17 @@ local function GUICategory_Additions(index)
 		checkBoxDRPvP = VGUI.CreateCheckBox();
 		checkBoxDRPvP:SetText(L["options:apps:dr:pvp"]);
 		checkBoxDRPvP:SetOnClickHandler(function(this)
-			addonTable.db.Additions_DRPvP = this:GetChecked();
-			if (not addonTable.db.Additions_DRPvP) then
+			addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvP = this:GetChecked();
+			if (not addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvP) then
 				addonTable.UpdateAllNameplates(true);
 			end
 		end);
-		checkBoxDRPvP:SetChecked(addonTable.db.Additions_DRPvP);
+		checkBoxDRPvP:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvP);
 		checkBoxDRPvP:SetParent(area2);
 		checkBoxDRPvP:SetPoint("LEFT", area2, "LEFT", 20, -5);
 		table_insert(GUIFrame.Categories[index], checkBoxDRPvP);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxDRPvP:SetChecked(addonTable.db.Additions_DRPvP);
+			checkBoxDRPvP:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvP);
 		end);
 	end
 
@@ -3277,95 +3587,17 @@ local function GUICategory_Additions(index)
 		local checkBoxDRPvE = VGUI.CreateCheckBox();
 		checkBoxDRPvE:SetText(L["options:apps:dr:pve"]);
 		checkBoxDRPvE:SetOnClickHandler(function(this)
-			addonTable.db.Additions_DRPvE = this:GetChecked();
-			if (not addonTable.db.Additions_DRPvE) then
+			addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvE = this:GetChecked();
+			if (not addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvE) then
 				addonTable.UpdateAllNameplates(true);
 			end
 		end);
-		checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
+		checkBoxDRPvE:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvE);
 		checkBoxDRPvE:SetParent(area2);
 		checkBoxDRPvE:SetPoint("TOPLEFT", checkBoxDRPvP, "BOTTOMLEFT", 0, 0);
 		table_insert(GUIFrame.Categories[index], checkBoxDRPvE);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxDRPvE:SetChecked(addonTable.db.Additions_DRPvE);
-		end);
-	end
-
-	-- // area3
-	do
-		area3 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
-		area3:SetBackdrop({
-			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = 1,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		area3:SetBackdropColor(0.1, 0.1, 0.2, 1);
-		area3:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area3:SetPoint("TOPLEFT", area2, "BOTTOMLEFT", 0, 0);
-		area3:SetPoint("TOPRIGHT", area2, "BOTTOMRIGHT", 0, 0);
-		area3:SetHeight(80);
-		table_insert(GUIFrame.Categories[index], area3);
-	end
-
-	local checkBoxAffixSpiteful;
-	do
-		checkBoxAffixSpiteful = VGUI.CreateCheckBox();
-		checkBoxAffixSpiteful:SetText(L["options:apps:spiteful"]);
-		checkBoxAffixSpiteful.Text:SetPoint("LEFT");
-		checkBoxAffixSpiteful.Text:SetPoint("RIGHT");
-		checkBoxAffixSpiteful.Text:SetJustifyH("CENTER");
-		checkBoxAffixSpiteful:SetOnClickHandler(function(this)
-			addonTable.db.AffixSpiteful = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
-		checkBoxAffixSpiteful:SetParent(GUIFrame);
-		checkBoxAffixSpiteful:SetPoint("TOPLEFT", area3, "TOPLEFT", 10, -10);
-		table_insert(GUIFrame.Categories[index], checkBoxAffixSpiteful);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxAffixSpiteful:SetChecked(addonTable.db.AffixSpiteful);
-		end);
-	end
-
-	-- // dropdownSound
-	local dropdownMenuSound = VGUI.CreateDropdownMenu();
-	do
-		local sounds = { };
-		local buttonSound = VGUI.CreateButton();
-		buttonSound:SetParent(area3);
-		buttonSound:SetText(L["options:apps:spiteful:sound"] .. ": " .. tostring(addonTable.db.AffixSpitefulSound));
-		table_insert(GUIFrame.Categories[index], buttonSound);
-
-		for _, sound in next, SML:List(SML.MediaType.SOUND) do
-			table_insert(sounds, {
-				["text"] = sound,
-				-- ["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
-				["func"] = function(info)
-					buttonSound.Text:SetText(L["options:apps:spiteful:sound"]  .. ": " .. info.text);
-					addonTable.db.AffixSpitefulSound = info.text;
-					PlaySoundFile(SML:Fetch(SML.MediaType.SOUND, info.text), "Master");
-				end,
-				--["font"] = SML:Fetch(SML.MediaType.SOUND, font),
-			});
-		end
-		table_sort(sounds, function(item1, item2) return item1.text < item2.text; end);
-
-		buttonSound:SetHeight(24);
-		buttonSound:SetPoint("TOPLEFT", checkBoxAffixSpiteful, "BOTTOMLEFT", 0, -10);
-		buttonSound:SetPoint("RIGHT", area3, "RIGHT", -30, 0);
-		buttonSound:SetScript("OnClick", function(self)
-			if (dropdownMenuSound:IsVisible()) then
-				dropdownMenuSound:Hide();
-			else
-				dropdownMenuSound:SetList(sounds);
-				dropdownMenuSound:SetParent(self);
-				dropdownMenuSound:ClearAllPoints();
-				dropdownMenuSound:SetPoint("TOP", self, "BOTTOM", 0, 0);
-				dropdownMenuSound:Show();
-			end
+			checkBoxDRPvE:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvE);
 		end);
 	end
 
@@ -3396,24 +3628,24 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconSize.label:SetText(L["options:size-and-position:icon-width"]);
 		sliderIconSize.slider:SetValueStep(1);
 		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSizeWidth);
+		sliderIconSize.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth);
 		sliderIconSize.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconSize.editbox:SetText(tostring(valueNum));
 			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
-				if (spellInfo.iconSizeWidth == addonTable.db.DefaultIconSizeWidth) then
+				if (spellInfo.iconSizeWidth == addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth) then
 					spellInfo.iconSizeWidth = valueNum;
 				end
 			end
-			addonTable.db.DefaultIconSizeWidth = valueNum;
+			addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth = valueNum;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSizeWidth));
+		sliderIconSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth));
 		sliderIconSize.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconSize.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconSize.editbox:GetText());
 				if (v == nil) then
-					sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSizeWidth));
+					sliderIconSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth));
 					msg(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -3430,7 +3662,10 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconSize.lowtext:SetText("1");
 		sliderIconSize.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
 		table_insert(GUIFrame.Categories[index], sliderIconSize);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSize.slider:SetValue(addonTable.db.DefaultIconSizeWidth); sliderIconSize.editbox:SetText(tostring(addonTable.db.DefaultIconSizeWidth)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderIconSize.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth);
+			sliderIconSize.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth));
+		end);
 
 	end
 
@@ -3443,24 +3678,24 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconHeight.label:SetText(L["options:size-and-position:icon-height"]);
 		sliderIconHeight.slider:SetValueStep(1);
 		sliderIconHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
-		sliderIconHeight.slider:SetValue(addonTable.db.DefaultIconSizeHeight);
+		sliderIconHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight);
 		sliderIconHeight.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconHeight.editbox:SetText(tostring(valueNum));
 			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
-				if (spellInfo.iconSizeHeight == addonTable.db.DefaultIconSizeHeight) then
+				if (spellInfo.iconSizeHeight == addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight) then
 					spellInfo.iconSizeHeight = valueNum;
 				end
 			end
-			addonTable.db.DefaultIconSizeHeight = valueNum;
+			addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight = valueNum;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconHeight.editbox:SetText(tostring(addonTable.db.DefaultIconSizeHeight));
+		sliderIconHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight));
 		sliderIconHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconHeight.editbox:GetText());
 				if (v == nil) then
-					sliderIconHeight.editbox:SetText(tostring(addonTable.db.DefaultIconSizeHeight));
+					sliderIconHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight));
 					msg(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -3478,8 +3713,8 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconHeight.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
 		table_insert(GUIFrame.Categories[index], sliderIconHeight);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderIconHeight.slider:SetValue(addonTable.db.DefaultIconSizeHeight);
-			sliderIconHeight.editbox:SetText(tostring(addonTable.db.DefaultIconSizeHeight));
+			sliderIconHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight);
+			sliderIconHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight));
 		end);
 	end
 
@@ -3493,18 +3728,18 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconSpacing.label:SetText(L["Space between icons"]);
 		sliderIconSpacing.slider:SetValueStep(1);
 		sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
-		sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing);
+		sliderIconSpacing.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconSpacing);
 		sliderIconSpacing.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconSpacing.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconSpacing = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].IconSpacing = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
+		sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconSpacing));
 		sliderIconSpacing.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconSpacing.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconSpacing.editbox:GetText());
 				if (v == nil) then
-					sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing));
+					sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconSpacing));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -3521,7 +3756,10 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconSpacing.lowtext:SetText(tostring(minValue));
 		sliderIconSpacing.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.Categories[index], sliderIconSpacing);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconSpacing.slider:SetValue(addonTable.db.IconSpacing); sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconSpacing)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderIconSpacing.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconSpacing);
+			sliderIconSpacing.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconSpacing));
+		end);
 	end
 
 	-- // sliderIconXOffset
@@ -3534,18 +3772,18 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
 		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
-		sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset);
+		sliderIconXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconXOffset);
 		sliderIconXOffset.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconXOffset.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconXOffset = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].IconXOffset = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
+		sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconXOffset));
 		sliderIconXOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconXOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconXOffset.editbox:GetText());
 				if (v == nil) then
-					sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset));
+					sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconXOffset));
 					Print(L["Value must be a number"]);
 				else
 					if (v > 200) then
@@ -3562,7 +3800,10 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconXOffset.lowtext:SetText("-200");
 		sliderIconXOffset.hightext:SetText("200");
 		table_insert(GUIFrame.Categories[index], sliderIconXOffset);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconXOffset.slider:SetValue(addonTable.db.IconXOffset); sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconXOffset)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderIconXOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconXOffset);
+			sliderIconXOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconXOffset));
+		end);
 
 	end
 
@@ -3576,18 +3817,18 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 		sliderIconYOffset.slider:SetValueStep(1);
 		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
-		sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset);
+		sliderIconYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconYOffset);
 		sliderIconYOffset.slider:SetScript("OnValueChanged", function(_, value)
 			sliderIconYOffset.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.IconYOffset = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].IconYOffset = math_ceil(value);
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
+		sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconYOffset));
 		sliderIconYOffset.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconYOffset.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconYOffset.editbox:GetText());
 				if (v == nil) then
-					sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset));
+					sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconYOffset));
 					Print(L["Value must be a number"]);
 				else
 					if (v > 200) then
@@ -3604,7 +3845,10 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconYOffset.lowtext:SetText("-200");
 		sliderIconYOffset.hightext:SetText("200");
 		table_insert(GUIFrame.Categories[index], sliderIconYOffset);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconYOffset.slider:SetValue(addonTable.db.IconYOffset); sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconYOffset)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderIconYOffset.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconYOffset);
+			sliderIconYOffset.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconYOffset));
+		end);
 
 	end
 
@@ -3618,19 +3862,19 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconZoom.label:SetText(L["options:size-and-position:icon-zoom"]);
 		sliderIconZoom.slider:SetValueStep(0.01);
 		sliderIconZoom.slider:SetMinMaxValues(minV, maxV);
-		sliderIconZoom.slider:SetValue(addonTable.db.IconZoom);
+		sliderIconZoom.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconZoom);
 		sliderIconZoom.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderIconZoom.editbox:SetText(tostring(actualValue));
-			addonTable.db.IconZoom = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].IconZoom = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom));
+		sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconZoom));
 		sliderIconZoom.editbox:SetScript("OnEnterPressed", function()
 			if (sliderIconZoom.editbox:GetText() ~= "") then
 				local v = tonumber(sliderIconZoom.editbox:GetText());
 				if (v == nil) then
-					sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom));
+					sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconZoom));
 					Print(L["Value must be a number"]);
 				else
 					if (v > maxV) then
@@ -3647,7 +3891,10 @@ local function GUICategory_SizeAndPosition(index)
 		sliderIconZoom.lowtext:SetText(tostring(minV));
 		sliderIconZoom.hightext:SetText(tostring(maxV));
 		table_insert(GUIFrame.Categories[index], sliderIconZoom);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() sliderIconZoom.slider:SetValue(addonTable.db.IconZoom); sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconZoom)); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			sliderIconZoom.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconZoom);
+			sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconZoom));
+		end);
 	end
 
 	-- // checkboxKeepAspectRatio
@@ -3656,15 +3903,15 @@ local function GUICategory_SizeAndPosition(index)
 		checkboxKeepAspectRatio:SetText(L["options:size-and-position:keep-aspect-ratio"]);
 		VGUI.SetTooltip(checkboxKeepAspectRatio, L["options:size-and-position:keep-aspect-ratio:tooltip"]);
 		checkboxKeepAspectRatio:SetOnClickHandler(function(this)
-			addonTable.db.KeepAspectRatio = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio = this:GetChecked();
 			addonTable.UpdateAllNameplates();
 		end);
-		checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+		checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
 		checkboxKeepAspectRatio:SetParent(GUIFrame);
 		checkboxKeepAspectRatio:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -120);
 		table_insert(GUIFrame.Categories[index], checkboxKeepAspectRatio);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxKeepAspectRatio:SetChecked(addonTable.db.KeepAspectRatio);
+			checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
 		end);
 	end
 
@@ -3680,20 +3927,22 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = frameAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.FrameAnchorToNameplate = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate = self.value;
 					_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = anchorPoint == addonTable.db.FrameAnchorToNameplate;
+				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]);
+		_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate]);
 		dropdownFrameAnchorToNameplate.text = dropdownFrameAnchorToNameplate:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownFrameAnchorToNameplate.text:SetPoint("LEFT", 20, 20);
 		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchorToNameplate]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate]);
+		end);
 	end
 
 	-- // dropdownFrameAnchor
@@ -3708,21 +3957,23 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = frameAnchorsLocalization[anchorPoint];
 				info.value = anchorPoint;
 				info.func = function(self)
-					addonTable.db.FrameAnchor = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor = self.value;
 					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.FrameAnchor == anchorPoint);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor == anchorPoint);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchor]);
+		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor]);
 		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownFrameAnchor.text:SetText(L["options:size-and-position:anchor-point-of-frame"]);
 		VGUI.SetTooltip(dropdownFrameAnchor, L["options:size-and-position:anchor-point-of-frame:tooltip"]);
 		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.FrameAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor]);
+		end);
 
 	end
 
@@ -3743,20 +3994,20 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = anchorsLocalization[anchor];
 				info.value = anchor;
 				info.func = function(self)
-					addonTable.db.IconAnchor = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].IconAnchor = self.value;
 					_G[dropdownIconAnchor:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.IconAnchor == info.value);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].IconAnchor == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]);
+		_G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].IconAnchor]);
 		dropdownIconAnchor.text = dropdownIconAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownIconAnchor.text:SetPoint("LEFT", 20, 20);
 		dropdownIconAnchor.text:SetText(L["options:size-and-position:icon-align"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconAnchor]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconAnchor:GetName().."Text"]:SetText(anchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].IconAnchor]); end);
 	end
 
 	-- // dropdownIconGrowDirection
@@ -3779,20 +4030,22 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = growDirectionsL[direction];
 				info.value = direction;
 				info.func = function(self)
-					addonTable.db.IconGrowDirection = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].IconGrowDirection = self.value;
 					_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.IconGrowDirection == info.value);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].IconGrowDirection == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]);
+		_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGroups[CurrentIconGroup].IconGrowDirection]);
 		dropdownIconGrowDirection.text = dropdownIconGrowDirection:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownIconGrowDirection.text:SetPoint("LEFT", 20, 20);
 		dropdownIconGrowDirection.text:SetText(L["options:general:icon-grow-direction"]);
 		table.insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGrowDirection]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownIconGrowDirection:GetName().."Text"]:SetText(growDirectionsL[addonTable.db.IconGroups[CurrentIconGroup].IconGrowDirection]);
+		end);
 	end
 
 	local dropdownTargetStrata, dropdownNonTargetStrata;
@@ -3819,20 +4072,20 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = strata;
 				info.value = strata;
 				info.func = function(self)
-					addonTable.db.TargetStrata = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].TargetStrata = self.value;
 					_G[dropdownTargetStrata:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.TargetStrata == info.value);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].TargetStrata == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.TargetStrata);
+		_G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].TargetStrata);
 		dropdownTargetStrata.text = dropdownTargetStrata:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownTargetStrata.text:SetPoint("LEFT", 20, 20);
 		dropdownTargetStrata.text:SetText(L["options:size-and-position:target-strata"]);
 		table.insert(GUIFrame.Categories[index], dropdownTargetStrata);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.TargetStrata); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].TargetStrata); end);
 	end
 
 	-- // dropdownNonTargetStrata
@@ -3847,20 +4100,20 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = strata;
 				info.value = strata;
 				info.func = function(self)
-					addonTable.db.NonTargetStrata = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].NonTargetStrata = self.value;
 					_G[dropdownNonTargetStrata:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = (addonTable.db.NonTargetStrata == info.value);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].NonTargetStrata == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.NonTargetStrata);
+		_G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].NonTargetStrata);
 		dropdownNonTargetStrata.text = dropdownNonTargetStrata:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownNonTargetStrata.text:SetPoint("LEFT", 20, 20);
 		dropdownNonTargetStrata.text:SetText(L["options:size-and-position:non-target-strata"]);
 		table.insert(GUIFrame.Categories[index], dropdownNonTargetStrata);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.NonTargetStrata); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].NonTargetStrata); end);
 	end
 
 	local dropdownSortMode, buttonCustomSortFunction;
@@ -3874,7 +4127,7 @@ local function GUICategory_SizeAndPosition(index)
 		};
 
 		local function UpdateButton()
-			if (addonTable.db.SortMode == addonTable.AURA_SORT_MODE_CUSTOM) then
+			if (addonTable.db.IconGroups[CurrentIconGroup].SortMode == addonTable.AURA_SORT_MODE_CUSTOM) then
 				buttonCustomSortFunction:Show();
 			else
 				buttonCustomSortFunction:Hide();
@@ -3891,25 +4144,25 @@ local function GUICategory_SizeAndPosition(index)
 				info.text = sortModeL;
 				info.value = sortMode;
 				info.func = function(self)
-					addonTable.db.SortMode = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].SortMode = self.value;
 					_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 					UpdateButton();
 				end
-				info.checked = (addonTable.db.SortMode == info.value);
+				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].SortMode == info.value);
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]);
+		_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.IconGroups[CurrentIconGroup].SortMode]);
 		dropdownSortMode.text = dropdownSortMode:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 		dropdownSortMode.text:SetPoint("LEFT", 20, 20);
 		dropdownSortMode.text:SetText(L["Sort mode:"]);
 		table_insert(GUIFrame.Categories[index], dropdownSortMode);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.SortMode]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.IconGroups[CurrentIconGroup].SortMode]); end);
 
 		local LuaEditor = VGUI.CreateLuaEditor();
 		LuaEditor:SetOnAcceptHandler(function(self)
-			addonTable.db.CustomSortMethod = self:GetText();
+			addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod = self:GetText();
 			addonTable.CompileSortFunction();
 			addonTable.UpdateAllNameplates(true);
 		end);
@@ -3946,7 +4199,7 @@ local function GUICategory_SizeAndPosition(index)
 		buttonCustomSortFunction:SetHeight(22);
 		buttonCustomSortFunction:SetPoint("LEFT", dropdownSortMode, "RIGHT", 0, 3);
 		buttonCustomSortFunction:SetScript("OnClick", function()
-			LuaEditor:SetText(addonTable.db.CustomSortMethod);
+			LuaEditor:SetText(addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod);
 			LuaEditor:Show();
 		end);
 		UpdateButton();
@@ -3990,19 +4243,19 @@ local function GUICategory_SizeAndPosition(index)
 		sliderScaleTarget.label:SetText(L["options:size-and-position:scale-target"]);
 		sliderScaleTarget.slider:SetValueStep(step);
 		sliderScaleTarget.slider:SetMinMaxValues(minValue, maxValue);
-		sliderScaleTarget.slider:SetValue(addonTable.db.IconScaleTarget);
+		sliderScaleTarget.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget);
 		sliderScaleTarget.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.1f", value));
 			sliderScaleTarget.editbox:SetText(tostring(actualValue));
-			addonTable.db.IconScaleTarget = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconScaleTarget));
+		sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget));
 		sliderScaleTarget.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
-					self:SetText(tostring(addonTable.db.IconScaleTarget));
+					self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -4015,15 +4268,15 @@ local function GUICategory_SizeAndPosition(index)
 				end
 				self:ClearFocus();
 			else
-				self:SetText(tostring(addonTable.db.IconScaleTarget));
+				self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget));
 				msg(L["Value must be a number"]);
 			end
 		end);
 		sliderScaleTarget.lowtext:SetText(tostring(minValue));
 		sliderScaleTarget.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconScaleTarget));
-			sliderScaleTarget.slider:SetValue(addonTable.db.IconScaleTarget);
+			sliderScaleTarget.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget));
+			sliderScaleTarget.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconScaleTarget);
 		end);
 		sliderScaleTarget:Show();
 
@@ -4066,19 +4319,19 @@ local function GUICategory_Alpha(index)
 		sliderAlpha.label:SetText(L["options:alpha:alpha"]);
 		sliderAlpha.slider:SetValueStep(step);
 		sliderAlpha.slider:SetMinMaxValues(minValue, maxValue);
-		sliderAlpha.slider:SetValue(addonTable.db.IconAlpha);
+		sliderAlpha.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha);
 		sliderAlpha.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderAlpha.editbox:SetText(tostring(actualValue));
-			addonTable.db.IconAlpha = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].IconAlpha = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderAlpha.editbox:SetText(tostring(addonTable.db.IconAlpha));
+		sliderAlpha.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha));
 		sliderAlpha.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
-					self:SetText(tostring(addonTable.db.IconAlpha));
+					self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -4091,15 +4344,15 @@ local function GUICategory_Alpha(index)
 				end
 				self:ClearFocus();
 			else
-				self:SetText(tostring(addonTable.db.IconAlpha));
+				self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha));
 				msg(L["Value must be a number"]);
 			end
 		end);
 		sliderAlpha.lowtext:SetText(tostring(minValue));
 		sliderAlpha.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderAlpha.editbox:SetText(tostring(addonTable.db.IconAlpha));
-			sliderAlpha.slider:SetValue(addonTable.db.IconAlpha);
+			sliderAlpha.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha));
+			sliderAlpha.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconAlpha);
 		end);
 		sliderAlpha:Show();
 
@@ -4116,19 +4369,19 @@ local function GUICategory_Alpha(index)
 		sliderAlphaTarget.label:SetText(L["options:alpha:alpha-target"]);
 		sliderAlphaTarget.slider:SetValueStep(step);
 		sliderAlphaTarget.slider:SetMinMaxValues(minValue, maxValue);
-		sliderAlphaTarget.slider:SetValue(addonTable.db.IconAlphaTarget);
+		sliderAlphaTarget.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget);
 		sliderAlphaTarget.slider:SetScript("OnValueChanged", function(_, value)
 			local actualValue = tonumber(string_format("%.2f", value));
 			sliderAlphaTarget.editbox:SetText(tostring(actualValue));
-			addonTable.db.IconAlphaTarget = actualValue;
+			addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget = actualValue;
 			addonTable.UpdateAllNameplates(true);
 		end);
-		sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconAlphaTarget));
+		sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget));
 		sliderAlphaTarget.editbox:SetScript("OnEnterPressed", function(self)
 			if (self:GetText() ~= "") then
 				local v = tonumber(self:GetText());
 				if (v == nil) then
-					self:SetText(tostring(addonTable.db.IconAlphaTarget));
+					self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget));
 					msg(L["Value must be a number"]);
 				else
 					if (v > maxValue) then
@@ -4141,15 +4394,15 @@ local function GUICategory_Alpha(index)
 				end
 				self:ClearFocus();
 			else
-				self:SetText(tostring(addonTable.db.IconAlphaTarget));
+				self:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget));
 				msg(L["Value must be a number"]);
 			end
 		end);
 		sliderAlphaTarget.lowtext:SetText(tostring(minValue));
 		sliderAlphaTarget.hightext:SetText(tostring(maxValue));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconAlphaTarget));
-			sliderAlphaTarget.slider:SetValue(addonTable.db.IconAlphaTarget);
+			sliderAlphaTarget.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget));
+			sliderAlphaTarget.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconAlphaTarget);
 		end);
 		sliderAlphaTarget:Show();
 
@@ -4160,15 +4413,15 @@ local function GUICategory_Alpha(index)
 		checkboxUseTargetAlphaIfNotTargetSelected = VGUI.CreateCheckBox();
 		checkboxUseTargetAlphaIfNotTargetSelected:SetText(L["options:alpha:use-target-alpha-if-not-target-selected"]);
 		checkboxUseTargetAlphaIfNotTargetSelected:SetOnClickHandler(function(this)
-			addonTable.db.UseTargetAlphaIfNotTargetSelected = this:GetChecked();
+			addonTable.db.IconGroups[CurrentIconGroup].UseTargetAlphaIfNotTargetSelected = this:GetChecked();
 			addonTable.UpdateAllNameplates(true);
 		end);
-		checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+		checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].UseTargetAlphaIfNotTargetSelected);
 		checkboxUseTargetAlphaIfNotTargetSelected:SetParent(alphaArea);
 		checkboxUseTargetAlphaIfNotTargetSelected:SetPoint("TOPLEFT", alphaArea, "TOPLEFT", 10, -140);
 		table_insert(GUIFrame.Categories[index], checkboxUseTargetAlphaIfNotTargetSelected);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.UseTargetAlphaIfNotTargetSelected);
+			checkboxUseTargetAlphaIfNotTargetSelected:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].UseTargetAlphaIfNotTargetSelected);
 		end);
 	end
 
@@ -4184,23 +4437,23 @@ local function GUICategory_Dispel(index)
 		checkBoxDispellableSpells = VGUI.CreateCheckBox();
 		checkBoxDispellableSpells:SetText(L["options:apps:dispellable-spells"]);
 		checkBoxDispellableSpells:SetOnClickHandler(function(this)
-			addonTable.db.Additions_DispellableSpells = this:GetChecked();
-			if (not addonTable.db.Additions_DispellableSpells) then
+			addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells = this:GetChecked();
+			if (not addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells) then
 				addonTable.UpdateAllNameplates(true);
 				controlArea:Hide();
 			else
 				controlArea:Show();
 			end
 		end);
-		checkBoxDispellableSpells:HookScript("OnShow", function() if (addonTable.db.Additions_DispellableSpells) then controlArea:Show(); end end);
+		checkBoxDispellableSpells:HookScript("OnShow", function() if (addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells) then controlArea:Show(); end end);
 		checkBoxDispellableSpells:HookScript("OnHide", function() controlArea:Hide(); end);
-		checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
+		checkBoxDispellableSpells:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells);
 		checkBoxDispellableSpells:SetParent(GUIFrame);
 		checkBoxDispellableSpells:SetPoint("TOPLEFT", 160, -20);
 		VGUI.SetTooltip(checkBoxDispellableSpells, L["options:apps:dispellable-spells:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxDispellableSpells);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxDispellableSpells:SetChecked(addonTable.db.Additions_DispellableSpells);
+			checkBoxDispellableSpells:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells);
 		end);
 
 	end
@@ -4263,14 +4516,14 @@ local function GUICategory_Dispel(index)
 		sliderDispelIconSizeWidth.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderDispelIconSizeWidth.slider:SetScript("OnValueChanged", function(_, value)
 			sliderDispelIconSizeWidth.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.DispelIconSizeWidth = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderDispelIconSizeWidth.editbox:SetScript("OnEnterPressed", function()
 			if (sliderDispelIconSizeWidth.editbox:GetText() ~= "") then
 				local v = tonumber(sliderDispelIconSizeWidth.editbox:GetText());
 				if (v == nil) then
-					sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.DispelIconSizeWidth));
+					sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth));
 					Print(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -4286,11 +4539,11 @@ local function GUICategory_Dispel(index)
 		end);
 		sliderDispelIconSizeWidth.lowtext:SetText("1");
 		sliderDispelIconSizeWidth.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		sliderDispelIconSizeWidth.slider:SetValue(addonTable.db.DispelIconSizeWidth);
-		sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.DispelIconSizeWidth));
+		sliderDispelIconSizeWidth.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth);
+		sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderDispelIconSizeWidth.slider:SetValue(addonTable.db.DispelIconSizeWidth);
-			sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.DispelIconSizeWidth));
+			sliderDispelIconSizeWidth.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth);
+			sliderDispelIconSizeWidth.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeWidth));
 		end);
 
 	end
@@ -4314,14 +4567,14 @@ local function GUICategory_Dispel(index)
 		sliderDispelIconSizeHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
 		sliderDispelIconSizeHeight.slider:SetScript("OnValueChanged", function(_, value)
 			sliderDispelIconSizeHeight.editbox:SetText(tostring(math_ceil(value)));
-			addonTable.db.DispelIconSizeHeight = math_ceil(value);
+			addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight = math_ceil(value);
 			addonTable.UpdateAllNameplates(false);
 		end);
 		sliderDispelIconSizeHeight.editbox:SetScript("OnEnterPressed", function()
 			if (sliderDispelIconSizeHeight.editbox:GetText() ~= "") then
 				local v = tonumber(sliderDispelIconSizeHeight.editbox:GetText());
 				if (v == nil) then
-					sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.DispelIconSizeHeight));
+					sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight));
 					Print(L["Value must be a number"]);
 				else
 					if (v > addonTable.MAX_AURA_ICON_SIZE) then
@@ -4337,11 +4590,11 @@ local function GUICategory_Dispel(index)
 		end);
 		sliderDispelIconSizeHeight.lowtext:SetText("1");
 		sliderDispelIconSizeHeight.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		sliderDispelIconSizeHeight.slider:SetValue(addonTable.db.DispelIconSizeHeight);
-		sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.DispelIconSizeHeight));
+		sliderDispelIconSizeHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight);
+		sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight));
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			sliderDispelIconSizeHeight.slider:SetValue(addonTable.db.DispelIconSizeHeight);
-			sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.DispelIconSizeHeight));
+			sliderDispelIconSizeHeight.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight);
+			sliderDispelIconSizeHeight.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].DispelIconSizeHeight));
 		end);
 
 	end
@@ -4366,19 +4619,21 @@ local function GUICategory_Dispel(index)
 				info.text = glowTypeLocalized;
 				info.value = glowType;
 				info.func = function(self)
-					addonTable.db.Additions_DispellableSpells_GlowType = self.value;
+					addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_GlowType = self.value;
 					_G[dropdownGlowType:GetName() .. "Text"]:SetText(self:GetText());
 					addonTable.UpdateAllNameplates(true);
 				end
-				info.checked = glowType == addonTable.db.Additions_DispellableSpells_GlowType;
+				info.checked = glowType == addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_GlowType;
 				UIDropDownMenu_AddButton(info);
 			end
 		end
-		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]);
+		_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_GlowType]);
 		dropdownGlowType.text = dropdownGlowType:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
 		dropdownGlowType.text:SetPoint("LEFT", 20, 20);
 		dropdownGlowType.text:SetText(L["options:glow-type"]);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.Additions_DispellableSpells_GlowType]); end);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			_G[dropdownGlowType:GetName() .. "Text"]:SetText(glowTypes[addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_GlowType]);
+		end);
 
 	end
 
@@ -4395,12 +4650,12 @@ local function GUICategory_Dispel(index)
 				dispellableSpellsBlacklistMenu:Hide();
 			else
 				local t = { };
-				for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
+				for spellName in pairs(addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_Blacklist) do
 					table_insert(t, {
 						text = spellName,
 						icon = AllSpellIDsAndIconsByName[spellName] ~= nil and SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])] or 136243,
 						onCloseButtonClick = function()
-							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
+							addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
 							dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
 						end,
@@ -4446,7 +4701,7 @@ local function GUICategory_Dispel(index)
 				if (not spellExist) then
 					msg(L["Spell seems to be nonexistent"]);
 				else
-					addonTable.db.Additions_DispellableSpells_Blacklist[text] = true;
+					addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_Blacklist[text] = true;
 					addonTable.UpdateAllNameplates(false);
 					-- close and then open list again
 					dispellableSpellsBlacklist:Click(); dispellableSpellsBlacklist:Click();
@@ -4497,6 +4752,181 @@ local function GUICategory_Dispel(index)
 		dispellableSpellsBlacklistMenu.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
 		dispellableSpellsBlacklistMenu:ClearAllPoints();
 		dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", dispellableSpellsBlacklist, "TOPRIGHT", 5, 0);
+	end
+
+end
+
+local function GUICategory_IconGroups(_index)
+	local description, controlArea, editboxAddIconGroup, dropdownIconGroups, btnRemoveIconGroup;
+
+	local function OnIconGroupsChanged()
+		addonTable.OnIconGroupChanged();
+		dropdownIconGroups.Reinitialize();
+		UIDropDownMenu_SetText(dropdownIconGroups, "");
+		if (#addonTable.db.IconGroups <= 1) then
+			btnRemoveIconGroup:Disable();
+		else
+			btnRemoveIconGroup:Enable();
+		end
+	end
+
+	-- description
+	do
+		description = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		description:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		description:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		description:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		description:SetPoint("TOPLEFT", 150, -12);
+		description:SetPoint("TOPRIGHT", -12, -12);
+		description:SetHeight(160);
+		description:Show();
+
+		local text = description:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+		text:SetJustifyH("CENTER");
+		text:SetPoint("CENTER", description, "CENTER", 0, 0);
+		text:SetText(L["options:icon-groups:description"]);
+
+		table_insert(GUIFrame.Categories[_index], description);
+	end
+
+	-- controlArea
+	do
+		controlArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		controlArea:SetBackdrop({
+			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		});
+		controlArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
+		controlArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+		controlArea:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -10);
+		controlArea:SetPoint("TOPRIGHT", description, "BOTTOMRIGHT", 0, -10);
+		controlArea:SetHeight(160);
+		controlArea:Show();
+		table_insert(GUIFrame.Categories[_index], controlArea);
+	end
+
+	-- // editboxAddIconGroup
+	do
+		
+		local overlayText;
+
+		editboxAddIconGroup = CreateFrame("EditBox", nil, controlArea, BackdropTemplateMixin and "BackdropTemplate");
+		editboxAddIconGroup:SetAutoFocus(false);
+		editboxAddIconGroup:SetFontObject(GameFontHighlightSmall);
+		editboxAddIconGroup:SetPoint("TOPLEFT", controlArea, "TOPLEFT", 10, -10);
+		editboxAddIconGroup:SetPoint("TOPRIGHT", controlArea, "TOPRIGHT", -10, -10);
+		editboxAddIconGroup:SetHeight(20);
+		editboxAddIconGroup:SetJustifyH("LEFT");
+		editboxAddIconGroup:EnableMouse(true);
+		editboxAddIconGroup:SetBackdrop({
+			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			tile = true, edgeSize = 1, tileSize = 5,
+		});
+		editboxAddIconGroup:SetBackdropColor(0, 0, 0, 0.5);
+		editboxAddIconGroup:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
+		editboxAddIconGroup:SetScript("OnEscapePressed", function() editboxAddIconGroup:ClearFocus(); end);
+		editboxAddIconGroup:SetScript("OnEnterPressed", function(self)
+			local text = self:GetText();
+			if (text ~= nil and text ~= "") then
+				local newIg = addonTable.deepcopy(addonTable.db.IconGroups[CurrentIconGroup]);
+				newIg.IconGroupName = text;
+				table.insert(addonTable.db.IconGroups, newIg);
+				OnIconGroupsChanged();
+				self:SetText("");
+			end
+			self:ClearFocus();
+			overlayText:Show();
+		end);
+
+		overlayText = editboxAddIconGroup:CreateFontString(nil, "ARTWORK", "GameFontDisable");
+		overlayText:SetPoint("LEFT", 5, 0);
+		overlayText:SetText(L["options:icon-groups:editbox-add-text"]);
+		editboxAddIconGroup:SetScript("OnEditFocusGained", function() overlayText:Hide(); end);
+		editboxAddIconGroup:SetScript("OnEditFocusLost", function()
+			local text = editboxAddIconGroup:GetText();
+			if (text == nil or text == "") then
+				overlayText:Show();
+			end
+		end);
+
+	end
+
+	-- // dropdownIconGroups
+	do
+
+		local function initialize(_self, _level, _menuList)
+			local info = UIDropDownMenu_CreateInfo();
+			for index, igData in pairs(addonTable.db.IconGroups) do
+				info.text = igData.IconGroupName;
+				info.value = index;
+				info.checked = false;
+				info.func = function(_self)
+					--UIDropDownMenu_SetText(dropdownIconGroups, addonTable.db.IconGroups[_self.value].IconGroupName);
+					UIDropDownMenu_SetSelectedValue(dropdownIconGroups, _self.value);
+				end
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+
+		dropdownIconGroups = CreateFrame("Frame", "NAuras.GUIFrame.IconGroups.DropdownIconGroups", controlArea, "UIDropDownMenuTemplate");
+		dropdownIconGroups:SetPoint("TOPLEFT", controlArea, "TOPLEFT", -5, -70);
+		dropdownIconGroups.Reinitialize = function()
+			UIDropDownMenu_Initialize(dropdownIconGroups, initialize);
+		end
+
+		UIDropDownMenu_Initialize(dropdownIconGroups, initialize);
+		UIDropDownMenu_SetWidth(dropdownIconGroups, 130);
+		UIDropDownMenu_SetText(dropdownIconGroups, "");
+
+		dropdownIconGroups.text = dropdownIconGroups:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		dropdownIconGroups.text:SetPoint("BOTTOMLEFT", dropdownIconGroups, "TOPLEFT", 20, 0);
+		dropdownIconGroups.text:SetText(L["options:icon-groups:dropdown-list"]);
+
+	end
+
+	-- btnRemoveIconGroup
+	do
+		btnRemoveIconGroup = VGUI.CreateButton();
+		btnRemoveIconGroup:SetParent(controlArea);
+		btnRemoveIconGroup:SetText(L["options:icon-groups:remove"]);
+		btnRemoveIconGroup:SetWidth(75);
+		btnRemoveIconGroup:SetHeight(24);
+		btnRemoveIconGroup:SetPoint("LEFT", dropdownIconGroups, "RIGHT", 0, 2);
+		btnRemoveIconGroup:SetScript("OnClick", function()
+			local igIndex = UIDropDownMenu_GetSelectedValue(dropdownIconGroups);
+			if (igIndex == nil or #addonTable.db.IconGroups < igIndex) then
+				return;
+			end
+			if (CurrentIconGroup >= igIndex) then
+				CurrentIconGroup = 1;
+			end
+			addonTable.array_delete_and_shift(addonTable.db.IconGroups, igIndex);
+			
+			for _index, spellData in pairs(addonTable.db.CustomSpells2) do
+				addonTable.array_delete_and_shift(spellData.iconGroups, igIndex);
+			end
+			_G[addonTable.GuiSpellsDropdownIconGroups].Reinitialize();
+
+			OnIconGroupsChanged();
+		end);
+
+		if (#addonTable.db.IconGroups <= 1) then
+			btnRemoveIconGroup:Disable();
+		else
+			btnRemoveIconGroup:Enable();
+		end
 	end
 
 end
@@ -4607,7 +5037,7 @@ local function InitializeGUI()
 	GUIFrame.ControlsFrame:SetPoint("BOTTOMRIGHT", GUIFrame, "BOTTOMRIGHT", -12, 12);
 	GUIFrame.ControlsFrame:Hide();
 
-	local closeButton = VGUI.CreateButton();-- CreateFrame("Button", nil, GUIFrame, "UIPanelButtonTemplate");
+	local closeButton = VGUI.CreateButton();
 	closeButton:SetParent(GUIFrame);
 	closeButton:SetText("Close");
 	closeButton:SetWidth(60);
@@ -4620,7 +5050,7 @@ local function InitializeGUI()
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 
 	local categories = { L["General"], L["options:category:size-and-position"], L["options:category:alpha"], L["Timer text"], L["Stack text"],
-		L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"] };
+		L["Icon borders"], L["Spells"], L["options:category:interrupts"], L["options:category:dispel"], L["options:category:apps"], L["options:category:icon-groups"] };
 	for index, value in pairs(categories) do
 		local b = CreateGUICategory();
 		b.index = index;
@@ -4629,7 +5059,9 @@ local function InitializeGUI()
 			b:LockHighlight();
 			b.text:SetTextColor(1, 1, 1);
 			b:SetPoint("TOPLEFT", GUIFrame.outline, "TOPLEFT", 5, -6);
-		elseif (index >= #categories - 3) then
+		elseif (value == L["options:category:icon-groups"]) then
+			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 46);
+		elseif (index >= #categories - 4) then
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 26);
 		else
 			b:SetPoint("TOPLEFT",GUIFrame.outline,"TOPLEFT", 5, -18 * (index - 1) - 6);
@@ -4638,25 +5070,27 @@ local function InitializeGUI()
 		GUIFrame.Categories[index] = {};
 
 		if (value == L["General"]) then
-			GUICategory_1(index, value);
+			GUICategory_1(index);
 		elseif (value == L["Timer text"]) then
-			GUICategory_Fonts(index, value);
+			GUICategory_Fonts(index);
 		elseif (value == L["Stack text"]) then
-			GUICategory_AuraStackFont(index, value);
+			GUICategory_AuraStackFont(index);
 		elseif (value == L["Icon borders"]) then
-			GUICategory_Borders(index, value);
+			GUICategory_Borders(index);
 		elseif (value == L["Spells"]) then
-			GUICategory_4(index, value);
+			GUICategory_4(index);
 		elseif (value == L["options:category:interrupts"]) then
-			GUICategory_Interrupts(index, value);
+			GUICategory_Interrupts(index);
 		elseif (value == L["options:category:apps"]) then
-			GUICategory_Additions(index, value);
+			GUICategory_Additions(index);
 		elseif (value == L["options:category:size-and-position"]) then
-			GUICategory_SizeAndPosition(index, value);
+			GUICategory_SizeAndPosition(index);
 		elseif (value == L["options:category:dispel"]) then
-			GUICategory_Dispel(index, value);
+			GUICategory_Dispel(index);
 		elseif (value == L["options:category:alpha"]) then
-			GUICategory_Alpha(index, value);
+			GUICategory_Alpha(index);
+		elseif (value == L["options:category:icon-groups"]) then
+			GUICategory_IconGroups(index);
 		end
 	end
 
@@ -4715,11 +5149,11 @@ local function InitializeGUI()
 				end
 
 				for key, value in pairs(deserialized) do
-					addonTable.db[key] = value;
+					addonTable.db.IconGroups[CurrentIconGroup][key] = value;
 				end
-				for key, value in pairs(addonTable.db) do
+				for key, value in pairs(addonTable.db.IconGroups[CurrentIconGroup]) do
 					if (deserialized[key] == nil) then
-						addonTable.db[key] = nil;
+						addonTable.db.IconGroups[CurrentIconGroup][key] = nil;
 					end
 				end
 
@@ -4749,6 +5183,39 @@ local function InitializeGUI()
 			profileImportExportWindow:SetAcceptButton(false, nil);
 			profileImportExportWindow:Show();
 		end);
+	end
+
+	-- IconGroupsList
+	do
+		local function initialize(_self, _level, _menuList)
+			local info = UIDropDownMenu_CreateInfo();
+			for index, igData in pairs(addonTable.db.IconGroups) do
+				info.text = igData.IconGroupName;
+				info.value = index;
+				info.func = function(_self)
+					CurrentIconGroup = _self.value;
+					addonTable.OnIconGroupChanged();
+				end
+				info.checked = function(_self)
+					return CurrentIconGroup == _self.value;
+				end
+				UIDropDownMenu_AddButton(info);
+			end
+		end
+
+		IconGroupsList = CreateFrame("Frame", "NAuras.GUIFrame.IconGroupsList", GUIFrame, "UIDropDownMenuTemplate");
+		IconGroupsList:SetPoint("BOTTOMLEFT", GUIFrame, "TOPLEFT", -13, -5);
+		IconGroupsList.Reinitialize = function()
+			UIDropDownMenu_Initialize(IconGroupsList, initialize);
+		end
+
+		IconGroupsList.text = IconGroupsList:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		IconGroupsList.text:SetPoint("BOTTOMLEFT", IconGroupsList, "TOPLEFT", 20, 0);
+		IconGroupsList.text:SetText(L["options:general:current-icon-group"]);
+
+		UIDropDownMenu_Initialize(IconGroupsList, initialize);
+		UIDropDownMenu_SetWidth(IconGroupsList, 130);
+		UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
 	end
 
 	InitializeGUI_CreateSpellInfoCaches();

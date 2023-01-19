@@ -216,5 +216,29 @@ L["options:general:import-profile"] = "Import profile"
 L["options:general:export-profile"] = "Export profile"
 L["options:general:always-show-my-auras-blacklist:button"] = "-> Blacklist"
 L["options:general:always-show-my-auras-blacklist:button:tooltip"] = "Pay attention! If spell is added to `Spells` list AND this blacklist, it WILL be shown on nameplates"
+L["options:general:use-default-tooltip"] = "Show default Blizzard's aura tooltip"
+L["options:general:npc-blacklist"] = "NPC blacklist"
+L["options:general:npc-blacklist-add-button"] = "Add NPC"
+L["options:general:npc-blacklist-editbox-add"] = "Please enter NPC name here"
+L["options:timer-text:relative-color"] = "Use gradient color"
+L["options:timer-text:relative-color:tooltip"] = [=[Timer text's color will be calculated dynamically,
+based on aura's duration and remaining time.]=]
+L["options:spells:spell-tooltip"] = [=[Spell tooltip
+must contain text]=]
+
+L["options:icon-groups:editbox-add-text"] = "Enter name and hit Enter key to add new icon group"
+L["options:icon-groups:dropdown-list"] = "Icon groups"
+L["options:category:icon-groups"] = "Icon groups"
+L["options:icon-groups:remove"] = "Delete"
+L["options:general:current-icon-group"] = "Current icon group"
+L["options:icon-groups:description"] =
+[=[Icon group is a set of icons with independent settings.
+For example, you can create separate icon group for debuffs,
+separate icon group for interrupts, and separate icon group for
+important boss buffs. Then you can place these icon groups around
+nameplate independently.
+Pay attention: spells are shared between icon groups, but you can create
+multiple spells with the same name but with different options, and then
+set link to different icon groups.]=]
 
 --@end-debug@

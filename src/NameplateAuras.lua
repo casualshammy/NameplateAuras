@@ -378,7 +378,6 @@ do
 				return expires1 < expires2;
 			end
 			AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][iconGroupIndex] = function(item1, item2)
-				print(item1.dbEntry == nil, iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth, item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight)
 				local size1 = (item1.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight));
 				local size2 = (item2.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item2.dbEntry.iconSizeWidth, item2.dbEntry.iconSizeHeight));
 				return size1 < size2;

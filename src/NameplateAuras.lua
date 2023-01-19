@@ -783,35 +783,38 @@ do
 			for nameplate in pairs(Nameplates) do
 				for frameIndex, frame in pairs(nameplate.NAurasFrames) do
 					local iconGroup = db.IconGroups[frameIndex];
-
-					frame:ClearAllPoints();
-					frame:SetPoint(iconGroup.FrameAnchor, nameplate, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
-					for iconIndex, icon in pairs(nameplate.NAurasIcons[frameIndex]) do
-						if (icon.shown) then
-							local sizeMin = math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);
-							if (iconGroup.TimerTextUseRelativeScale) then
-								icon.cooldownText:SetFont(SML:Fetch("font", iconGroup.Font), math_ceil((sizeMin - sizeMin / 2) * iconGroup.FontScale), "OUTLINE");
-							else
-								icon.cooldownText:SetFont(SML:Fetch("font", iconGroup.Font), iconGroup.TimerTextSize, "OUTLINE");
+					if (iconGroup ~= nil) then
+						frame:ClearAllPoints();
+						frame:SetPoint(iconGroup.FrameAnchor, nameplate, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
+						for iconIndex, icon in pairs(nameplate.NAurasIcons[frameIndex]) do
+							if (icon.shown) then
+								local sizeMin = math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);
+								if (iconGroup.TimerTextUseRelativeScale) then
+									icon.cooldownText:SetFont(SML:Fetch("font", iconGroup.Font), math_ceil((sizeMin - sizeMin / 2) * iconGroup.FontScale), "OUTLINE");
+								else
+									icon.cooldownText:SetFont(SML:Fetch("font", iconGroup.Font), iconGroup.TimerTextSize, "OUTLINE");
+								end
+								icon.stacks:SetFont(SML:Fetch("font", iconGroup.StacksFont), math_ceil((sizeMin / 4) * iconGroup.StacksFontScale), "OUTLINE");
 							end
-							icon.stacks:SetFont(SML:Fetch("font", iconGroup.StacksFont), math_ceil((sizeMin / 4) * iconGroup.StacksFontScale), "OUTLINE");
+							AllocateIcon_SetIconPlace(nameplate, icon, iconIndex, frameIndex, iconGroup);
+							icon.cooldownText:ClearAllPoints();
+							icon.cooldownText:SetPoint(iconGroup.TimerTextAnchor, icon, iconGroup.TimerTextAnchorIcon, iconGroup.TimerTextXOffset, iconGroup.TimerTextYOffset);
+							icon.textColor = nil;
+							icon.stacks:ClearAllPoints();
+							icon.stacks:SetPoint(iconGroup.StacksTextAnchor, icon, iconGroup.StacksTextAnchorIcon, iconGroup.StacksTextXOffset, iconGroup.StacksTextYOffset);
+							local color = iconGroup.StacksTextColor;
+							icon.stacks:SetTextColor(color[1], color[2], color[3], color[4]);
+							if (iconGroup.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
+								icon.border:SetTexture(BORDER_TEXTURES[iconGroup.BorderThickness]);
+							elseif (iconGroup.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
+								icon.border:SetTexture(iconGroup.BorderFilePath);
+							end
+							HideCDIcon(icon);
 						end
-						AllocateIcon_SetIconPlace(nameplate, icon, iconIndex, frameIndex, iconGroup);
-						icon.cooldownText:ClearAllPoints();
-						icon.cooldownText:SetPoint(iconGroup.TimerTextAnchor, icon, iconGroup.TimerTextAnchorIcon, iconGroup.TimerTextXOffset, iconGroup.TimerTextYOffset);
-						icon.textColor = nil;
-						icon.stacks:ClearAllPoints();
-						icon.stacks:SetPoint(iconGroup.StacksTextAnchor, icon, iconGroup.StacksTextAnchorIcon, iconGroup.StacksTextXOffset, iconGroup.StacksTextYOffset);
-						local color = iconGroup.StacksTextColor;
-						icon.stacks:SetTextColor(color[1], color[2], color[3], color[4]);
-						if (iconGroup.BorderType == addonTable.BORDER_TYPE_BUILTIN) then
-							icon.border:SetTexture(BORDER_TEXTURES[iconGroup.BorderThickness]);
-						elseif (iconGroup.BorderType == addonTable.BORDER_TYPE_CUSTOM) then
-							icon.border:SetTexture(iconGroup.BorderFilePath);
-						end
-						HideCDIcon(icon);
+						SetAlphaScaleForNameplate(nameplate, frameIndex, iconGroup);
+					else
+						frame:Hide();
 					end
-					SetAlphaScaleForNameplate(nameplate, frameIndex, iconGroup);
 				end
 			end
 		end

@@ -151,17 +151,20 @@ function addonTable.ColorizeText(text, r, g, b)
 	return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
 end
 
-function addonTable.GetUnitNameByGuid(_unitId, _unitGuid)
+function addonTable.GetOrAddUnitNameByGuid(_unitGuid, _unitId)
 	local cachedValue = p_unitNameByGuid[_unitGuid];
 	if (cachedValue ~= nil) then
 		return cachedValue;
+	end
+
+	if (_unitId == nil) then
+		return nil;
 	end
 
 	local unitName = GetUnitName(_unitId);
 	if (unitName ~= nil) then
 		if (addonTable.table_count(p_unitNameByGuid) > 1000) then
 			wipe(p_unitNameByGuid);
-			addonTable.Print("NPC name cache is wiped");
 		end
 
 		p_unitNameByGuid[_unitGuid] = unitName;

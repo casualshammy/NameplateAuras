@@ -56,7 +56,7 @@ function addonTable.OnIconGroupChanged()
 		GUIFrame.CategoryButtons[activeCategory]:Click();
 		UIDropDownMenu_SetText(IconGroupsList, addonTable.db.IconGroups[CurrentIconGroup].IconGroupName);
 	end
-	addonTable.CompileSortFunction();
+	addonTable.RebuildAuraSortFunctions();
 end
 
 local function GetDefaultDBSpellEntry(enabledState, spellName, checkSpellID)
@@ -4317,7 +4317,7 @@ local function GUICategory_SizeAndPosition(index)
 		local LuaEditor = VGUI.CreateLuaEditor();
 		LuaEditor:SetOnAcceptHandler(function(self)
 			addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod = self:GetText();
-			addonTable.CompileSortFunction();
+			addonTable.RebuildAuraSortFunctions();
 			addonTable.UpdateAllNameplates(true);
 		end);
 		LuaEditor:SetOnTextChangedHandler(function(self)

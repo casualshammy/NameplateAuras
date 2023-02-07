@@ -205,5 +205,15 @@ addonTable.DefaultSpells2 = {
 	[3] = {
 		[343503] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[343503] },
 	},
+	[4] = {
+		[374348] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[374348] },
+		[390386] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[390386] },
+		[357170] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[357170] },
+		[363916] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[363916] },
+		[360806] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[360806] },
+		[378464] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[378464] },
+		[383005] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[383005] },
+		[378441] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[378441] },
+	},
 };
 

@@ -2,22 +2,11 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: bug
+labels: type: bug
 assignees: ''
 
 ---
 
-#### IMPORTANT! Lua errors are crucial for addressing issue! If you aren't getting any, use `/console scriptErrors 1`
-
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+#### IMPORTANT! READ THIS BEFORE POSTING BUG REPORT!
+1. Lua errors are crucial for addressing issue! If you aren't getting any, type this command to game chat: `/console scriptErrors 1`
+2. [Auras cannot be shown on friendly nameplates in dungeons/raids!](https://www.wowhead.com/news/addons-and-friendly-nameplates-in-patch-7-2-260801)

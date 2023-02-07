@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals wipe
+-- luacheck: globals wipe date
 
 local _, addonTable = ...;
 
@@ -209,13 +209,13 @@ local migrations = {
     end,
     [12] = function()
         local db = addonTable.db;
-        if (#db.TimerTextSoonToExpireColor == 3) then
+        if (db.TimerTextSoonToExpireColor ~= nil and #db.TimerTextSoonToExpireColor == 3) then
             db.TimerTextSoonToExpireColor[#db.TimerTextSoonToExpireColor+1] = 1;
         end
-        if (#db.TimerTextUnderMinuteColor == 3) then
+        if (db.TimerTextUnderMinuteColor ~= nil and #db.TimerTextUnderMinuteColor == 3) then
             db.TimerTextUnderMinuteColor[#db.TimerTextUnderMinuteColor+1] = 1;
         end
-        if (#db.TimerTextLongerColor == 3) then
+        if (db.TimerTextLongerColor ~= nil and #db.TimerTextLongerColor == 3) then
             db.TimerTextLongerColor[#db.TimerTextLongerColor+1] = 1;
         end
     end,
@@ -257,7 +257,7 @@ local migrations = {
     end,
     [16] = function()
         local db = addonTable.db;
-        if (#db.StacksTextColor == 3) then
+        if (db.StacksTextColor ~= nil and #db.StacksTextColor == 3) then
             db.StacksTextColor[#db.StacksTextColor+1] = 1;
         end
     end,
@@ -265,7 +265,7 @@ local migrations = {
         local db = addonTable.db;
         local values = { "DebuffBordersMagicColor", "DebuffBordersCurseColor", "DebuffBordersDiseaseColor", "DebuffBordersPoisonColor", "DebuffBordersOtherColor", "BuffBordersColor" };
         for _, value in pairs(values) do
-            if (#db[value] == 3) then
+            if (db[value] ~= nil and #db[value] == 3) then
                 db[value][4] = 1;
             end
         end
@@ -289,6 +289,146 @@ local migrations = {
             db.AlwaysShowMyAurasBlacklist = {};
         end
     end,
+    [21] = function()
+        local db = addonTable.db;
+        db.MaxAuras = nil;
+    end,
+    [22] = function()
+        local db = addonTable.db;
+        local keys = {
+            "ShowAurasOnPlayerNameplate",
+            "IconXOffset",
+            "IconYOffset",
+            "Font",
+            "SortMode",
+            "FontScale",
+            "TimerTextUseRelativeScale",
+            "TimerTextSize",
+            "TimerTextAnchor",
+            "TimerTextAnchorIcon",
+            "TimerTextXOffset",
+            "TimerTextYOffset",
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksFont",
+            "StacksFontScale",
+            "StacksTextAnchor",
+            "StacksTextAnchorIcon",
+            "StacksTextXOffset",
+            "StacksTextYOffset",
+            "StacksTextColor",
+            "ShowBuffBorders",
+            "BuffBordersColor",
+            "ShowDebuffBorders",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "IconSpacing",
+            "IconAnchor",
+            "AlwaysShowMyAuras",
+            "BorderThickness",
+            "ShowAboveFriendlyUnits",
+            "FrameAnchor",
+            "FrameAnchorToNameplate",
+            "MinTimeToShowTenthsOfSeconds",
+            "InterruptsEnabled",
+            "InterruptsIconSizeWidth",
+            "InterruptsIconSizeHeight",
+            "InterruptsGlowType",
+            "InterruptsUseSharedIconTexture",
+            "InterruptsShowOnlyOnPlayers",
+            "Additions_ExplosiveOrbs",
+            "ShowAuraTooltip",
+            "Additions_DispellableSpells",
+            "Additions_DispellableSpells_Blacklist",
+            "DispelIconSizeWidth",
+            "DispelIconSizeHeight",
+            "Additions_DispellableSpells_GlowType",
+            "IconGrowDirection",
+            "ShowStacks",
+            "ShowCooldownText",
+            "ShowCooldownAnimation",
+            "IconAlpha",
+            "IconAlphaTarget",
+            "IconScaleTarget",
+            "TargetStrata",
+            "NonTargetStrata",
+            "BorderType",
+            "BorderFilePath",
+            "DefaultIconSizeWidth",
+            "DefaultIconSizeHeight",
+            "IconZoom",
+            "CustomSortMethod",
+            "Additions_DRPvP",
+            "Additions_DRPvE",
+            "ShowOnlyOnTarget",
+            "UseTargetAlphaIfNotTargetSelected",
+            "AffixSpiteful",
+            "AffixSpitefulSound",
+            "EnabledZoneTypes",
+            "MaxAuras",
+            "ShowAurasOnTargetEvenInDisabledAreas",
+            "AlwaysShowMyAurasBlacklist",
+            "NpcBlacklist",
+            "TimerTextUseRelativeColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+            "KeepAspectRatio",
+            "UseDefaultAuraTooltip",
+        };
+        if (db.IconGroups == nil or db.IconGroups[1] == nil) then
+            db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions("First Icon Group");
+        end
+        for _, key in pairs(keys) do
+            local value = db[key];
+            if (value ~= nil) then
+                db.IconGroups[1][key] = value;
+                db[key] = nil;
+            end
+        end
+    end,
+    [23] = function()
+        local db = addonTable.db;
+        for igIndex, igData in pairs(db.IconGroups) do
+            if (igData.IconGroupName == nil or igData.IconGroupName == "") then
+                igData.IconGroupName = "[" .. tostring(igIndex) .. "] " .. date("%Y-%m-%d-%H-%M-%S");
+            end
+        end
+    end,
+    [24] = function()
+        local db = addonTable.db;
+        local ref = addonTable.GetIconGroupDefaultOptions();
+        local colorKeys = {
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksTextColor",
+            "BuffBordersColor",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+        };
+        for _, igData in pairs(db.IconGroups) do
+            for _, key in pairs(colorKeys) do
+                local entry = igData[key];
+                local refEntry = ref[key];
+                if (entry ~= nil and refEntry ~= nil) then
+                    for refKey, refValue in pairs(refEntry) do
+                        if (entry[refKey] == nil) then
+                            entry[refKey] = refValue;
+                        end
+                    end
+                end
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -298,6 +438,12 @@ local function FillInMissingEntriesIsSpells()
             -- we don't know what spell it is
             db.CustomSpells2[index] = nil;
         else
+            -- useRelativeGlowTimer may be nil
+            -- useRelativeAnimationTimer may be nil
+            -- checkSpellID may be nil
+            -- showGlow may be nil
+            -- spellTooltip may be nil
+            -- spellInfo.customBorderPath may be nil
             if (spellInfo.enabledState == nil) then
                 spellInfo.enabledState = CONST_SPELL_MODE_ALL;
             end
@@ -331,15 +477,9 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.iconSizeHeight == nil) then
                 spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
             end
-            -- useRelativeGlowTimer may be nil
-            -- useRelativeAnimationTimer may be nil
-            -- checkSpellID may be nil
-            -- showGlow may be nil
-            -- spellTooltip may be nil
             if (spellInfo.customBorderType == nil) then
                 spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
             end
-            -- spellInfo.customBorderPath may be nil
             if (spellInfo.customBorderSize == nil) then
                 spellInfo.customBorderSize = db.BorderThickness;
             end
@@ -357,12 +497,17 @@ local function FillInMissingEntriesIsSpells()
             elseif (spellInfo.enabledState == "my") then
                 spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
             end
+
             if (spellInfo.auraType == "buff") then
                 spellInfo.auraType = AURA_TYPE_BUFF;
             elseif (spellInfo.auraType == "debuff") then
                 spellInfo.auraType = AURA_TYPE_DEBUFF;
             elseif (spellInfo.auraType == "buff/debuff") then
                 spellInfo.auraType = AURA_TYPE_ANY;
+            end
+
+            if (spellInfo.iconGroups == nil or #spellInfo.iconGroups == 0) then
+                spellInfo.iconGroups = { [1] = true };
             end
         end
     end
@@ -375,6 +520,10 @@ function addonTable.MigrateDB()
     end
     addonTable.db.DBVersion = table_count(migrations);
     FillInMissingEntriesIsSpells();
+
+    if (#addonTable.db.IconGroups == 0) then
+        addonTable.db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
+    end
 end
 
 function addonTable.ImportNewSpells(force)
@@ -404,11 +553,13 @@ function addonTable.ImportNewSpells(force)
             end
             FillInMissingEntriesIsSpells();
         else
-            if (table_count(allNewSpells) > 0) then
-                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
+            local allNewSpellsCount = table_count(allNewSpells);
+            if (allNewSpellsCount > 0) then
+                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells? (Total: " .. allNewSpellsCount .. ")",
                     function()
                         for _, spellInfo in pairs(allNewSpells) do
                             table.insert(db.CustomSpells2, spellInfo);
+                            Print("Imported '" .. spellInfo.spellName .. "'");
                         end
                         FillInMissingEntriesIsSpells();
                         Print("Imported successfully");

@@ -79,6 +79,10 @@ do
 	local p_updateAurasCurrentUnit = nil;
 
 	local function UpdateUnitAuras_HandleAura(_unitAuraInfo)
+		if (_unitAuraInfo == nil) then
+			return
+		end
+
 		PlayerAurasPerGuid[p_updateAurasCurrentUnit][_unitAuraInfo.auraInstanceID] = _unitAuraInfo;
 	end
 
@@ -91,10 +95,8 @@ do
 
 		p_updateAurasCurrentUnit = _unitGuid;
 
-		local batchCount = nil;
-		local usePackedAura = true;
-		AuraUtil_ForEachAura(_unitId, "HELPFUL", batchCount, UpdateUnitAuras_HandleAura, usePackedAura);
-		AuraUtil_ForEachAura(_unitId, "HARMFUL", batchCount, UpdateUnitAuras_HandleAura, usePackedAura);
+		AuraUtil_ForEachAura(_unitId, "HELPFUL", nil, UpdateUnitAuras_HandleAura, true);
+		AuraUtil_ForEachAura(_unitId, "HARMFUL", nil, UpdateUnitAuras_HandleAura, true);
 
 		p_updateAurasCurrentUnit = nil;
 

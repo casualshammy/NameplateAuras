@@ -5305,15 +5305,17 @@ local function InitializeGUI()
 				end
 
 				for key, value in pairs(deserialized) do
-					addonTable.db.IconGroups[CurrentIconGroup][key] = value;
+					addonTable.db[key] = value;
 				end
-				for key, value in pairs(addonTable.db.IconGroups[CurrentIconGroup]) do
+				for key, value in pairs(addonTable.db) do
 					if (deserialized[key] == nil) then
-						addonTable.db.IconGroups[CurrentIconGroup][key] = nil;
+						addonTable.db[key] = nil;
 					end
 				end
 
 				addonTable.ReloadDB();
+				addonTable.RebuildSpellCache();
+				addonTable.OnIconGroupChanged();
 			end);
 			profileImportExportWindow:Show();
 		end);

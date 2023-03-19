@@ -10,6 +10,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 local LibSerialize = LibStub("LibSerialize");
 local LibDeflate = LibStub("LibDeflate");
+local MSQ = LibStub("Masque", true);
 
 local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
 		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
@@ -123,7 +124,8 @@ local function GUICategory_1(index)
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
 		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
-		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd;
+		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd,
+		checkboxMasque;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
 
@@ -415,6 +417,27 @@ local function GUICategory_1(index)
 		
 	end
 
+	-- // checkboxMasque
+	do
+		checkboxMasque = VGUI.CreateCheckBox();
+		checkboxMasque:SetText(L["options:general:masque-experimental"]);
+		checkboxMasque:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled = this:GetChecked();
+			addonTable.PopupReloadUI();
+		end);
+		checkboxMasque:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled);
+		checkboxMasque:SetParent(GUIFrame);
+		checkboxMasque:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxMasque:HookScript("OnShow", function(self)
+			if (not MSQ) then
+				self:Hide();
+			end
+		end);
+		table_insert(GUIFrame.Categories[index], checkboxMasque);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxMasque:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled); end);
+		
+	end
+
 	-- // zoneTypesArea
 	do
 
@@ -429,7 +452,7 @@ local function GUICategory_1(index)
 		});
 		zoneTypesArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		zoneTypesArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		zoneTypesArea:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, -10);
+		zoneTypesArea:SetPoint("TOPLEFT", checkboxMasque, "BOTTOMLEFT", 0, -10);
 		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		zoneTypesArea:SetWidth(360);
 		zoneTypesArea:SetHeight(90);

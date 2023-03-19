@@ -2,14 +2,14 @@
 
 ## About
 
-NameplateAuras displays buffs/debuffs of players above their nameplates. The development of this addon was inspired by PlateBuffs. One picture is worth a thousand words:
+NameplateAuras displays buffs/debuffs of players above their nameplates. The development of this addon was inspired by PlateBuffs. Example:
 ![Image](https://axio.name/files/description0.gif)
 
 ## Facts
 
 *   NameplateAuras works along with any non-default nameplates (ofc default nameplates are supported too).
 *   Various per-spell filters are included.
-*   A lot of customizations: text styles, animations styles, colours, alpha, etc.
+*   A lot of customizations: text styles, animations styles, borders, alpha, etc.
 *   Built-in list of spells contains important PvP and PvE spells; also you can add your own spells.
 *   NameplateAuras has a little impact on performance.
 

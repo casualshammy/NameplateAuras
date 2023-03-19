@@ -234,5 +234,6 @@ L["options:icon-groups:description"] = [=[
 An icon group is a set of icons with independent settings. For example, you can create a separate icon group for debuffs, a separate icon group for interrupts, and a separate icon group for important boss buffs. Then you can place these icon groups around the nameplate independently. FYI addons can't distinguish buffs and debuffs, so populating groups with spells is, unfortunately, your responsibility. :)
 The drop-down menu in the upper left corner of this window displays the icon group that you're currently editing.
 Pay attention: spells are shared between icon groups, but you can create multiple spells with the same name but with different options, and then set links to different icon groups.]=]
+L["options:general:masque-experimental"] = "Enable Masque support (experimental)"
 
 --@end-debug@

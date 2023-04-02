@@ -1619,7 +1619,7 @@ do
 	local function ProcessInterrupts(event, destGUID, destFlags, spellID, spellName)
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
 			if (iconGroup.InterruptsEnabled) then
-				-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
+				-- SPELL_INTERRUPT is not invoked for some channeled spells - it could not be implemented (2023/04/01)
 				if (event == "SPELL_INTERRUPT") then
 					local spellDuration = InterruptSpells[spellID];
 					if (spellDuration ~= nil) then

@@ -235,5 +235,7 @@ An icon group is a set of icons with independent settings. For example, you can 
 The drop-down menu in the upper left corner of this window displays the icon group that you're currently editing.
 Pay attention: spells are shared between icon groups, but you can create multiple spells with the same name but with different options, and then set links to different icon groups.]=]
 L["options:general:masque-experimental"] = "Enable Masque support (experimental)"
+L["options:spells:batch-actions"] = "Batch actions"
+L["options:spells:set-all-spells-to-my-auras-only"] = "Set all spells to 'show only my auras'"
 
 --@end-debug@

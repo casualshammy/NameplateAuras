@@ -1951,15 +1951,48 @@ local function GUICategory_4(index)
 		end
 	end
 
-	-- // enable & disable all spells buttons
+	-- // batch actions
 	do
+		local buttonWidth = 250;
+		local buttonHeight = 18;
 
+		local frame = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		frame:SetBackdrop({
+			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 }
+		});
+		frame:SetBackdropColor(0.25, 0.24, 0.32, 1);
+		frame:SetBackdropBorderColor(0.1,0.1,0.1,1);
+		frame:SetWidth(buttonWidth+20);
+		frame:SetHeight(10+18+5+18+5+18+10);
+		frame:Hide();
+
+		-- // batchActionsButton
+		local batchActionsButton = VGUI.CreateButton();
+		batchActionsButton:SetParent(dropdownMenuSpells);
+		batchActionsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
+		batchActionsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
+		batchActionsButton:SetHeight(18);
+		batchActionsButton:SetText(L["options:spells:batch-actions"]);
+		batchActionsButton:SetScript("OnClick", function(self)
+			frame:SetPoint("BOTTOMLEFT", self, "BOTTOMRIGHT", 10, 0);
+			frame:SetShown(not frame:IsVisible());
+		end);
+		batchActionsButton:SetScript("OnHide", function(self)
+			frame:Hide();
+		end);
+
+		-- // enableAllSpellsButton
 		local enableAllSpellsButton = VGUI.CreateButton();
 		enableAllSpellsButton.clickedOnce = false;
-		enableAllSpellsButton:SetParent(dropdownMenuSpells);
-		enableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
-		enableAllSpellsButton:SetHeight(18);
-		enableAllSpellsButton:SetWidth(dropdownMenuSpells:GetWidth() / 2 - 10);
+		enableAllSpellsButton:SetParent(frame);
+		enableAllSpellsButton:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -10);
+		enableAllSpellsButton:SetHeight(buttonHeight);
+		enableAllSpellsButton:SetWidth(buttonWidth);
 		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
 		enableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
@@ -1984,12 +2017,13 @@ local function GUICategory_4(index)
 			self:SetText(L["options:spells:enable-all-spells"]);
 		end);
 
+		-- // disableAllSpellsButton
 		local disableAllSpellsButton = VGUI.CreateButton();
 		disableAllSpellsButton.clickedOnce = false;
-		disableAllSpellsButton:SetParent(dropdownMenuSpells);
-		disableAllSpellsButton:SetPoint("LEFT", enableAllSpellsButton, "RIGHT", 10, 0);
-		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
-		disableAllSpellsButton:SetHeight(18);
+		disableAllSpellsButton:SetParent(frame);
+		disableAllSpellsButton:SetPoint("TOPLEFT", enableAllSpellsButton, "BOTTOMLEFT", 0, -5);
+		disableAllSpellsButton:SetPoint("TOPRIGHT", enableAllSpellsButton, "BOTTOMRIGHT", 0, -5);
+		disableAllSpellsButton:SetHeight(buttonHeight);
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
@@ -2014,6 +2048,36 @@ local function GUICategory_4(index)
 			self:SetText(L["options:spells:disable-all-spells"]);
 		end);
 
+		-- // setAllSpellsToMine
+		local setAllSpellsToMine = VGUI.CreateButton();
+		setAllSpellsToMine.clickedOnce = false;
+		setAllSpellsToMine:SetParent(frame);
+		setAllSpellsToMine:SetPoint("TOPLEFT", disableAllSpellsButton, "BOTTOMLEFT", 0, -5);
+		setAllSpellsToMine:SetPoint("TOPRIGHT", disableAllSpellsButton, "BOTTOMRIGHT", 0, -5);
+		setAllSpellsToMine:SetHeight(buttonHeight);
+		setAllSpellsToMine:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+		setAllSpellsToMine:SetScript("OnClick", function(self)
+			if (self.clickedOnce) then
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_MYAURAS;
+				end
+				addonTable.UpdateAllNameplates(false);
+				selectSpell:Click();
+				self.clickedOnce = false;
+				self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+			else
+				self.clickedOnce = true;
+				self:SetText(L["options:spells:please-push-once-more"]);
+				CTimerAfter(3, function()
+					self.clickedOnce = false;
+					self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+				end);
+			end
+		end);
+		setAllSpellsToMine:SetScript("OnHide", function(self)
+			self.clickedOnce = false;
+			self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+		end);
 	end
 
 	-- // delete all spells button

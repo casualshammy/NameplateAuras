@@ -444,6 +444,7 @@ local function FillInMissingEntriesIsSpells()
             -- showGlow may be nil
             -- spellTooltip may be nil
             -- spellInfo.customBorderPath may be nil
+            -- consolidate may be nil
             if (spellInfo.enabledState == nil) then
                 spellInfo.enabledState = CONST_SPELL_MODE_ALL;
             end

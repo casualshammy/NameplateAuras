@@ -237,5 +237,7 @@ Pay attention: spells are shared between icon groups, but you can create multipl
 L["options:general:masque-experimental"] = "Enable Masque support (experimental)"
 L["options:spells:batch-actions"] = "Batch actions"
 L["options:spells:set-all-spells-to-my-auras-only"] = "Set all spells to 'show only my auras'"
+L["options:spells:consolidate"] = "Consolidate aura instances"
+L["options:spells:consolidate:tooltip"] = "Combine multiple instances of this aura into one aura";
 
 --@end-debug@

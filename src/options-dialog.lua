@@ -1885,7 +1885,7 @@ local function GUICategory_4(index)
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
 	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell, areaTooltip, editboxSpellTooltip;
-	local areaIconGroups, dropdownIconGroups;
+	local areaIconGroups, dropdownIconGroups, checkboxConsolidate;
 
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
@@ -2317,6 +2317,7 @@ local function GUICategory_4(index)
 			editboxSpellTooltip:SetText(spellInfo.spellTooltip or "");
 			checkboxShowOnFriends:SetChecked(spellInfo.showOnFriends);
 			checkboxShowOnEnemies:SetChecked(spellInfo.showOnEnemies);
+			checkboxConsolidate:SetChecked(spellInfo.consolidate);
 			if (spellInfo.enabledState == CONST_SPELL_MODE_DISABLED) then
 				checkboxEnabled:SetTriState(0);
 			elseif (spellInfo.enabledState == CONST_SPELL_MODE_ALL) then
@@ -2585,6 +2586,20 @@ local function GUICategory_4(index)
 
 	end
 
+	-- // checkboxConsolidate
+	do
+		checkboxConsolidate = VGUI.CreateCheckBox();
+		checkboxConsolidate:SetText(L["options:spells:consolidate"]);
+		VGUI.SetTooltip(checkboxConsolidate, L["options:spells:consolidate:tooltip"]);
+		checkboxConsolidate:SetOnClickHandler(function(this)
+			addonTable.db.CustomSpells2[selectedSpell].consolidate = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkboxConsolidate:SetParent(spellArea.controlsFrame);
+		checkboxConsolidate:SetPoint("TOPLEFT", checkboxPvPMode, "BOTTOMLEFT", 0, 0);
+		table_insert(controls, checkboxConsolidate);
+	end
+
 	-- // areaGlow
 	do
 
@@ -2599,7 +2614,7 @@ local function GUICategory_4(index)
 		});
 		areaGlow:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaGlow:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaGlow:SetPoint("TOPLEFT", spellArea.controlsFrame, "TOPLEFT", 10, -95);
+		areaGlow:SetPoint("TOPLEFT", checkboxConsolidate, "BOTTOMLEFT", 0, -5);
 		areaGlow:SetWidth(500);
 		areaGlow:SetHeight(80);
 		table_insert(controls, areaGlow);

@@ -34,6 +34,7 @@ local C_TooltipInfo_GetUnitBuffByAuraInstanceID = C_TooltipInfo.GetUnitBuffByAur
 local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffByAuraInstanceID;
 local UnitIsUnit, AuraUtil_ForEachAura = UnitIsUnit, AuraUtil.ForEachAura;
 local C_UnitAuras_GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID;
+local table_insert, table_remove = table.insert, table.remove;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType, BuffFrameHookedNameplates;
@@ -1092,6 +1093,54 @@ do
 		end
 	end
 
+	local function ProcAurasForNmplt_Merge(_frame, _iconGroupsToUpdate)
+		for iconGroupIndex in pairs(_iconGroupsToUpdate) do
+			local dataPerSpellId = nil;
+			for ndx, aura in pairs(AurasPerNameplate[_frame][iconGroupIndex]) do
+				if (aura.dbEntry ~= nil and aura.dbEntry.consolidate) then
+					if (dataPerSpellId == nil) then
+						dataPerSpellId = {};
+					end
+
+					local data = dataPerSpellId[aura.spellID]
+					if (data == nil) then
+						data = {
+							["stacks"] = 0,
+							["longestAuraIndex"] = 0,
+							["longestAuraData"] = nil,
+							["indexesToRemove"] = {}
+						};
+						dataPerSpellId[aura.spellID] = data;
+					end
+
+					data.stacks = data.stacks + math_max(1, aura.stacks);
+					if (data.longestAuraData == nil) then
+						data.longestAuraData = aura;
+						data.longestAuraIndex = ndx;
+					elseif (data.longestAuraData.expires < aura.expires) then
+						table_insert(data.indexesToRemove, data.longestAuraIndex);
+						data.longestAuraData = aura;
+						data.longestAuraIndex = ndx;
+					else
+						table_insert(data.indexesToRemove, ndx);
+					end
+				end
+			end
+
+			if (dataPerSpellId ~= nil) then
+				for _, data in pairs(dataPerSpellId) do
+					if (#data.indexesToRemove > 0) then
+						AurasPerNameplate[_frame][iconGroupIndex][data.longestAuraIndex].stacks = data.stacks;
+						for _, ndx in pairs(data.indexesToRemove) do
+							table_remove(AurasPerNameplate[_frame][iconGroupIndex], ndx);
+						end
+					end
+				end
+			end
+		end
+	end
+
+
 	function ProcessAurasForNameplate(frame, unitID)
 		for iconGroupIndex in pairs(AurasPerNameplate[frame]) do
 			wipe(AurasPerNameplate[frame][iconGroupIndex]);
@@ -1129,6 +1178,8 @@ do
 					ProcAurasForNmplt_OnNewAuraEx(auraData, unitIsFriend, frame, unitIsPlayer, unitID, iconGroupsToUpdate);
 				end
 			end
+
+			ProcAurasForNmplt_Merge(frame, iconGroupsToUpdate);
 
 			ProcAurasForNmplt_Interrupts(unitGUID, frame, iconGroupsToUpdate);
 			ProcAurasForNmplt_Additions(unitGUID, frame, iconGroupsToUpdate);

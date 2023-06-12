@@ -1140,7 +1140,6 @@ do
 		end
 	end
 
-
 	function ProcessAurasForNameplate(frame, unitID)
 		for iconGroupIndex in pairs(AurasPerNameplate[frame]) do
 			wipe(AurasPerNameplate[frame][iconGroupIndex]);

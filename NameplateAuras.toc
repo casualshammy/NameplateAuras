@@ -5,6 +5,7 @@
 ## Version: @project-version@
 ## X-Curse-Project-ID: 101192
 ## X-Wago-ID: lQNl536e
+## OptionalDeps: Masque
 
 src\consts.lua
 embeds.xml

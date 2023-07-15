@@ -20,6 +20,7 @@ local AceComm = LibStub("AceComm-3.0");
 local LibCustomGlow = LibStub("LibCustomGlow-1.0");
 local LRD = LibStub("LibRedDropdown-1.0");
 local DRList = LibStub("DRList-1.0");
+local MSQ = LibStub("Masque", true);
 
 -- // upvalues
 local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wipe, C_NamePlate_GetNamePlateForUnit, UnitBuff, UnitDebuff, UnitIsPlayer,
@@ -163,6 +164,7 @@ do
 			TimerTextColorHundredPercent = {0.1, 1, 0.1, 1},
 			KeepAspectRatio = true,
 			UseDefaultAuraTooltip = false,
+			MasqueEnabled = false,
 		};
 	end
 
@@ -345,13 +347,12 @@ do
 	local glowInfo = { };
 	local animationInfo = { };
 	local defaultCustomSortFunction = function(aura1, aura2) return aura1.spellName < aura2.spellName; end;
-	local customSortFunctions = { };
 	local AuraSortFunctions;
 	AuraSortFunctions = {
 		[AURA_SORT_MODE_EXPIRETIME] = {},
 		[AURA_SORT_MODE_ICONSIZE] = {},
 		[AURA_SORT_MODE_AURATYPE_EXPIRE] = {},
-		[AURA_SORT_MODE_CUSTOM] = customSortFunctions,
+		[AURA_SORT_MODE_CUSTOM] = {},
 	};
 
 	local spellCache = { };
@@ -365,10 +366,41 @@ do
 		end
 	end
 
+	local function CompileCustomSortFunctionForIconGroup(_iconGroupIndex, _iconGroup)
+		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][_iconGroupIndex];
+		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][_iconGroupIndex];
+		local exec_env = setmetatable({}, { __index =
+			function(t, k) -- luacheck: ignore
+				if (k == "sort_time") then
+					return sort_time;
+				elseif (k == "sort_size") then
+					return sort_size;
+				else
+					return _G[k];
+				end
+			end
+		});
+
+		local script = _iconGroup.CustomSortMethod;
+		script = "return " .. script;
+		local func, errorMsg = loadstring(script);
+		if (not func) then
+			addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
+			return defaultCustomSortFunction;
+		else
+			setfenv(func, exec_env);
+			local success, sortFunc = pcall(assert(func));
+			if (success) then
+				return sortFunc;
+			end
+		end
+	end
+
 	function addonTable.RebuildAuraSortFunctions()
 		wipe(AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME]);
 		wipe(AuraSortFunctions[AURA_SORT_MODE_ICONSIZE]);
 		wipe(AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE]);
+		wipe(AuraSortFunctions[AURA_SORT_MODE_CUSTOM]);
 
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
 			AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex] = function(item1, item2)
@@ -388,42 +420,7 @@ do
 				end
 				return AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex](item1, item2);
 			end
-		end
-
-		addonTable.CompileSortFunction();
-	end
-
-	function addonTable.CompileSortFunction()
-		wipe(customSortFunctions);
-
-		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
-			local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][iconGroupIndex];
-			local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][iconGroupIndex];
-			local exec_env = setmetatable({}, { __index =
-				function(t, k) -- luacheck: ignore
-					if (k == "sort_time") then
-						return sort_time;
-					elseif (k == "sort_size") then
-						return sort_size;
-					else
-						return _G[k];
-					end
-				end
-			});
-
-			local script = iconGroup.CustomSortMethod;
-			script = "return " .. script;
-			local func, errorMsg = loadstring(script);
-			if (not func) then
-				addonTable.Print("Your custom sorting function contains error: \n" .. errorMsg);
-				customSortFunctions[iconGroupIndex] = defaultCustomSortFunction;
-			else
-				setfenv(func, exec_env);
-				local success, sortFunc = pcall(assert(func));
-				if (success) then
-					customSortFunctions[iconGroupIndex] = sortFunc;
-				end
-			end
+			AuraSortFunctions[AURA_SORT_MODE_CUSTOM][iconGroupIndex] = CompileCustomSortFunctionForIconGroup(iconGroupIndex, iconGroup);
 		end
 	end
 
@@ -726,6 +723,12 @@ do
 		icon.stacks:SetPoint(iconGroup.StacksTextAnchor, icon, iconGroup.StacksTextAnchorIcon, iconGroup.StacksTextXOffset, iconGroup.StacksTextYOffset);
 		icon.stacks:SetFont(SML:Fetch("font", iconGroup.StacksFont), math_ceil((math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight) / 4) * iconGroup.StacksFontScale), "OUTLINE");
 		icon.stackcount = 0;
+
+		if (iconGroup.MasqueEnabled and MSQ ~= nil) then
+			icon.msqGroup = MSQ:Group("NameplateAuras", "Icon group: " .. iconGroup.IconGroupName);
+			icon.msqGroup:AddButton(icon, {Icon = icon.texture, Cooldown = icon.cooldownFrame, IconBorder = icon.border });
+		end
+
 		addonTable.AllAuraIconFrames[#addonTable.AllAuraIconFrames+1] = icon;
 		frame.NAurasIconsCount[_iconGroupIndex] = (frame.NAurasIconsCount[_iconGroupIndex] or 0) + 1;
 		frame.NAurasFrames[_iconGroupIndex]:SetWidth(iconGroup.DefaultIconSizeWidth * frame.NAurasIconsCount[_iconGroupIndex]);
@@ -1218,11 +1221,14 @@ do
 			end
 			icon.stacks:SetFont(SML:Fetch("font", _iconGroup.StacksFont), math_ceil((sizeMin / 4) * _iconGroup.StacksFontScale), "OUTLINE");
 			iconResized = true;
+			if (icon.msqGroup ~= nil) then
+				icon.msqGroup:ReSkin(icon);
+			end
 		end
 		return spellWidth, spellHeight, iconResized;
 	end
 
-	local function UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight, _iconGroup)
+	local function UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight, _iconGroup, _iconResized)
 		local xOffset, yOffset = _iconGroup.IconZoom, _iconGroup.IconZoom;
 		if (_iconGroup.KeepAspectRatio) then
 			local aspectRatio = spellWidth / spellHeight;
@@ -1233,7 +1239,7 @@ do
 				xOffset = _iconGroup.IconZoom + (freeSpace - freeSpace*aspectRatio);
 			end
 		end
-		if (icon.textureXOffset ~= xOffset or icon.textureYOffset ~= yOffset) then
+		if (_iconResized or icon.textureXOffset ~= xOffset or icon.textureYOffset ~= yOffset) then
 			icon.texture:SetTexCoord(xOffset, 1-xOffset, yOffset, 1-yOffset);
 			icon.textureXOffset = xOffset;
 			icon.textureYOffset = yOffset;
@@ -1272,7 +1278,7 @@ do
 						UpdateNameplate_SetBorder(icon, spellInfo, iconGroup);
 						-- // icon size
 						local spellWidth, spellHeight, iconResized = UpdateNameplate_SetIconSize(spellInfo.dbEntry, icon, unitGUID, iconGroup);
-						UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight, iconGroup);
+						UpdateNameplate_SetAspectRatio(icon, spellWidth, spellHeight, iconGroup, iconResized);
 						maxIconWidth = math_max(maxIconWidth, spellWidth);
 						maxIconHeight = math_max(maxIconHeight, spellHeight);
 						totalWidth = totalWidth + icon.sizeWidth + iconGroup.IconSpacing;
@@ -1463,7 +1469,7 @@ do
 			wipe(AurasPerNameplate[nameplate]);
 		end
 
-		for iconGroupIndex in pairs(db.IconGroups) do
+		for iconGroupIndex in pairs(nameplate.NAurasFrames) do
 			if (nameplate.NAurasFrames[iconGroupIndex] ~= nil) then
 				nameplate.NAurasFrames[iconGroupIndex]:Hide();
 			end
@@ -1504,7 +1510,7 @@ do
 	local function ProcessInterrupts(event, destGUID, destFlags, spellID, spellName)
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
 			if (iconGroup.InterruptsEnabled) then
-				-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
+				-- SPELL_INTERRUPT is not invoked for some channeled spells - it could not be implemented (2023/04/01)
 				if (event == "SPELL_INTERRUPT") then
 					local spellDuration = InterruptSpells[spellID];
 					if (spellDuration ~= nil) then
@@ -1721,15 +1727,14 @@ do
 	end
 
 	local function Ticker_OnTick()
-		for nameplate, unitID in pairs(NameplatesVisible) do
 			for iconGroupIndex in pairs(db.IconGroups) do
 				local spells = GetSpells(iconGroupIndex);
-
+			for nameplate, unitID in pairs(NameplatesVisible) do
 				if (AurasPerNameplate[nameplate][iconGroupIndex] == nil) then
 					AurasPerNameplate[nameplate][iconGroupIndex] = { };
+				else
+					wipe(AurasPerNameplate[nameplate][iconGroupIndex]);
 				end
-
-				wipe(AurasPerNameplate[nameplate][iconGroupIndex]);
 
 				for _, spell in pairs(spells) do
 					tinsert(AurasPerNameplate[nameplate][iconGroupIndex], spell);

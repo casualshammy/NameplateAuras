@@ -10,6 +10,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 local LibSerialize = LibStub("LibSerialize");
 local LibDeflate = LibStub("LibDeflate");
+local MSQ = LibStub("Masque", true);
 
 local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
 		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
@@ -123,7 +124,8 @@ local function GUICategory_1(index)
 		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
 		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
-		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd;
+		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd,
+		checkboxMasque;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
 
@@ -415,6 +417,27 @@ local function GUICategory_1(index)
 		
 	end
 
+	-- // checkboxMasque
+	do
+		checkboxMasque = VGUI.CreateCheckBox();
+		checkboxMasque:SetText(L["options:general:masque-experimental"]);
+		checkboxMasque:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled = this:GetChecked();
+			addonTable.PopupReloadUI();
+		end);
+		checkboxMasque:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled);
+		checkboxMasque:SetParent(GUIFrame);
+		checkboxMasque:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, 0);
+		checkboxMasque:HookScript("OnShow", function(self)
+			if (not MSQ) then
+				self:Hide();
+			end
+		end);
+		table_insert(GUIFrame.Categories[index], checkboxMasque);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxMasque:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled); end);
+		
+	end
+
 	-- // zoneTypesArea
 	do
 
@@ -429,7 +452,7 @@ local function GUICategory_1(index)
 		});
 		zoneTypesArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		zoneTypesArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		zoneTypesArea:SetPoint("TOPLEFT", checkboxUseDefaultAuraTooltip, "BOTTOMLEFT", 0, -10);
+		zoneTypesArea:SetPoint("TOPLEFT", checkboxMasque, "BOTTOMLEFT", 0, -10);
 		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		zoneTypesArea:SetWidth(360);
 		zoneTypesArea:SetHeight(90);
@@ -1928,15 +1951,48 @@ local function GUICategory_4(index)
 		end
 	end
 
-	-- // enable & disable all spells buttons
+	-- // batch actions
 	do
+		local buttonWidth = 250;
+		local buttonHeight = 18;
 
+		local frame = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+		frame:SetBackdrop({
+			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+			tile = 1,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 }
+		});
+		frame:SetBackdropColor(0.25, 0.24, 0.32, 1);
+		frame:SetBackdropBorderColor(0.1,0.1,0.1,1);
+		frame:SetWidth(buttonWidth+20);
+		frame:SetHeight(10+18+5+18+5+18+10);
+		frame:Hide();
+
+		-- // batchActionsButton
+		local batchActionsButton = VGUI.CreateButton();
+		batchActionsButton:SetParent(dropdownMenuSpells);
+		batchActionsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
+		batchActionsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
+		batchActionsButton:SetHeight(18);
+		batchActionsButton:SetText(L["options:spells:batch-actions"]);
+		batchActionsButton:SetScript("OnClick", function(self)
+			frame:SetPoint("BOTTOMLEFT", self, "BOTTOMRIGHT", 10, 0);
+			frame:SetShown(not frame:IsVisible());
+		end);
+		batchActionsButton:SetScript("OnHide", function(self)
+			frame:Hide();
+		end);
+
+		-- // enableAllSpellsButton
 		local enableAllSpellsButton = VGUI.CreateButton();
 		enableAllSpellsButton.clickedOnce = false;
-		enableAllSpellsButton:SetParent(dropdownMenuSpells);
-		enableAllSpellsButton:SetPoint("TOPLEFT", dropdownMenuSpells, "BOTTOMLEFT", 0, -10);
-		enableAllSpellsButton:SetHeight(18);
-		enableAllSpellsButton:SetWidth(dropdownMenuSpells:GetWidth() / 2 - 10);
+		enableAllSpellsButton:SetParent(frame);
+		enableAllSpellsButton:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -10);
+		enableAllSpellsButton:SetHeight(buttonHeight);
+		enableAllSpellsButton:SetWidth(buttonWidth);
 		enableAllSpellsButton:SetText(L["options:spells:enable-all-spells"]);
 		enableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
@@ -1961,12 +2017,13 @@ local function GUICategory_4(index)
 			self:SetText(L["options:spells:enable-all-spells"]);
 		end);
 
+		-- // disableAllSpellsButton
 		local disableAllSpellsButton = VGUI.CreateButton();
 		disableAllSpellsButton.clickedOnce = false;
-		disableAllSpellsButton:SetParent(dropdownMenuSpells);
-		disableAllSpellsButton:SetPoint("LEFT", enableAllSpellsButton, "RIGHT", 10, 0);
-		disableAllSpellsButton:SetPoint("TOPRIGHT", dropdownMenuSpells, "BOTTOMRIGHT", 0, -10);
-		disableAllSpellsButton:SetHeight(18);
+		disableAllSpellsButton:SetParent(frame);
+		disableAllSpellsButton:SetPoint("TOPLEFT", enableAllSpellsButton, "BOTTOMLEFT", 0, -5);
+		disableAllSpellsButton:SetPoint("TOPRIGHT", enableAllSpellsButton, "BOTTOMRIGHT", 0, -5);
+		disableAllSpellsButton:SetHeight(buttonHeight);
 		disableAllSpellsButton:SetText(L["options:spells:disable-all-spells"]);
 		disableAllSpellsButton:SetScript("OnClick", function(self)
 			if (self.clickedOnce) then
@@ -1991,6 +2048,36 @@ local function GUICategory_4(index)
 			self:SetText(L["options:spells:disable-all-spells"]);
 		end);
 
+		-- // setAllSpellsToMine
+		local setAllSpellsToMine = VGUI.CreateButton();
+		setAllSpellsToMine.clickedOnce = false;
+		setAllSpellsToMine:SetParent(frame);
+		setAllSpellsToMine:SetPoint("TOPLEFT", disableAllSpellsButton, "BOTTOMLEFT", 0, -5);
+		setAllSpellsToMine:SetPoint("TOPRIGHT", disableAllSpellsButton, "BOTTOMRIGHT", 0, -5);
+		setAllSpellsToMine:SetHeight(buttonHeight);
+		setAllSpellsToMine:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+		setAllSpellsToMine:SetScript("OnClick", function(self)
+			if (self.clickedOnce) then
+				for spellIndex in pairs(addonTable.db.CustomSpells2) do
+					addonTable.db.CustomSpells2[spellIndex].enabledState = CONST_SPELL_MODE_MYAURAS;
+	end
+				addonTable.UpdateAllNameplates(false);
+				selectSpell:Click();
+				self.clickedOnce = false;
+				self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+			else
+				self.clickedOnce = true;
+				self:SetText(L["options:spells:please-push-once-more"]);
+				CTimerAfter(3, function()
+					self.clickedOnce = false;
+					self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+				end);
+			end
+		end);
+		setAllSpellsToMine:SetScript("OnHide", function(self)
+			self.clickedOnce = false;
+			self:SetText(L["options:spells:set-all-spells-to-my-auras-only"]);
+		end);
 	end
 
 	-- // delete all spells button
@@ -4163,7 +4250,7 @@ local function GUICategory_SizeAndPosition(index)
 		local LuaEditor = VGUI.CreateLuaEditor();
 		LuaEditor:SetOnAcceptHandler(function(self)
 			addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod = self:GetText();
-			addonTable.CompileSortFunction();
+			addonTable.RebuildAuraSortFunctions();
 			addonTable.UpdateAllNameplates(true);
 		end);
 		LuaEditor:SetOnTextChangedHandler(function(self)
@@ -4790,7 +4877,8 @@ local function GUICategory_IconGroups(_index)
 
 		local text = description:CreateFontString(nil, "ARTWORK", "GameFontNormal");
 		text:SetJustifyH("CENTER");
-		text:SetPoint("CENTER", description, "CENTER", 0, 0);
+		text:SetPoint("TOPLEFT", description, "TOPLEFT", 10, -10);
+		text:SetPoint("TOPRIGHT", description, "TOPRIGHT", -10, -10);
 		text:SetText(L["options:icon-groups:description"]);
 
 		table_insert(GUIFrame.Categories[_index], description);
@@ -4843,6 +4931,7 @@ local function GUICategory_IconGroups(_index)
 				local newIg = addonTable.deepcopy(addonTable.db.IconGroups[CurrentIconGroup]);
 				newIg.IconGroupName = text;
 				table.insert(addonTable.db.IconGroups, newIg);
+				CurrentIconGroup = #addonTable.db.IconGroups;
 				OnIconGroupsChanged();
 				self:SetText("");
 			end
@@ -4947,7 +5036,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 		local scanAllSpells = coroutine.create(function()
 			local misses = 0;
 			local id = 0;
-			while (misses < 100000) do
+			while (misses < 400) do
 				id = id + 1;
 				local name, _, icon = GetSpellInfo(id);
 				if (icon == 136243) then -- 136243 is the a gear icon

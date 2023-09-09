@@ -1885,7 +1885,7 @@ local function GUICategory_4(index)
 		checkboxShowOnEnemies, selectSpell, checkboxPvPMode, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
 	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell, areaTooltip, editboxSpellTooltip;
-	local areaIconGroups, dropdownIconGroups, checkboxConsolidate;
+	local areaIconGroups, dropdownIconGroups, checkboxConsolidate, checkboxOverrideSize;
 
 	local AuraTypesLocalization = {
 		[AURA_TYPE_BUFF] =		L["Buff"],
@@ -2287,10 +2287,10 @@ local function GUICategory_4(index)
 
 		local function OnSpellSelected(buttonInfo)
 			local spellInfo = buttonInfo.info;
+			selectedSpell = buttonInfo.indexInDB;
 			for _, control in pairs(controls) do
 				control:Show();
 			end
-			selectedSpell = buttonInfo.indexInDB;
 			selectSpell.Text:SetText(buttonInfo.text);
 			selectSpell:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
@@ -3043,7 +3043,7 @@ local function GUICategory_4(index)
 		areaAuraType:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		areaAuraType:SetPoint("TOPLEFT", areaCustomBorder, "BOTTOMLEFT", 0, 0);
 		areaAuraType:SetWidth(167);
-		areaAuraType:SetHeight(70);
+		areaAuraType:SetHeight(100);
 		table_insert(controls, areaAuraType);
 
 	end
@@ -3093,9 +3093,46 @@ local function GUICategory_4(index)
 		areaIconSize:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		areaIconSize:SetPoint("TOPLEFT", areaAuraType, "TOPRIGHT", 0, 0);
 		areaIconSize:SetWidth(333);
-		areaIconSize:SetHeight(70);
+		areaIconSize:SetHeight(100);
 		table_insert(controls, areaIconSize);
 
+	end
+
+	-- // checkboxOverrideSize
+	do
+		local updateControls = function()
+			if (selectedSpell == nil or selectedSpell == 0) then
+				return;
+			end
+			local checked = addonTable.db.CustomSpells2[selectedSpell].overrideSize;
+			checkboxOverrideSize:SetChecked(checked);
+			if (checked) then
+				sliderSpellIconSizeWidth:Show();
+				sliderSpellIconSizeHeight:Show();
+				areaIconSize:SetHeight(100);
+				areaAuraType:SetHeight(100);
+			else
+				sliderSpellIconSizeWidth:Hide();
+				sliderSpellIconSizeHeight:Hide();
+				areaIconSize:SetHeight(70);
+				areaAuraType:SetHeight(70);
+			end
+		end
+
+		checkboxOverrideSize = VGUI.CreateCheckBox();
+		checkboxOverrideSize:SetText(L["options:spells:override-size"]);
+		VGUI.SetTooltip(checkboxOverrideSize, L["options:spells:override-size:tooltip"]);
+		checkboxOverrideSize:SetOnClickHandler(function(this)
+			local checked = this:GetChecked();
+			addonTable.db.CustomSpells2[selectedSpell].overrideSize = checked;
+			addonTable.UpdateAllNameplates(true);
+			updateControls();
+		end);
+		checkboxOverrideSize:SetParent(areaIconSize);
+		checkboxOverrideSize:SetPoint("TOPLEFT", areaIconSize, "TOPLEFT", 10, -10);
+		table_insert(controls, checkboxOverrideSize);
+
+		checkboxOverrideSize:SetScript("OnShow", function() updateControls(); end);
 	end
 
 	-- // sliderSpellIconSizeWidth
@@ -3104,12 +3141,11 @@ local function GUICategory_4(index)
 		sliderSpellIconSizeWidth = VGUI.CreateSlider();
 		sliderSpellIconSizeWidth:SetParent(areaIconSize);
 		sliderSpellIconSizeWidth:SetWidth(160);
-		sliderSpellIconSizeWidth:SetPoint("TOPLEFT", 18, -23);
+		sliderSpellIconSizeWidth:ClearAllPoints();
+		sliderSpellIconSizeWidth:SetPoint("BOTTOMLEFT", areaIconSize, "BOTTOMLEFT", 5, -15);
 		sliderSpellIconSizeWidth.label:ClearAllPoints();
 		sliderSpellIconSizeWidth.label:SetPoint("CENTER", sliderSpellIconSizeWidth, "CENTER", 0, 15);
 		sliderSpellIconSizeWidth.label:SetText(L["options:spells:icon-width"]);
-		sliderSpellIconSizeWidth:ClearAllPoints();
-		sliderSpellIconSizeWidth:SetPoint("LEFT", areaIconSize, "LEFT", 5, 0);
 		sliderSpellIconSizeWidth.slider:ClearAllPoints();
 		sliderSpellIconSizeWidth.slider:SetPoint("LEFT", 3, 0)
 		sliderSpellIconSizeWidth.slider:SetPoint("RIGHT", -3, 0)
@@ -3140,7 +3176,6 @@ local function GUICategory_4(index)
 		end);
 		sliderSpellIconSizeWidth.lowtext:SetText("1");
 		sliderSpellIconSizeWidth.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		table_insert(controls, sliderSpellIconSizeWidth);
 
 	end
 
@@ -3150,12 +3185,11 @@ local function GUICategory_4(index)
 		sliderSpellIconSizeHeight = VGUI.CreateSlider();
 		sliderSpellIconSizeHeight:SetParent(areaIconSize);
 		sliderSpellIconSizeHeight:SetWidth(160);
-		sliderSpellIconSizeHeight:SetPoint("TOPLEFT", 18, -23);
+		sliderSpellIconSizeHeight:ClearAllPoints();
+		sliderSpellIconSizeHeight:SetPoint("LEFT", sliderSpellIconSizeWidth, "RIGHT", 0, 0);
 		sliderSpellIconSizeHeight.label:ClearAllPoints();
 		sliderSpellIconSizeHeight.label:SetPoint("CENTER", sliderSpellIconSizeHeight, "CENTER", 0, 15);
 		sliderSpellIconSizeHeight.label:SetText(L["options:spells:icon-height"]);
-		sliderSpellIconSizeHeight:ClearAllPoints();
-		sliderSpellIconSizeHeight:SetPoint("LEFT", sliderSpellIconSizeWidth, "RIGHT", 0, 0);
 		sliderSpellIconSizeHeight.slider:ClearAllPoints();
 		sliderSpellIconSizeHeight.slider:SetPoint("LEFT", 3, 0)
 		sliderSpellIconSizeHeight.slider:SetPoint("RIGHT", -3, 0)
@@ -3186,7 +3220,6 @@ local function GUICategory_4(index)
 		end);
 		sliderSpellIconSizeHeight.lowtext:SetText("1");
 		sliderSpellIconSizeHeight.hightext:SetText(tostring(addonTable.MAX_AURA_ICON_SIZE));
-		table_insert(controls, sliderSpellIconSizeHeight);
 
 	end
 

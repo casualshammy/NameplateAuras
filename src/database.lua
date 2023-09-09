@@ -429,10 +429,41 @@ local migrations = {
             end
         end
     end,
+    [25] = function()
+        local db = addonTable.db;
+        local count = 0;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.overrideSize == nil) then
+                local groups = spellInfo.iconGroups;
+                if (groups ~= nil) then
+                    local firstEnabledGroup = 0;
+                    for groupIndex, groupEnabled in pairs(groups) do
+                        if (groupEnabled) then
+                            firstEnabledGroup = groupIndex;
+                            break;
+                        end
+                    end
+                    if (firstEnabledGroup > 0) then
+                        local groupInfo = db.IconGroups[firstEnabledGroup];
+                        if (groupInfo ~= nil) then
+                            if (spellInfo.iconSizeWidth ~= groupInfo.DefaultIconSizeWidth or spellInfo.iconSizeHeight ~= groupInfo.DefaultIconSizeHeight) then
+                                spellInfo.overrideSize = true;
+                                count = count + 1;
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if (count > 0) then
+            addonTable.Print("Total spells with custom size: "..count);
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
+    local ref = addonTable.GetIconGroupDefaultOptions();
     for index, spellInfo in pairs(db.CustomSpells2) do
         if (spellInfo.spellName == nil) then
             -- we don't know what spell it is
@@ -445,6 +476,7 @@ local function FillInMissingEntriesIsSpells()
             -- spellTooltip may be nil
             -- spellInfo.customBorderPath may be nil
             -- consolidate may be nil
+            -- overrideSize may be nil
             if (spellInfo.enabledState == nil) then
                 spellInfo.enabledState = CONST_SPELL_MODE_ALL;
             end
@@ -473,16 +505,16 @@ local function FillInMissingEntriesIsSpells()
                 spellInfo.animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
             end
             if (spellInfo.iconSizeWidth == nil) then
-                spellInfo.iconSizeWidth = db.DefaultIconSizeWidth;
+                spellInfo.iconSizeWidth = ref.DefaultIconSizeWidth;
             end
             if (spellInfo.iconSizeHeight == nil) then
-                spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
+                spellInfo.iconSizeHeight = ref.DefaultIconSizeHeight;
             end
             if (spellInfo.customBorderType == nil) then
                 spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
             end
             if (spellInfo.customBorderSize == nil) then
-                spellInfo.customBorderSize = db.BorderThickness;
+                spellInfo.customBorderSize = ref.BorderThickness;
             end
             if (spellInfo.customBorderColor == nil) then
                 spellInfo.customBorderColor = { 1, 0.1, 0.1, 1 };

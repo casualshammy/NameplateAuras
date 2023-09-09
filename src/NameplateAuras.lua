@@ -1339,7 +1339,7 @@ do
 
 	local function UpdateNameplate_SetIconSize(dbEntry, icon, unitGUID, _iconGroup)
 		local spellWidth, spellHeight;
-		if (dbEntry ~= nil) then
+		if (dbEntry ~= nil and dbEntry.overrideSize) then
 			spellWidth = dbEntry.iconSizeWidth or _iconGroup.DefaultIconSizeWidth;
 			spellHeight = dbEntry.iconSizeHeight or _iconGroup.DefaultIconSizeHeight;
 		else
@@ -1505,7 +1505,7 @@ do
 			newInstanceType = addonTable.INSTANCE_TYPE_UNKNOWN;
 		elseif (inInstance and instanceType == "pvp") then
 			local maxInstanceGroup = select(5, GetInstanceInfo());
-			if (maxInstanceGroup == 40) then
+			if (maxInstanceGroup == 40 or maxInstanceGroup == 35) then
 				newInstanceType = addonTable.INSTANCE_TYPE_PVP_BG_40PPL;
 			else
 				newInstanceType = instanceType;

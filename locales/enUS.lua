@@ -239,5 +239,7 @@ L["options:spells:batch-actions"] = "Batch actions"
 L["options:spells:set-all-spells-to-my-auras-only"] = "Set all spells to 'show only my auras'"
 L["options:spells:consolidate"] = "Consolidate aura instances"
 L["options:spells:consolidate:tooltip"] = "Combine multiple instances of this aura into one aura";
+L["options:spells:override-size"] = "Override aura size";
+L["options:spells:override-size:tooltip"] = "Set custom size for aura. Pay attention: this applies to all icon groups!"
 
 --@end-debug@

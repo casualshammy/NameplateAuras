@@ -82,3 +82,12 @@ addonTable.INSTANCE_TYPE_ARENA = "arena";
 addonTable.INSTANCE_TYPE_PARTY = "party";
 addonTable.INSTANCE_TYPE_RAID = "raid";
 addonTable.INSTANCE_TYPE_SCENARIO = "scenario";
+
+addonTable.EPIC_BG_ZONE_IDS = {
+	[30] = true, -- Alterac Valley
+	[628] = true, -- Isle of Conquest
+	[1191] = true, -- Ashran
+	[1280] = true, -- Southshore vs. Tarren Mill
+	[2118] = true, -- Battle for Wintergrasp
+	[2197] = true, -- Korrak's Revenge
+};

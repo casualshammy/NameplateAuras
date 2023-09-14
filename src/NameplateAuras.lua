@@ -28,7 +28,7 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
-local UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, IsInInstance, GetInstanceInfo, C_TooltipInfo;
+local UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo;
 local TooltipUtil_SurfaceArgs = TooltipUtil.SurfaceArgs;
 local C_TooltipInfo_GetUnitBuffByAuraInstanceID = C_TooltipInfo.GetUnitBuffByAuraInstanceID;
 local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffByAuraInstanceID;
@@ -494,8 +494,10 @@ do
 				return expires1 < expires2;
 			end
 			AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][iconGroupIndex] = function(item1, item2)
-				local size1 = (item1.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight));
-				local size2 = (item2.dbEntry == nil and math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth) or math_min(item2.dbEntry.iconSizeWidth, item2.dbEntry.iconSizeHeight));
+				local shouldOverrideSize1 = item1.dbEntry ~= nil and item1.dbEntry.overrideSize;
+				local shouldOverrideSize2 = item2.dbEntry ~= nil and item2.dbEntry.overrideSize;
+				local size1 = (shouldOverrideSize1 and math_min(item1.dbEntry.iconSizeWidth, item1.dbEntry.iconSizeHeight) or math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth));
+				local size2 = (shouldOverrideSize2 and math_min(item2.dbEntry.iconSizeWidth, item2.dbEntry.iconSizeHeight) or math_min(iconGroup.DefaultIconSizeHeight, iconGroup.DefaultIconSizeWidth));
 				return size1 < size2;
 			end
 			AuraSortFunctions[AURA_SORT_MODE_AURATYPE_EXPIRE][iconGroupIndex] = function(item1, item2)
@@ -991,6 +993,7 @@ do
 							["glowType"] = GLOW_TYPE_ACTIONBUTTON,
 							["iconSizeWidth"] = iconSize,
 							["iconSizeHeight"] = iconSize,
+							["overrideSize"] = true,
 						},
 					};
 				end
@@ -1083,6 +1086,7 @@ do
 							["dbEntry"] = {
 								["iconSizeWidth"] = iconGroup.DispelIconSizeWidth,
 								["iconSizeHeight"] = iconGroup.DispelIconSizeHeight,
+								["overrideSize"] = true,
 								["showGlow"] = GLOW_TIME_INFINITE,
 								["glowType"] = iconGroup.Additions_DispellableSpells_GlowType,
 							},
@@ -1686,6 +1690,7 @@ do
 									["auraType"] =					AURA_TYPE_DEBUFF,
 									["iconSizeWidth"] = 			iconGroup.InterruptsIconSizeWidth,
 									["iconSizeHeight"] = 			iconGroup.InterruptsIconSizeHeight,
+									["overrideSize"] = 				true,
 									["showGlow"] =					GLOW_TIME_INFINITE,
 									["glowType"] =					iconGroup.InterruptsGlowType,
 								},
@@ -1794,6 +1799,7 @@ do
 					["dbEntry"] = {
 						["iconSizeWidth"] = 45,
 						["iconSizeHeight"] = 45,
+						["overrideSize"] = true,
 					},
 				},
 				{
@@ -1806,6 +1812,7 @@ do
 					["dbEntry"] = {
 						["iconSizeWidth"] = 30,
 						["iconSizeHeight"] = 30,
+						["overrideSize"] = true,
 					},
 				},
 				{
@@ -1819,6 +1826,7 @@ do
 					["dbEntry"] = {
 						["iconSizeWidth"] = 30,
 						["iconSizeHeight"] = 30,
+						["overrideSize"] = true,
 					},
 				},
 				{
@@ -1832,6 +1840,7 @@ do
 					["dbEntry"] = {
 						["iconSizeWidth"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeWidth,
 						["iconSizeHeight"] = db.IconGroups[_iconGroupIndex].DefaultIconSizeHeight,
+						["overrideSize"] = true,
 						["showGlow"] = GLOW_TIME_INFINITE,
 						["glowType"] = db.IconGroups[_iconGroupIndex].Additions_DispellableSpells_GlowType,
 					},
@@ -1891,6 +1900,28 @@ do
 				else
 					wipe(AurasPerNameplate[nameplate][iconGroupIndex]);
 				end
+
+				-- local unitGuid = UnitGUID(unitID);
+				-- if (InterruptsPerUnitGUID[iconGroupIndex] == nil) then
+				-- 	InterruptsPerUnitGUID[iconGroupIndex] = {};
+				-- end
+				-- InterruptsPerUnitGUID[iconGroupIndex][unitGuid] = {
+				-- 	["duration"] = 5,
+				-- 	["expires"] = GetTime() + 5,
+				-- 	["stacks"] = 1,
+				-- 	["spellID"] = 6552,
+				-- 	["type"] = AURA_TYPE_DEBUFF,
+				-- 	["spellName"] = SpellNameByID[6552],
+				-- 	["dbEntry"] = {
+				-- 		["enabledState"] =				CONST_SPELL_MODE_DISABLED,
+				-- 		["auraType"] =					AURA_TYPE_DEBUFF,
+				-- 		["iconSizeWidth"] = 			iconGroup.InterruptsIconSizeWidth,
+				-- 		["iconSizeHeight"] = 			iconGroup.InterruptsIconSizeHeight,
+				-- 		["overrideSize"] = 				true,
+				-- 		["showGlow"] =					GLOW_TIME_INFINITE,
+				-- 		["glowType"] =					iconGroup.InterruptsGlowType,
+				-- 	},
+				-- };
 
 				for _, spell in pairs(spells) do
 					tinsert(AurasPerNameplate[nameplate][iconGroupIndex], spell);

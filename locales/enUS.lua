@@ -241,5 +241,7 @@ L["options:spells:consolidate"] = "Consolidate aura instances"
 L["options:spells:consolidate:tooltip"] = "Combine multiple instances of this aura into one aura";
 L["options:spells:override-size"] = "Override aura size";
 L["options:spells:override-size:tooltip"] = "Set custom size for aura. Pay attention: this applies to all icon groups!"
+L["options:size-and-position:nameplate-is-parent"] = "Make nameplate a parent of this icon group"
+L["options:size-and-position:nameplate-is-parent:tooltip"] = "The icons will be deeply attached to the nameplates. This means that certain parameters of the icons (such as size, transparency, and even visibility) will be influenced by the parameters of the nameplates themselves. The icons will be positioned exactly at the same frame level as the nameplates."
 
 --@end-debug@

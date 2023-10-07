@@ -93,6 +93,9 @@ local function ShowGUICategory(index)
 	for _, v in pairs(GUIFrame.Categories[index]) do
 		v:Show();
 	end
+	for _, v in pairs(GUIFrame.OnCategoryShowHandlers[index]) do
+		v();
+	end
 end
 
 local function OnGUICategoryClick(self)
@@ -3893,7 +3896,7 @@ local function GUICategory_Additions(index)
 end
 
 local function GUICategory_SizeAndPosition(index)
-	local dropdownFrameAnchorToNameplate;
+	local dropdownFrameAnchorToNameplate, dropdownTargetStrata, dropdownNonTargetStrata;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
 		[frameAnchors[1]] = L["anchor-point:topright"],
@@ -3906,6 +3909,12 @@ local function GUICategory_SizeAndPosition(index)
 		[frameAnchors[8]] = L["anchor-point:left"],
 		[frameAnchors[9]] = L["anchor-point:bottomleft"]
 	};
+
+	local function onNameplateIsParentChanged()
+		local nameplateIsParent = addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent;
+		dropdownTargetStrata:SetShown(not nameplateIsParent);
+		dropdownNonTargetStrata:SetShown(not nameplateIsParent);
+	end
 
 	-- // sliderIconSize
 	do
@@ -4204,11 +4213,31 @@ local function GUICategory_SizeAndPosition(index)
 		end);
 	end
 
+	-- // checkboxNameplateIsParent
+	do
+		local checkboxNameplateIsParent = VGUI.CreateCheckBox();
+		checkboxNameplateIsParent:SetText(L["options:size-and-position:nameplate-is-parent"]);
+		VGUI.SetTooltip(checkboxNameplateIsParent, L["options:size-and-position:nameplate-is-parent:tooltip"]);
+		checkboxNameplateIsParent:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent = this:GetChecked();
+			onNameplateIsParentChanged();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxNameplateIsParent:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent);
+		checkboxNameplateIsParent:SetParent(GUIFrame);
+		checkboxNameplateIsParent:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -140);
+		table_insert(GUIFrame.Categories[index], checkboxNameplateIsParent);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxNameplateIsParent:SetChecked(nameplateIsParent);
+			onNameplateIsParentChanged();
+		end);
+	end
+
 	-- // dropdownFrameAnchorToNameplate
 	do
 		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 220);
-		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -160);
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -180);
 		local info = {};
 		dropdownFrameAnchorToNameplate.initialize = function()
 			wipe(info);
@@ -4238,7 +4267,7 @@ local function GUICategory_SizeAndPosition(index)
 	do
 		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 220);
-		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -160);
+		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -180);
 		local info = {};
 		dropdownFrameAnchor.initialize = function()
 			wipe(info);
@@ -4275,7 +4304,7 @@ local function GUICategory_SizeAndPosition(index)
 			[anchors[3]] = L["options:size-and-position:icon-align:center"] };
 		local dropdownIconAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownIconAnchor", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconAnchor, 220);
-		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -200);
+		dropdownIconAnchor:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -220);
 		local info = {};
 		dropdownIconAnchor.initialize = function()
 			wipe(info);
@@ -4311,7 +4340,7 @@ local function GUICategory_SizeAndPosition(index)
 		};
 		local dropdownIconGrowDirection = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.DropdownIconGrowDirection", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownIconGrowDirection, 220);
-		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -200);
+		dropdownIconGrowDirection:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -220);
 		local info = {};
 		dropdownIconGrowDirection.initialize = function()
 			wipe(info);
@@ -4337,7 +4366,6 @@ local function GUICategory_SizeAndPosition(index)
 		end);
 	end
 
-	local dropdownTargetStrata, dropdownNonTargetStrata;
 	local frameStratas = {
 		"BACKGROUND",
 		"LOW",
@@ -4353,7 +4381,7 @@ local function GUICategory_SizeAndPosition(index)
 	do
 		dropdownTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownTargetStrata, 220);
-		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -240);
+		dropdownTargetStrata:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -260);
 		local info = {};
 		dropdownTargetStrata.initialize = function()
 			wipe(info);
@@ -4375,13 +4403,14 @@ local function GUICategory_SizeAndPosition(index)
 		dropdownTargetStrata.text:SetText(L["options:size-and-position:target-strata"]);
 		table.insert(GUIFrame.Categories[index], dropdownTargetStrata);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].TargetStrata); end);
+		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
 	-- // dropdownNonTargetStrata
 	do
 		dropdownNonTargetStrata = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownNonTargetStrata", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownNonTargetStrata, 220);
-		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -240);
+		dropdownNonTargetStrata:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -260);
 		local info = {};
 		dropdownNonTargetStrata.initialize = function()
 			wipe(info);
@@ -4403,6 +4432,7 @@ local function GUICategory_SizeAndPosition(index)
 		dropdownNonTargetStrata.text:SetText(L["options:size-and-position:non-target-strata"]);
 		table.insert(GUIFrame.Categories[index], dropdownNonTargetStrata);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownNonTargetStrata:GetName().."Text"]:SetText(addonTable.db.IconGroups[CurrentIconGroup].NonTargetStrata); end);
+		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
 	local dropdownSortMode, buttonCustomSortFunction;
@@ -4425,7 +4455,7 @@ local function GUICategory_SizeAndPosition(index)
 
 		dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
 		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -290);
+		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -310);
 		local info = {};
 		dropdownSortMode.initialize = function()
 			wipe(info);
@@ -5338,6 +5368,7 @@ local function InitializeGUI()
 
 	GUIFrame.Categories = {};
 	GUIFrame.OnDBChangedHandlers = {};
+	GUIFrame.OnCategoryShowHandlers = {};
 	table_insert(GUIFrame.OnDBChangedHandlers, function() OnGUICategoryClick(GUIFrame.CategoryButtons[1]); end);
 
 	local categories = { L["General"], L["options:category:size-and-position"], L["options:category:alpha"], L["Timer text"], L["Stack text"],
@@ -5359,6 +5390,7 @@ local function InitializeGUI()
 		end
 
 		GUIFrame.Categories[index] = {};
+		GUIFrame.OnCategoryShowHandlers[index] = {};
 
 		if (value == L["General"]) then
 			GUICategory_1(index);

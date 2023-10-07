@@ -227,6 +227,7 @@ do
 			KeepAspectRatio = true,
 			UseDefaultAuraTooltip = false,
 			MasqueEnabled = false,
+			NameplateIsParent = false,
 		};
 	end
 
@@ -763,7 +764,7 @@ do
 		local iconGroup = db.IconGroups[_iconGroupIndex];
 
 		if (frame.NAurasFrames[_iconGroupIndex] == nil) then
-			frame.NAurasFrames[_iconGroupIndex] = CreateFrame("frame", nil, UIParent);
+			frame.NAurasFrames[_iconGroupIndex] = CreateFrame("frame", nil, iconGroup.NameplateIsParent == true and frame or UIParent);
 			frame.NAurasFrames[_iconGroupIndex]:SetWidth(iconGroup.DefaultIconSizeWidth);
 			frame.NAurasFrames[_iconGroupIndex]:SetHeight(iconGroup.DefaultIconSizeHeight);
 			frame.NAurasFrames[_iconGroupIndex]:SetPoint(iconGroup.FrameAnchor, frame, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
@@ -873,6 +874,7 @@ do
 					if (iconGroup ~= nil) then
 						frame:ClearAllPoints();
 						frame:SetPoint(iconGroup.FrameAnchor, nameplate, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
+						frame:SetParent(iconGroup.NameplateIsParent == true and nameplate or UIParent);
 						for iconIndex, icon in pairs(nameplate.NAurasIcons[frameIndex]) do
 							if (icon.shown) then
 								local sizeMin = math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);

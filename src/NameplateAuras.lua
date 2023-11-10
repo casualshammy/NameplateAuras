@@ -651,6 +651,8 @@ do
 		icon.sizeHeight = db.DefaultIconSizeHeight;
 		icon:Hide();
 		icon.cooldownText:SetTextColor(0.7, 1, 0);
+		icon.cooldownText:SetShadowColor(0, 0, 0, 1);
+		icon.cooldownText:SetShadowOffset(1, -1);
 		icon.cooldownText:SetPoint(db.TimerTextAnchor, icon, db.TimerTextAnchorIcon, db.TimerTextXOffset, db.TimerTextYOffset);
 		if (db.TimerTextUseRelativeScale) then
 			local sizeMin = math_min(db.DefaultIconSizeWidth, db.DefaultIconSizeHeight);

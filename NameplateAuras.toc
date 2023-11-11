@@ -1,4 +1,4 @@
-## Interface: 30401
+## Interface: 30403
 ## Title: NameplateAuras [WotLK]
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB

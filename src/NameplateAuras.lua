@@ -790,6 +790,8 @@ do
 		icon.sizeHeight = iconGroup.DefaultIconSizeHeight;
 		icon:Hide();
 		icon.cooldownText:SetTextColor(0.7, 1, 0);
+		icon.cooldownText:SetShadowColor(0, 0, 0, 1);
+		icon.cooldownText:SetShadowOffset(1, -1);
 		icon.cooldownText:SetPoint(iconGroup.TimerTextAnchor, icon, iconGroup.TimerTextAnchorIcon, iconGroup.TimerTextXOffset, iconGroup.TimerTextYOffset);
 		if (iconGroup.TimerTextUseRelativeScale) then
 			local sizeMin = math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);

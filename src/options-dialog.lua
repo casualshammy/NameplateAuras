@@ -4081,7 +4081,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 		local scanAllSpells = coroutine.create(function()
 			local misses = 0;
 			local id = 0;
-			while (misses < 400) do
+			while (misses < 200000) do
 				id = id + 1;
 				local name, _, icon = GetSpellInfo(id);
 				if (icon == 136243) then -- 136243 is the a gear icon

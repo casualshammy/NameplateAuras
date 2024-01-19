@@ -3895,7 +3895,7 @@ local function GUICategory_Additions(index)
 
 end
 
-local function GUICategory_SizeAndPosition(index)
+local function GUICategory_StyleAndPosition(index)
 	local dropdownFrameAnchorToNameplate, dropdownTargetStrata, dropdownNonTargetStrata;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
@@ -3916,13 +3916,69 @@ local function GUICategory_SizeAndPosition(index)
 		dropdownNonTargetStrata:SetShown(not nameplateIsParent);
 	end
 
+	-- // checkboxKeepAspectRatio
+	do
+		local checkboxKeepAspectRatio = VGUI.CreateCheckBox();
+		checkboxKeepAspectRatio:SetText(L["options:size-and-position:keep-aspect-ratio"]);
+		VGUI.SetTooltip(checkboxKeepAspectRatio, L["options:size-and-position:keep-aspect-ratio:tooltip"]);
+		checkboxKeepAspectRatio:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio = this:GetChecked();
+			addonTable.UpdateAllNameplates();
+		end);
+		checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
+		checkboxKeepAspectRatio:SetParent(GUIFrame);
+		checkboxKeepAspectRatio:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 6, -8);
+		table_insert(GUIFrame.Categories[index], checkboxKeepAspectRatio);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
+		end);
+	end
+
+	-- // checkboxShowCooldownSwipeEdge
+	do
+		local checkboxShowCooldownSwipeEdge = VGUI.CreateCheckBox();
+		checkboxShowCooldownSwipeEdge:SetText(L["options:style-and-position:show-cooldown-swipe-edge"]);
+		VGUI.SetTooltip(checkboxShowCooldownSwipeEdge, L["options:style-and-position:show-cooldown-swipe-edge:tooltip"]);
+		checkboxShowCooldownSwipeEdge:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownSwipeEdge = this:GetChecked();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxShowCooldownSwipeEdge:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownSwipeEdge);
+		checkboxShowCooldownSwipeEdge:SetParent(GUIFrame);
+		checkboxShowCooldownSwipeEdge:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", GUIFrame.ControlsFrame:GetWidth()/2, -8);
+		table_insert(GUIFrame.Categories[index], checkboxShowCooldownSwipeEdge);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxShowCooldownSwipeEdge:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowCooldownSwipeEdge);
+		end);
+	end
+
+	-- // checkboxNameplateIsParent
+	do
+		local checkboxNameplateIsParent = VGUI.CreateCheckBox();
+		checkboxNameplateIsParent:SetText(L["options:size-and-position:nameplate-is-parent"]);
+		VGUI.SetTooltip(checkboxNameplateIsParent, L["options:size-and-position:nameplate-is-parent:tooltip"]);
+		checkboxNameplateIsParent:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent = this:GetChecked();
+			onNameplateIsParentChanged();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		checkboxNameplateIsParent:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent);
+		checkboxNameplateIsParent:SetParent(GUIFrame);
+		checkboxNameplateIsParent:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 6, -28);
+		table_insert(GUIFrame.Categories[index], checkboxNameplateIsParent);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			checkboxNameplateIsParent:SetChecked(nameplateIsParent);
+			onNameplateIsParentChanged();
+		end);
+	end
+
 	-- // sliderIconSize
 	do
 
 		local sliderIconSize = VGUI.CreateSlider();
 		sliderIconSize:SetParent(GUIFrame);
 		sliderIconSize:SetWidth(170);
-		sliderIconSize:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 5, -13);
+		sliderIconSize:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 5, -63);
 		sliderIconSize.label:SetText(L["options:size-and-position:icon-width"]);
 		sliderIconSize.slider:SetValueStep(1);
 		sliderIconSize.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
@@ -3972,7 +4028,7 @@ local function GUICategory_SizeAndPosition(index)
 		local sliderIconHeight = VGUI.CreateSlider();
 		sliderIconHeight:SetParent(GUIFrame);
 		sliderIconHeight:SetWidth(170);
-		sliderIconHeight:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -13);
+		sliderIconHeight:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -63);
 		sliderIconHeight.label:SetText(L["options:size-and-position:icon-height"]);
 		sliderIconHeight.slider:SetValueStep(1);
 		sliderIconHeight.slider:SetMinMaxValues(1, addonTable.MAX_AURA_ICON_SIZE);
@@ -4022,7 +4078,7 @@ local function GUICategory_SizeAndPosition(index)
 		local sliderIconSpacing = VGUI.CreateSlider();
 		sliderIconSpacing:SetParent(GUIFrame);
 		sliderIconSpacing:SetWidth(170);
-		sliderIconSpacing:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", -5, -13);
+		sliderIconSpacing:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", -5, -63);
 		sliderIconSpacing.label:SetText(L["Space between icons"]);
 		sliderIconSpacing.slider:SetValueStep(1);
 		sliderIconSpacing.slider:SetMinMaxValues(minValue, maxValue);
@@ -4066,7 +4122,7 @@ local function GUICategory_SizeAndPosition(index)
 		local sliderIconXOffset = VGUI.CreateSlider();
 		sliderIconXOffset:SetParent(GUIFrame);
 		sliderIconXOffset:SetWidth(170);
-		sliderIconXOffset:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 5, -73);
+		sliderIconXOffset:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 5, -118);
 		sliderIconXOffset.label:SetText(L["Icon X-coord offset"]);
 		sliderIconXOffset.slider:SetValueStep(1);
 		sliderIconXOffset.slider:SetMinMaxValues(-200, 200);
@@ -4111,7 +4167,7 @@ local function GUICategory_SizeAndPosition(index)
 		local sliderIconYOffset = VGUI.CreateSlider();
 		sliderIconYOffset:SetParent(GUIFrame);
 		sliderIconYOffset:SetWidth(170);
-		sliderIconYOffset:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -73);
+		sliderIconYOffset:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -118);
 		sliderIconYOffset.label:SetText(L["Icon Y-coord offset"]);
 		sliderIconYOffset.slider:SetValueStep(1);
 		sliderIconYOffset.slider:SetMinMaxValues(-200, 200);
@@ -4156,7 +4212,7 @@ local function GUICategory_SizeAndPosition(index)
 		local sliderIconZoom = VGUI.CreateSlider();
 		sliderIconZoom:SetParent(GUIFrame);
 		sliderIconZoom:SetWidth(170);
-		sliderIconZoom:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", -5, -73);
+		sliderIconZoom:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", -5, -118);
 		sliderIconZoom.label:SetText(L["options:size-and-position:icon-zoom"]);
 		sliderIconZoom.slider:SetValueStep(0.01);
 		sliderIconZoom.slider:SetMinMaxValues(minV, maxV);
@@ -4192,44 +4248,6 @@ local function GUICategory_SizeAndPosition(index)
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			sliderIconZoom.slider:SetValue(addonTable.db.IconGroups[CurrentIconGroup].IconZoom);
 			sliderIconZoom.editbox:SetText(tostring(addonTable.db.IconGroups[CurrentIconGroup].IconZoom));
-		end);
-	end
-
-	-- // checkboxKeepAspectRatio
-	do
-		local checkboxKeepAspectRatio = VGUI.CreateCheckBox();
-		checkboxKeepAspectRatio:SetText(L["options:size-and-position:keep-aspect-ratio"]);
-		VGUI.SetTooltip(checkboxKeepAspectRatio, L["options:size-and-position:keep-aspect-ratio:tooltip"]);
-		checkboxKeepAspectRatio:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio = this:GetChecked();
-			addonTable.UpdateAllNameplates();
-		end);
-		checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
-		checkboxKeepAspectRatio:SetParent(GUIFrame);
-		checkboxKeepAspectRatio:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -120);
-		table_insert(GUIFrame.Categories[index], checkboxKeepAspectRatio);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxKeepAspectRatio:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].KeepAspectRatio);
-		end);
-	end
-
-	-- // checkboxNameplateIsParent
-	do
-		local checkboxNameplateIsParent = VGUI.CreateCheckBox();
-		checkboxNameplateIsParent:SetText(L["options:size-and-position:nameplate-is-parent"]);
-		VGUI.SetTooltip(checkboxNameplateIsParent, L["options:size-and-position:nameplate-is-parent:tooltip"]);
-		checkboxNameplateIsParent:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent = this:GetChecked();
-			onNameplateIsParentChanged();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkboxNameplateIsParent:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent);
-		checkboxNameplateIsParent:SetParent(GUIFrame);
-		checkboxNameplateIsParent:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -140);
-		table_insert(GUIFrame.Categories[index], checkboxNameplateIsParent);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkboxNameplateIsParent:SetChecked(nameplateIsParent);
-			onNameplateIsParentChanged();
 		end);
 	end
 
@@ -5407,7 +5425,7 @@ local function InitializeGUI()
 		elseif (value == L["options:category:apps"]) then
 			GUICategory_Additions(index);
 		elseif (value == L["options:category:size-and-position"]) then
-			GUICategory_SizeAndPosition(index);
+			GUICategory_StyleAndPosition(index);
 		elseif (value == L["options:category:dispel"]) then
 			GUICategory_Dispel(index);
 		elseif (value == L["options:category:alpha"]) then

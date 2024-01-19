@@ -228,6 +228,7 @@ do
 			UseDefaultAuraTooltip = false,
 			MasqueEnabled = false,
 			NameplateIsParent = false,
+			ShowCooldownSwipeEdge = true,
 		};
 	end
 
@@ -785,6 +786,7 @@ do
 		icon.cooldownFrame:SetReverse(true);
 		icon.cooldownFrame:SetHideCountdownNumbers(true);
 		icon.cooldownFrame.noCooldownCount = true; -- refuse OmniCC
+		icon.cooldownFrame:SetDrawEdge(iconGroup.ShowCooldownSwipeEdge);
 		icon.SetCooldown = IconSetCooldown;
 		icon.sizeWidth = iconGroup.DefaultIconSizeWidth;
 		icon.sizeHeight = iconGroup.DefaultIconSizeHeight;
@@ -888,6 +890,7 @@ do
 								icon.stacks:SetFont(SML:Fetch("font", iconGroup.StacksFont), math_ceil((sizeMin / 4) * iconGroup.StacksFontScale), "OUTLINE");
 							end
 							AllocateIcon_SetIconPlace(nameplate, icon, iconIndex, frameIndex, iconGroup);
+							icon.cooldownFrame:SetDrawEdge(iconGroup.ShowCooldownSwipeEdge);
 							icon.cooldownText:ClearAllPoints();
 							icon.cooldownText:SetPoint(iconGroup.TimerTextAnchor, icon, iconGroup.TimerTextAnchorIcon, iconGroup.TimerTextXOffset, iconGroup.TimerTextYOffset);
 							icon.textColor = nil;

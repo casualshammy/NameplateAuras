@@ -36,8 +36,6 @@ L["Font scale"] = "Font scale"
 L["Font size"] = "Font size"
 L["General"] = "General"
 L["Icon borders"] = "Icon borders"
-L["Icon X-coord offset"] = "Icon X-coord offset"
-L["Icon Y-coord offset"] = "Icon Y-coord offset"
 L["Magic"] = "Magic"
 L["Options are not available in combat!"] = "Options are not available in combat!"
 L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
@@ -92,7 +90,6 @@ L["Value must be a number"] = "Value must be a number"
 L["X offset"] = "X offset"
 L["Y offset"] = "Y offset"
 L["options:general:test-mode"] = "Test mode";
-L["options:category:size-and-position"] = "Size & position";
 L["options:apps:dispellable-spells"] = "Show dispellable/stealable auras on enemy nameplates";
 L["options:apps:dispellable-spells:tooltip"] = [=[Show dispellable/stealable auras on nameplates of enemies. These auras have a dim glow and default size]=]
 L["options:apps:dispellable-spells:black-list-button"] = "Open blacklist";
@@ -243,5 +240,10 @@ L["options:spells:override-size"] = "Override aura size";
 L["options:spells:override-size:tooltip"] = "Set custom size for aura. Pay attention: this applies to all icon groups!"
 L["options:size-and-position:nameplate-is-parent"] = "Attach icons directly to nameplates"
 L["options:size-and-position:nameplate-is-parent:tooltip"] = "The icons will be deeply attached to the nameplates. This means that certain parameters of the icons (such as size, transparency, and even visibility) will be influenced by the parameters of the nameplates themselves. The icons will be positioned exactly at the same frame level as the nameplates."
+L["options:category:size-and-position"] = "Style & position";
+L["Icon X-coord offset"] = "Icon X offset";
+L["Icon Y-coord offset"] = "Icon Y offset";
+L["options:style-and-position:show-cooldown-swipe-edge"] = "Show cooldown swipe edge"
+L["options:style-and-position:show-cooldown-swipe-edge:tooltip"] = "Show/hide bright line on cooldown animation's edge"
 
 --@end-debug@

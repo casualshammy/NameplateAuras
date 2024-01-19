@@ -459,6 +459,14 @@ local migrations = {
             addonTable.Print("Total spells with custom size: "..count);
         end
     end,
+    [26] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.ShowCooldownSwipeEdge == nil) then
+                igData.ShowCooldownSwipeEdge = true;
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

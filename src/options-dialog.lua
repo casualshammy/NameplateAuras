@@ -2214,6 +2214,26 @@ local function GUICategory_4(index)
 		end);
 		table_insert(GUIFrame.Categories[index], editboxAddSpell);
 
+		local function addSpells(_spells, _openSpell)
+			local spellInfo;
+			for spellName, spellId in pairs(_spells) do
+				spellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, (spellId ~= 0) and { [spellId] = true } or nil);
+				table_insert(addonTable.db.CustomSpells2, spellInfo);
+			end
+
+			addonTable.RebuildSpellCache();
+			addonTable.UpdateAllNameplates(false);
+			editboxAddSpell:SetText("");
+			editboxAddSpell:ClearFocus();
+			selectSpell:Click();
+
+			if (table_count(_spells) == 1 or _openSpell ~= nil) then
+				local spell = _openSpell or spellInfo;
+				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(spell));
+				if (btn ~= nil) then btn:Click(); end
+			end
+		end
+
 		buttonAddSpell = VGUI.CreateButton();
 		buttonAddSpell:SetParent(GUIFrame);
 		buttonAddSpell:SetText(L["options:spells:add-import-new-spell"]);
@@ -2222,61 +2242,61 @@ local function GUICategory_4(index)
 		buttonAddSpell:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		buttonAddSpell:SetScript("OnClick", function()
 			local text = editboxAddSpell:GetText();
-			local customSpellID = nil;
-			if (tonumber(text) ~= nil) then
-				customSpellID = tonumber(text);
-				text = SpellNameByID[tonumber(text)] or "";
+			if (text == nil or text:len() == 0) then
+				return;
 			end
-			-- if user entered name of spell
-			if (customSpellID == nil) then
-				if (AllSpellIDsAndIconsByName[text] == nil) then
-					for _spellName in pairs(AllSpellIDsAndIconsByName) do
-						if (string_lower(_spellName) == string_lower(text)) then
-							text = _spellName;
+
+			-- bulk?
+			if (text:find(";") ~= nil) then
+				local spells = {};
+				for rawSpellId in text:gmatch("([^;]+)") do
+					local spellId = tonumber(rawSpellId);
+					local spellName = SpellNameByID[spellId];
+					if (spellId ~= nil and spellName ~= nil) then
+						spells[spellName] = spellId;
+					end
+				end
+
+				addSpells(spells);
+				return;
+			end
+
+			-- spell id?
+			if (tonumber(text) ~= nil) then
+				local spellId = tonumber(text);
+				local spellName = SpellNameByID[spellId];
+				if (spellId ~= nil and spellName ~= nil) then
+					addSpells({ [spellName] = spellId });
+					return;
+				end
+			end
+
+			-- spell name?
+			for spellName in pairs(AllSpellIDsAndIconsByName) do
+				if (string_lower(spellName) == string_lower(text)) then
+					addSpells({ [spellName] = 0 });
+					return;
+				end
+			end
+
+			-- import string?
+			do
+				local decoded = LibDeflate:DecodeForPrint(text);
+				if (decoded ~= nil) then
+					local decompressed = LibDeflate:DecompressDeflate(decoded);
+					if (decompressed ~= nil) then
+						local success, deserializedInfo = LibSerialize:Deserialize(decompressed);
+						if (success) then
+							table_insert(addonTable.db.CustomSpells2, deserializedInfo);
+							addSpells({ }, deserializedInfo);
+							return;
 						end
 					end
 				end
 			end
-			if (text ~= nil and AllSpellIDsAndIconsByName[text] ~= nil) then
-				local spellName = text;
-				local newSpellInfo = GetDefaultDBSpellEntry(CONST_SPELL_MODE_ALL, spellName, (customSpellID ~= nil) and { [customSpellID] = true } or nil);
-				table_insert(addonTable.db.CustomSpells2, newSpellInfo);
-				addonTable.RebuildSpellCache();
-				selectSpell:Click();
-				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(newSpellInfo));
-				if (btn ~= nil) then btn:Click(); end
-				addonTable.UpdateAllNameplates(false);
-				editboxAddSpell:SetText("");
-				editboxAddSpell:ClearFocus();
-			else
-				-- import string?
-				local decoded = LibDeflate:DecodeForPrint(editboxAddSpell:GetText());
-				if (decoded == nil) then
-					msg(L["Spell seems to be nonexistent"]);
-					return;
-				end
 
-				local decompressed = LibDeflate:DecompressDeflate(decoded);
-				if (decompressed == nil) then
-					msg(L["Spell seems to be nonexistent"]);
-					return;
-				end
-
-				local success, deserialized = LibSerialize:Deserialize(decompressed);
-				if (not success) then
-					msg(L["Spell seems to be nonexistent"]);
-					return;
-				end
-
-				table_insert(addonTable.db.CustomSpells2, deserialized);
-				addonTable.RebuildSpellCache();
-				selectSpell:Click();
-				local btn = dropdownMenuSpells:GetButtonByText(GetButtonNameForSpell(deserialized));
-				if (btn ~= nil) then btn:Click(); end
-				addonTable.UpdateAllNameplates(false);
-				editboxAddSpell:SetText("");
-				editboxAddSpell:ClearFocus();
-			end
+			editboxAddSpell:ClearFocus();
+			msg(L["Spell seems to be nonexistent"]);
 		end);
 		buttonAddSpell:Disable();
 		hooksecurefunc(addonTable, "OnSpellInfoCachesReady", function() buttonAddSpell:Enable(); end);

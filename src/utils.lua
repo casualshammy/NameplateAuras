@@ -24,6 +24,10 @@ addonTable.SpellTextureByID = setmetatable({
 
 addonTable.SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
+		if (key == nil) then
+			return nil;
+		end
+
 		local spellName = GetSpellInfo(key);
 		rawset(t, key, spellName);
 		return spellName;

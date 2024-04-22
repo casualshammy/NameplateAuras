@@ -467,6 +467,63 @@ local migrations = {
             end
         end
     end,
+    [27] = function() -- yes, 27 and 28 should be the same
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.FriendlyUnitsAurasEnabledZoneTypes == nil) then
+                igData.FriendlyUnitsAurasEnabledZoneTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			true,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			true,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			true,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			true,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			true,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+                };
+            end
+        end
+    end,
+    [28] = function() -- yes, 27 and 28 should be the same
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.FriendlyUnitsAurasEnabledZoneTypes == nil) then
+                local enabled = igData.ShowAboveFriendlyUnits;
+
+                igData.FriendlyUnitsAurasEnabledZoneTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			enabled,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		enabled,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	enabled,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		enabled,
+                };
+
+                igData.ShowAboveFriendlyUnits = nil;
+            end
+        end
+    end,
+    [29] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.EnemyUnitsAurasEnabledZoneTypes == nil) then
+                igData.EnemyUnitsAurasEnabledZoneTypes = addonTable.deepcopy(igData.EnabledZoneTypes);
+                igData.EnabledZoneTypes = nil;
+            end
+        end
+    end,
+    [30] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.ShowAurasOnEnemyTargetEvenInDisabledAreas == nil) then
+                igData.ShowAurasOnEnemyTargetEvenInDisabledAreas = igData.ShowAurasOnTargetEvenInDisabledAreas
+                igData.ShowAurasOnTargetEvenInDisabledAreas = nil;
+            end
+            igData.ShowAurasOnAlliedTargetEvenInDisabledAreas = false;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
@@ -556,8 +613,11 @@ end
 
 function addonTable.MigrateDB()
     for i = addonTable.db.DBVersion, (table_count(migrations)-1) do
-        migrations[i]();
-        addonTable.Print("Converting DB up to version", i);
+        local migration = migrations[i];
+        if (migration ~= nil) then
+            migration();
+        end
+        addonTable.Print("Converted DB up to version", i);
     end
     addonTable.db.DBVersion = table_count(migrations);
     FillInMissingEntriesIsSpells();

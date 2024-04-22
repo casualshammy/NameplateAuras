@@ -36,7 +36,6 @@ L["Delete all spells"] = "Удалить все заклинания"
 L["Delete spell"] = "Удалить заклинание"
 L["Disabled"] = "Отключено"
 L["Disease"] = "Болезнь"
-L["Display auras on nameplates of friendly units"] = "Отображать ауры на нэймплэйтах союзников"
 L["Display auras on player's nameplate"] = "Отображать ауры на вашем нэймплэйте"
 L["Do you really want to delete ALL spells?"] = "Вы действительно хотите удалить ВСЕ заклинания?"
 L["Font"] = "Шрифт"
@@ -104,11 +103,9 @@ L["options:general:hide-blizz-frames"] = "Прятать фреймы аур Bli
 L["options:general:hide-player-blizz-frame"] = "Прятать фреймы аур Blizzard на игроке"
 L["options:general:icon-grow-direction"] = "Направление роста иконок"
 L["options:general:import-profile"] = "Импорт профиля"
-L["options:general:instance-types"] = "Установить видимость кулдаунов в разных типах локаций"
 L["options:general:show-aura-tooltip"] = "Показывать имя ауры при наведении мышью на иконку"
 L["options:general:show-cooldown-animation"] = "Показывать анимацию кулдауна"
 L["options:general:show-cooldown-text"] = "Показывать оставшееся время ауры"
-L["options:general:show-on-target-even-in-disabled-area-types"] = "Показывать ауры на неймплейтах цели даже в отключённых типах зон"
 L["options:general:show-on-target-only"] = "Показывать ауры только на неймплейте цели"
 L["options:general:show-stacks"] = "Показывать стаки ауры"
 L["options:general:test-mode"] = "Тестовый режим"
@@ -183,8 +180,6 @@ L["options:spells:icon-glow-threshold"] = "Показывать свечение
 L["options:spells:icon-height"] = "Высота иконки"
 L["options:spells:icon-width"] = "Ширина иконки"
 L["options:spells:please-push-once-more"] = "Пожалуйста, нажмите еще раз"
-L["options:spells:show-on-friends:warning0"] = [=[Пожалуйста, обратите внимание:
-Вы не увидите эту ауру на нэймплэйтах союзников, пока не включите эту опцию: <Общее> --> <Отображать ауры на нэймплэйтах союзников>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Минимальная длительность для отображения десятых долей секунд"
 L["options:timer-text:scale-font-size"] = "Масштабировать размер текста в зависимости от размера иконки"
 L["options:timer-text:text-color-note"] = [=[Цвет текста будет изменяться
@@ -208,5 +203,11 @@ L["Timer text"] = "Текст таймера"
 L["Value must be a number"] = "Значение должно быть числом"
 L["X offset"] = "Смещение по X"
 L["Y offset"] = "Смещение по Y"
+L["options:general:friendly-units-auras-instance-types"] = [=[Установить видимость аур на полосках ХП союзников
+в разных типах локаций]=]
+L["options:general:instance-types"] = [=[Установить видимость аур на полосках ХП противников
+в разных типах локаций]=]
+L["options:general:show-on-enemy-target-even-in-disabled-area-types"] = "Показывать ауры на неймплейтах цели-врага даже в отключённых типах зон"
+L["options:general:show-on-ally-target-even-in-disabled-area-types"] = "Показывать ауры на неймплейтах цели-союзника даже в отключённых типах зон"
 
 --@end-debug@

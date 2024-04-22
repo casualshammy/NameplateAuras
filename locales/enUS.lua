@@ -28,7 +28,6 @@ L["Delete all spells"] = "Delete all auras"
 L["Delete spell"] = "Delete aura"
 L["Disabled"] = "Disabled"
 L["Disease"] = "Disease"
-L["Display auras on nameplates of friendly units"] = "Display auras on nameplates of friendly units"
 L["Display auras on player's nameplate"] = "Display auras on player's nameplate"
 L["Do you really want to delete ALL spells?"] = "Do you really want to delete ALL spells?"
 L["Font"] = "Font"
@@ -64,8 +63,6 @@ L["options:spells:icon-glow"] = "Show glow"
 L["options:spells:icon-glow-always"] = "Show glow all the time"
 L["options:spells:icon-glow-threshold"] = "Show glow if aura's remaining time is less than"
 L["options:spells:please-push-once-more"] = "Please push once more"
-L["options:spells:show-on-friends:warning0"] = [=[Please pay attention:
-You will not see this aura on friendly nameplates until you enable this option: <General> --> <Display auras on nameplates of friendly units>]=]
 L["options:timer-text:min-duration-to-display-tenths-of-seconds"] = "Minimum duration to display tenths of seconds"
 L["options:timer-text:scale-font-size"] = "Scale font size according to icon size"
 L["options:timer-text:text-color-note"] = [=[Text colour will change
@@ -200,13 +197,10 @@ L["instance-type:pvp_bg_40ppl"] = "Epic Battlegrounds"
 L["instance-type:raid"] = "Raid dungeons"
 L["instance-type:scenario"] = "Scenarios"
 L["instance-type:unknown"] = "Unknown dungeons (some quest scenarios)"
-L["options:general:instance-types"] = [=[Set the visibility of the cooldowns
-in different types of locations]=]
 L["options:apps:spiteful:sound"] = "Sound"
 L["options:spells:icon-border:custom"] = "Border: Custom"
 L["options:spells:icon-border:builtin"] = "Border: Built-in"
 L["options:spells:icon-border:disabled"] = "Border: Disabled"
-L["options:general:show-on-target-even-in-disabled-area-types"] = "Show auras on target's nameplate even in disabled types of zones"
 L["options:spells:add-import-new-spell"] = "Add/import aura"
 L["options:spells:export-spell"] = "Export aura"
 L["options:general:import-profile"] = "Import profile"
@@ -245,5 +239,11 @@ L["Icon X-coord offset"] = "Icon X offset";
 L["Icon Y-coord offset"] = "Icon Y offset";
 L["options:style-and-position:show-cooldown-swipe-edge"] = "Show cooldown swipe edge"
 L["options:style-and-position:show-cooldown-swipe-edge:tooltip"] = "Show/hide bright line on cooldown animation's edge"
+L["options:general:friendly-units-auras-instance-types"] = [=[Set the visibility of auras on allied HP bars
+in different location types]=]
+L["options:general:instance-types"] = [=[Set the visibility of auras on enemy HP bars
+in different location types]=]
+L["options:general:show-on-enemy-target-even-in-disabled-area-types"] = "Show auras on enemy target's nameplate even in disabled types of zones"
+L["options:general:show-on-ally-target-even-in-disabled-area-types"] = "Show auras on allied target's nameplate even in disabled types of zones"
 
 --@end-debug@

@@ -124,11 +124,11 @@ end
 local function GUICategory_1(index)
 
 	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
-		checkBoxShowAboveFriendlyUnits, checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
-		checkboxShowOnlyOnTarget, checkboxShowAurasOnTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
+		checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
+		checkboxShowOnlyOnTarget, checkboxShowAurasOnEnemyTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
 		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
 		checkboxUseDefaultAuraTooltip, buttonNpcBlacklist, buttonNpcBlacklistAdd, editboxNpcBlacklistAdd,
-		checkboxMasque;
+		checkboxMasque, buttonFriendlyAuras, checkboxShowAurasOnAlliedTargetEvenInDisabledAreas;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
 
@@ -189,22 +189,6 @@ local function GUICategory_1(index)
 
 	end
 
-	-- // checkBoxShowAboveFriendlyUnits
-	do
-		checkBoxShowAboveFriendlyUnits = VGUI.CreateCheckBox();
-		checkBoxShowAboveFriendlyUnits:SetText(L["Display auras on nameplates of friendly units"]);
-		checkBoxShowAboveFriendlyUnits:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits);
-		checkBoxShowAboveFriendlyUnits:SetParent(GUIFrame);
-		checkBoxShowAboveFriendlyUnits:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkBoxShowAboveFriendlyUnits);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAboveFriendlyUnits:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits); end);
-
-	end
-
 	-- // checkBoxShowMyAuras
 	do
 		checkBoxShowMyAuras = VGUI.CreateCheckBox();
@@ -215,7 +199,7 @@ local function GUICategory_1(index)
 		end);
 		checkBoxShowMyAuras:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAuras);
 		checkBoxShowMyAuras:SetParent(GUIFrame);
-		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAboveFriendlyUnits, "BOTTOMLEFT", 0, 0);
+		checkBoxShowMyAuras:SetPoint("TOPLEFT", checkBoxShowAurasOnPlayerNameplate, "BOTTOMLEFT", 0, 0);
 		VGUI.SetTooltip(checkBoxShowMyAuras, L["options:general:always-show-my-auras:tooltip"]);
 		table_insert(GUIFrame.Categories[index], checkBoxShowMyAuras);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowMyAuras:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AlwaysShowMyAuras); end);
@@ -458,7 +442,7 @@ local function GUICategory_1(index)
 		zoneTypesArea:SetPoint("TOPLEFT", checkboxMasque, "BOTTOMLEFT", 0, -10);
 		zoneTypesArea:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		zoneTypesArea:SetWidth(360);
-		zoneTypesArea:SetHeight(90);
+		zoneTypesArea:SetHeight(160);
 		table_insert(GUIFrame.Categories[index], zoneTypesArea);
 
 	end
@@ -503,11 +487,11 @@ local function GUICategory_1(index)
 						if (btn) then
 							info.disabled = not info.disabled;
 							btn:SetGray(info.disabled);
-							addonTable.db.IconGroups[CurrentIconGroup].EnabledZoneTypes[info.instanceType] = not info.disabled;
+							addonTable.db.IconGroups[CurrentIconGroup].EnemyUnitsAurasEnabledZoneTypes[info.instanceType] = not info.disabled;
 						end
 						addonTable.UpdateAllNameplates();
 					end,
-					["disabled"] = not addonTable.db.IconGroups[CurrentIconGroup].EnabledZoneTypes[instanceType],
+					["disabled"] = not addonTable.db.IconGroups[CurrentIconGroup].EnemyUnitsAurasEnabledZoneTypes[instanceType],
 					["dontCloseOnClick"] = true,
 					["instanceType"] = instanceType,
 				});
@@ -540,20 +524,113 @@ local function GUICategory_1(index)
 
 	end
 
-	-- // checkboxShowAurasOnTargetEvenInDisabledAreas
+	-- // buttonFriendlyAuras
 	do
-		checkboxShowAurasOnTargetEvenInDisabledAreas = VGUI.CreateCheckBox();
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetText(L["options:general:show-on-target-even-in-disabled-area-types"]);
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas = this:GetChecked();
+		local zoneTypes = {
+			[addonTable.INSTANCE_TYPE_NONE] = 					L["instance-type:none"],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 				L["instance-type:unknown"],
+			[addonTable.INSTANCE_TYPE_PVP] = 						L["instance-type:pvp"],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	L["instance-type:pvp_bg_40ppl"],
+			[addonTable.INSTANCE_TYPE_ARENA] = 					L["instance-type:arena"],
+			[addonTable.INSTANCE_TYPE_PARTY] = 					L["instance-type:party"],
+			[addonTable.INSTANCE_TYPE_RAID] = 					L["instance-type:raid"],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =				L["instance-type:scenario"],
+		};
+		local zoneIcons = {
+			[addonTable.INSTANCE_TYPE_NONE] = 					SpellTextureByID[6711],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 				SpellTextureByID[175697],
+			[addonTable.INSTANCE_TYPE_PVP] = 						SpellTextureByID[232352],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	132485,
+			[addonTable.INSTANCE_TYPE_ARENA] = 					SpellTextureByID[270697],
+			[addonTable.INSTANCE_TYPE_PARTY] = 					SpellTextureByID[77629],
+			[addonTable.INSTANCE_TYPE_RAID] = 					SpellTextureByID[3363],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =				SpellTextureByID[77628],
+		};
+
+		local dropdownZoneTypes = VGUI.CreateDropdownMenu();
+		dropdownZoneTypes:SetHeight(230);
+
+		buttonFriendlyAuras = VGUI.CreateButton();
+		buttonFriendlyAuras:SetParent(zoneTypesArea);
+		buttonFriendlyAuras:SetText(L["options:general:friendly-units-auras-instance-types"]);
+
+		local function setEntries()
+			local entries = { };
+			for instanceType, instanceLocalizatedName in pairs(zoneTypes) do
+				table_insert(entries, {
+					["text"] = instanceLocalizatedName,
+					["icon"] = zoneIcons[instanceType],
+					["func"] = function(info)
+						local btn = dropdownZoneTypes:GetButtonByText(info.text);
+						if (btn) then
+							info.disabled = not info.disabled;
+							btn:SetGray(info.disabled);
+							addonTable.db.IconGroups[CurrentIconGroup].FriendlyUnitsAurasEnabledZoneTypes[info.instanceType] = not info.disabled;
+						end
+						addonTable.UpdateAllNameplates();
+					end,
+					["disabled"] = not addonTable.db.IconGroups[CurrentIconGroup].FriendlyUnitsAurasEnabledZoneTypes[instanceType],
+					["dontCloseOnClick"] = true,
+					["instanceType"] = instanceType,
+				});
+			end
+			table_sort(entries, function(item1, item2) return item1.instanceType < item2.instanceType; end);
+			return entries;
+		end
+
+		buttonFriendlyAuras:SetPoint("TOPLEFT", buttonInstances, "BOTTOMLEFT", 0, -10);
+		buttonFriendlyAuras:SetPoint("TOPRIGHT", buttonInstances, "BOTTOMRIGHT", 0, -10);
+		buttonFriendlyAuras:SetHeight(40);
+		buttonFriendlyAuras:SetScript("OnClick", function(self)
+			if (dropdownZoneTypes:IsVisible()) then
+				dropdownZoneTypes:Hide();
+			else
+				dropdownZoneTypes:SetList(setEntries());
+				dropdownZoneTypes:SetParent(self);
+				dropdownZoneTypes:ClearAllPoints();
+				dropdownZoneTypes:SetPoint("TOP", self, "BOTTOM", 0, 0);
+				dropdownZoneTypes:Show();
+			end
+		end);
+		buttonFriendlyAuras:SetScript("OnHide", dropdownZoneTypes.Hide);
+		table_insert(GUIFrame.Categories[index], buttonFriendlyAuras);
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			dropdownZoneTypes:SetList(setEntries());
+			dropdownZoneTypes:Hide();
+		end);
+
+	end
+
+	-- // checkboxShowAurasOnEnemyTargetEvenInDisabledAreas
+	do
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas = VGUI.CreateCheckBox();
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetText(L["options:general:show-on-enemy-target-even-in-disabled-area-types"]);
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnEnemyTargetEvenInDisabledAreas = this:GetChecked();
 			addonTable.UpdateAllNameplates(false);
 		end);
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas);
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetParent(zoneTypesArea);
-		checkboxShowAurasOnTargetEvenInDisabledAreas:SetPoint("TOPLEFT", buttonInstances, "BOTTOMLEFT", 0, -10);
-		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnTargetEvenInDisabledAreas);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnTargetEvenInDisabledAreas); end);
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnEnemyTargetEvenInDisabledAreas);
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetParent(zoneTypesArea);
+		checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetPoint("TOPLEFT", buttonFriendlyAuras, "BOTTOMLEFT", 0, -10);
+		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnEnemyTargetEvenInDisabledAreas);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnEnemyTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnEnemyTargetEvenInDisabledAreas); end);
 	end
+
+	-- // checkboxShowAurasOnAlliedTargetEvenInDisabledAreas
+	do
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas = VGUI.CreateCheckBox();
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetText(L["options:general:show-on-ally-target-even-in-disabled-area-types"]);
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetOnClickHandler(function(this)
+			addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnAlliedTargetEvenInDisabledAreas = this:GetChecked();
+			addonTable.UpdateAllNameplates(false);
+		end);
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnAlliedTargetEvenInDisabledAreas);
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetParent(zoneTypesArea);
+		checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetPoint("TOPLEFT", checkboxShowAurasOnEnemyTargetEvenInDisabledAreas, "BOTTOMLEFT", 0, 0);
+		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnAlliedTargetEvenInDisabledAreas);
+		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnAlliedTargetEvenInDisabledAreas); end);
+	end
+	
 
 	-- // buttonNpcBlacklist
 	do
@@ -2561,10 +2638,8 @@ local function GUICategory_4(index)
 		checkboxShowOnFriends = VGUI.CreateCheckBox();
 		checkboxShowOnFriends:SetText(L["Show this aura on nameplates of allies"]);
 		checkboxShowOnFriends:SetOnClickHandler(function(this)
-			addonTable.db.CustomSpells2[selectedSpell].showOnFriends = this:GetChecked();
-			if (this:GetChecked() and not addonTable.db.IconGroups[CurrentIconGroup].ShowAboveFriendlyUnits) then
-				msg(L["options:spells:show-on-friends:warning0"]);
-			end
+			local enabled = this:GetChecked();
+			addonTable.db.CustomSpells2[selectedSpell].showOnFriends = enabled;
 			addonTable.UpdateAllNameplates(false);
 		end);
 		checkboxShowOnFriends:SetParent(spellArea.controlsFrame);

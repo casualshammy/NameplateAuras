@@ -170,7 +170,6 @@ do
 			IconAnchor = 1,
 			AlwaysShowMyAuras = false,
 			BorderThickness = 2,
-			ShowAboveFriendlyUnits = true,
 			FrameAnchor = "CENTER",
 			FrameAnchorToNameplate = "CENTER",
 			MinTimeToShowTenthsOfSeconds = 10,
@@ -208,17 +207,6 @@ do
 			UseTargetAlphaIfNotTargetSelected = false,
 			AffixSpiteful = true,
 			AffixSpitefulSound = 5274,
-			EnabledZoneTypes = {
-				[addonTable.INSTANCE_TYPE_NONE] =			true,
-				[addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
-				[addonTable.INSTANCE_TYPE_PVP] = 			true,
-				[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
-				[addonTable.INSTANCE_TYPE_ARENA] = 			true,
-				[addonTable.INSTANCE_TYPE_PARTY] = 			true,
-				[addonTable.INSTANCE_TYPE_RAID] = 			true,
-				[addonTable.INSTANCE_TYPE_SCENARIO] =		true,
-			},
-			ShowAurasOnTargetEvenInDisabledAreas = false,
 			AlwaysShowMyAurasBlacklist = {},
 			NpcBlacklist = {},
 			TimerTextUseRelativeColor = false,
@@ -229,6 +217,28 @@ do
 			MasqueEnabled = false,
 			NameplateIsParent = false,
 			ShowCooldownSwipeEdge = true,
+			FriendlyUnitsAurasEnabledZoneTypes = {
+				[addonTable.INSTANCE_TYPE_NONE] =					true,
+				[addonTable.INSTANCE_TYPE_UNKNOWN] = 			true,
+				[addonTable.INSTANCE_TYPE_PVP] = 					true,
+				[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = true,
+				[addonTable.INSTANCE_TYPE_ARENA] = 				true,
+				[addonTable.INSTANCE_TYPE_PARTY] = 				true,
+				[addonTable.INSTANCE_TYPE_RAID] = 				true,
+				[addonTable.INSTANCE_TYPE_SCENARIO] =			true,
+			},
+			EnemyUnitsAurasEnabledZoneTypes = {
+				[addonTable.INSTANCE_TYPE_NONE] =					true,
+				[addonTable.INSTANCE_TYPE_UNKNOWN] = 			true,
+				[addonTable.INSTANCE_TYPE_PVP] = 					true,
+				[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = true,
+				[addonTable.INSTANCE_TYPE_ARENA] = 				true,
+				[addonTable.INSTANCE_TYPE_PARTY] = 				true,
+				[addonTable.INSTANCE_TYPE_RAID] = 				true,
+				[addonTable.INSTANCE_TYPE_SCENARIO] =			true,
+			},
+			ShowAurasOnEnemyTargetEvenInDisabledAreas = false,
+			ShowAurasOnAlliedTargetEvenInDisabledAreas = false,
 		};
 	end
 
@@ -1162,19 +1172,23 @@ do
 
 		local iconGroupsToUpdate = {};
 		for iconGroupIndex, iconGroup in pairs(db.IconGroups) do
-			if (iconGroup.EnabledZoneTypes[InstanceType] or (iconGroup.ShowAurasOnTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
-				if ((LocalPlayerGUID ~= unitGUID or iconGroup.ShowAurasOnPlayerNameplate) and (iconGroup.ShowAboveFriendlyUnits or not unitIsFriend) and (not iconGroup.ShowOnlyOnTarget or unitGUID == TargetGUID)) then
-					local add = true;
-					if (not unitIsPlayer and unitGUID ~= nil) then
-						local unitName = addonTable.GetOrAddUnitNameByGuid(unitGUID, unitID);
-						if (unitName ~= nil and iconGroup.NpcBlacklist[unitName] == true) then
-							add = false;
-						end
-					end
-					if (add) then
-						iconGroupsToUpdate[iconGroupIndex] = iconGroup;
-						if (AurasPerNameplate[frame][iconGroupIndex] == nil) then
-							AurasPerNameplate[frame][iconGroupIndex] = {};
+			if (LocalPlayerGUID ~= unitGUID or iconGroup.ShowAurasOnPlayerNameplate) then
+				if (not iconGroup.ShowOnlyOnTarget or unitGUID == TargetGUID) then
+					if (unitIsFriend or iconGroup.EnemyUnitsAurasEnabledZoneTypes[InstanceType] or (iconGroup.ShowAurasOnEnemyTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
+						if (not unitIsFriend or iconGroup.FriendlyUnitsAurasEnabledZoneTypes[InstanceType] or (iconGroup.ShowAurasOnAlliedTargetEvenInDisabledAreas and unitGUID == TargetGUID)) then
+							local add = true;
+							if (not unitIsPlayer and unitGUID ~= nil) then
+								local unitName = addonTable.GetOrAddUnitNameByGuid(unitGUID, unitID);
+								if (unitName ~= nil and iconGroup.NpcBlacklist[unitName] == true) then
+									add = false;
+								end
+							end
+							if (add) then
+								iconGroupsToUpdate[iconGroupIndex] = iconGroup;
+								if (AurasPerNameplate[frame][iconGroupIndex] == nil) then
+									AurasPerNameplate[frame][iconGroupIndex] = {};
+								end
+							end
 						end
 					end
 				end

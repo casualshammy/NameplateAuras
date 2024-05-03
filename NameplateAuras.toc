@@ -1,5 +1,5 @@
-## Interface: 30403
-## Title: NameplateAuras [WotLK]
+## Interface: 40400
+## Title: NameplateAuras [Cata]
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB
 ## Version: @project-version@

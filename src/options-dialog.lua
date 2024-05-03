@@ -463,24 +463,24 @@ local function GUICategory_1(index)
 	-- // buttonInstances
 	do
 		local zoneTypes = {
-			[addonTable.INSTANCE_TYPE_NONE] = 			L["instance-type:none"],
-			[addonTable.INSTANCE_TYPE_UNKNOWN] = 		L["instance-type:unknown"],
-			[addonTable.INSTANCE_TYPE_PVP] = 			L["instance-type:pvp"],
-			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	L["instance-type:pvp_bg_40ppl"],
-			[addonTable.INSTANCE_TYPE_ARENA] = 			L["instance-type:arena"],
-			[addonTable.INSTANCE_TYPE_PARTY] = 			L["instance-type:party"],
-			[addonTable.INSTANCE_TYPE_RAID] = 			L["instance-type:raid"],
-			[addonTable.INSTANCE_TYPE_SCENARIO] =		L["instance-type:scenario"],
+			[addonTable.INSTANCE_TYPE_NONE] = 				L["instance-type:none"],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 			L["instance-type:unknown"],
+			[addonTable.INSTANCE_TYPE_PVP] = 					L["instance-type:pvp"],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = L["instance-type:pvp_bg_40ppl"],
+			[addonTable.INSTANCE_TYPE_ARENA] = 				L["instance-type:arena"],
+			[addonTable.INSTANCE_TYPE_PARTY] = 				L["instance-type:party"],
+			[addonTable.INSTANCE_TYPE_RAID] = 				L["instance-type:raid"],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =			L["instance-type:scenario"],
 		};
 		local zoneIcons = {
-			[addonTable.INSTANCE_TYPE_NONE] = 			SpellTextureByID[6711],
-			[addonTable.INSTANCE_TYPE_UNKNOWN] = 		SpellTextureByID[175697],
-			[addonTable.INSTANCE_TYPE_PVP] = 			SpellTextureByID[232352],
+			[addonTable.INSTANCE_TYPE_NONE] = 					SpellTextureByID[6711],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 				134400,
+			[addonTable.INSTANCE_TYPE_PVP] = 						132486,
 			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	132485,
-			[addonTable.INSTANCE_TYPE_ARENA] = 			SpellTextureByID[270697],
-			[addonTable.INSTANCE_TYPE_PARTY] = 			SpellTextureByID[77629],
-			[addonTable.INSTANCE_TYPE_RAID] = 			SpellTextureByID[3363],
-			[addonTable.INSTANCE_TYPE_SCENARIO] =		SpellTextureByID[77628],
+			[addonTable.INSTANCE_TYPE_ARENA] = 					135884,
+			[addonTable.INSTANCE_TYPE_PARTY] = 					SpellTextureByID[77629],
+			[addonTable.INSTANCE_TYPE_RAID] = 					SpellTextureByID[3363],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =				SpellTextureByID[77628],
 		};
 
 		local dropdownInstances = VGUI.CreateDropdownMenu();

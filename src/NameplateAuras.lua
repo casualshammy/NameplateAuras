@@ -1,8 +1,8 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff
--- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
--- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
--- luacheck: globals IsAddOnLoaded CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
+-- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate
+-- luacheck: globals UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
+-- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min
+-- luacheck: globals CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER C_AddOns
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
 -- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date AuraUtil C_UnitAuras C_Spell
@@ -39,7 +39,7 @@ local GetSpellTexture = C_Spell.GetSpellTexture;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType, BuffFrameHookedNameplates;
-local EventFrame, db, aceDB, LocalPlayerGUID, DebugWindow, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
+local EventFrame, db, aceDB, LocalPlayerGUID, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
 local SpitefulMobs, PlayerAurasPerGuid;
 do
 	AurasPerNameplate 						= { };
@@ -57,11 +57,11 @@ do
 end
 
 -- // consts
-local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
+local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
 	AURA_SORT_MODE_AURATYPE_EXPIRE,
 	GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
-	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_ALL, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_ALL, addonTable.CONST_SPELL_MODE_MYAURAS;
+	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
@@ -72,7 +72,7 @@ do
 end
 
 -- // utilities
-local Print, table_count, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID;
+local Print, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.SpellTextureByID, addonTable.SpellNameByID;
 
 local UpdateUnitAurasFull, UpdateUnitAurasIncremental;
 -- /dump NAuras_Full, NAuras_Inc
@@ -260,49 +260,6 @@ do
 		end
 	end
 
-	local function ChatCommand_Debug()
-		DebugWindow = DebugWindow or LibStub("LibRedDropdown-1.0").CreateDebugWindow();
-		DebugWindow:AddText("PRESS ESC TO CLOSE THIS WINDOW");
-		DebugWindow:AddText("PRESS CTRL+A AND THEN CTRL+C TO COPY THIS TEXT");
-		DebugWindow:AddText("");
-		DebugWindow:AddText("Version: " .. tostring(buildTimestamp or "DEVELOPER COPY"));
-		DebugWindow:AddText("");
-		DebugWindow:AddText("Number of nameplates: " .. table_count(Nameplates));
-		DebugWindow:AddText("Number of visible nameplates: " .. table_count(NameplatesVisible));
-		DebugWindow:AddText("AurasPerNameplate count: " .. table_count(AurasPerNameplate));
-		DebugWindow:AddText("");
-		DebugWindow:AddText("LIST OF ENABLED ADDONS----------");
-		for i = 1, GetNumAddOns() do
-			local name, _, _, _, _, security = GetAddOnInfo(i);
-			if (security == "INSECURE" and IsAddOnLoaded(name)) then
-				DebugWindow:AddText("    " .. name);
-			end
-		end
-		DebugWindow:AddText("");
-		DebugWindow:AddText("CONFIG----------");
-		for index, value in pairs(db) do
-			if (type(value) ~= "table") then
-				DebugWindow:AddText(string_format("    %s: %s (%s)", index, tostring(value), type(value)));
-			end
-		end
-		DebugWindow:AddText("");
-		DebugWindow:AddText("LIST OF SPELLS----------");
-		local enabledStateTokens = { [CONST_SPELL_MODE_DISABLED] = "DISABLED", [CONST_SPELL_MODE_ALL] = "ALL", [CONST_SPELL_MODE_MYAURAS] = "MYAURAS" };
-		local auraTypeTokens = { [AURA_TYPE_BUFF] = "BUFF", [AURA_TYPE_DEBUFF] = "DEBUFF", [AURA_TYPE_ANY] = "ANY" };
-		for _, spellInfo in pairs(db.CustomSpells2) do
-			DebugWindow:AddText(string_format("    %s: %s; %s; %s; %s; %s; %s; %s; %s;", spellInfo.spellName,
-				tostring(enabledStateTokens[spellInfo.enabledState]),
-				tostring(auraTypeTokens[spellInfo.auraType]),
-				tostring(spellInfo.iconSizeWidth)..":"..tostring(spellInfo.iconSizeHeight),
-				spellInfo.checkSpellID ~= nil and table.concat(spellInfo.checkSpellID, ",") or "NONE",
-				tostring(spellInfo.showOnFriends),
-				tostring(spellInfo.showOnEnemies),
-				tostring(spellInfo.playerNpcMode),
-				tostring(spellInfo.showGlow)));
-		end
-		DebugWindow:Show();
-	end
-
 	local function InitializeDB()
 		-- // set defaults
 		local aceDBDefaults = {
@@ -356,8 +313,6 @@ do
 			end
 			Print("Waiting for replies from " .. c);
 			AceComm:SendCommMessage("NameplateAuras", "requesting3#" .. LocalPlayerGUID, c);
-		elseif (msg == "debug") then
-			ChatCommand_Debug();
 		elseif (msg == "test") then
 			addonTable.SwitchTestMode();
 		elseif (msg == "import-default-spells") then

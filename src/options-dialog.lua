@@ -1,7 +1,7 @@
 -- luacheck: no max line length
 -- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
 -- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
--- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer GetSpellInfo
+-- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer C_Spell
 -- luacheck: globals PlaySoundFile
 
 local addonName, addonTable = ...;
@@ -12,8 +12,8 @@ local LibSerialize = LibStub("LibSerialize");
 local LibDeflate = LibStub("LibDeflate");
 local MSQ = LibStub("Masque", true);
 
-local 	_G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
-		_G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, GetSpellInfo;
+local _G, pairs, select, string_format, math_ceil, wipe, string_lower, table_insert, table_sort, CTimerAfter, GetSpellInfo =
+		  _G, pairs, select, format, ceil, wipe, string.lower, table.insert, table.sort, C_Timer.After, C_Spell.GetSpellInfo;
 
 local AllSpellIDsAndIconsByName, GUIFrame = { };
 
@@ -5381,9 +5381,11 @@ local function InitializeGUI_CreateSpellInfoCaches()
 		local scanAllSpells = coroutine.create(function()
 			local misses = 0;
 			local id = 0;
-			while (misses < 400) do
+			while (misses < 1000) do
 				id = id + 1;
-				local name, _, icon = GetSpellInfo(id);
+				local spellInfo = GetSpellInfo(id);
+				local name = spellInfo ~= nil and spellInfo.name or nil;
+				local icon = spellInfo ~= nil and spellInfo.iconID or nil;
 				if (icon == 136243) then -- 136243 is the a gear icon
 					misses = 0;
 				elseif (name and name ~= "") then

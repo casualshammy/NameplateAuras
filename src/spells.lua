@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals GetSpellInfo
+-- luacheck: globals
 
 local _, addonTable = ...;
 

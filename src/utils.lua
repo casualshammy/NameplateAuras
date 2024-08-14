@@ -1,6 +1,6 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN GetSpellTexture DEFAULT_CHAT_FRAME
--- luacheck: globals OKAY YES NO ReloadUI GetSpellInfo GetPlayerInfoByGUID UnitName GetUnitName wipe
+-- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN DEFAULT_CHAT_FRAME
+-- luacheck: globals OKAY YES NO ReloadUI GetPlayerInfoByGUID UnitName GetUnitName wipe C_Spell
 
 local _, addonTable = ...;
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
@@ -8,15 +8,15 @@ local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 local pairs, select, string_format = pairs, select, format;
-local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe = GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe;
+local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe = C_Spell.GetSpellTexture, C_Spell.GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe;
 local p_unitNameByGuid = { };
 
 addonTable.SpellTextureByID = setmetatable({
-	[197690] = C_Spell.GetSpellTexture(71),		-- // override for defensive stance
-	[179057] = C_Spell.GetSpellTexture(183591),	-- // override for Chaos Nova
+	[197690] = GetSpellTexture(71),		-- // override for defensive stance
+	[179057] = GetSpellTexture(183591),	-- // override for Chaos Nova
 }, {
 	__index = function(t, key)
-		local texture = C_Spell.GetSpellTexture(key);
+		local texture = GetSpellTexture(key);
 		rawset(t, key, texture);
 		return texture;
 	end
@@ -28,9 +28,10 @@ addonTable.SpellNameByID = setmetatable({}, {
 			return nil;
 		end
 
-		local spellName = C_Spell.GetSpellInfo(key);
-		rawset(t, key, spellName);
-		return spellName;
+		local spellInfo = GetSpellInfo(key);
+		local name = spellInfo ~= nil and spellInfo.name or nil;
+		rawset(t, key, name);
+		return name;
 	end
 });
 

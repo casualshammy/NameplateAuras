@@ -2,10 +2,10 @@
 -- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate UnitBuff
 -- luacheck: globals UnitDebuff UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
 -- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min GetNumAddOns GetAddOnInfo
--- luacheck: globals IsAddOnLoaded GetSpellTexture CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
+-- luacheck: globals IsAddOnLoaded CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date AuraUtil C_UnitAuras
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date AuraUtil C_UnitAuras C_Spell
 
 local _, addonTable = ...;
 
@@ -35,6 +35,7 @@ local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffB
 local UnitIsUnit, AuraUtil_ForEachAura = UnitIsUnit, AuraUtil.ForEachAura;
 local C_UnitAuras_GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID;
 local table_insert, table_remove = table.insert, table.remove;
+local GetSpellTexture = C_Spell.GetSpellTexture;
 
 -- // variables
 local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType, BuffFrameHookedNameplates;
@@ -398,7 +399,7 @@ do
 		addonTable.ImportNewSpells();
 		-- set texture for interrupt spells
 		for spellID in pairs(addonTable.Interrupts) do
-			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or C_Spell.GetSpellTexture(spellID); -- // icon of Interrupting Shout
+			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- //
 		addonTable.GuiOnProfileChanged();

@@ -12,11 +12,11 @@ local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe = Ge
 local p_unitNameByGuid = { };
 
 addonTable.SpellTextureByID = setmetatable({
-	[197690] = GetSpellTexture(71),		-- // override for defensive stance
-	[179057] = GetSpellTexture(183591),	-- // override for Chaos Nova
+	[197690] = C_Spell.GetSpellTexture(71),		-- // override for defensive stance
+	[179057] = C_Spell.GetSpellTexture(183591),	-- // override for Chaos Nova
 }, {
 	__index = function(t, key)
-		local texture = GetSpellTexture(key);
+		local texture = C_Spell.GetSpellTexture(key);
 		rawset(t, key, texture);
 		return texture;
 	end
@@ -28,7 +28,7 @@ addonTable.SpellNameByID = setmetatable({}, {
 			return nil;
 		end
 
-		local spellName = GetSpellInfo(key);
+		local spellName = C_Spell.GetSpellInfo(key);
 		rawset(t, key, spellName);
 		return spellName;
 	end

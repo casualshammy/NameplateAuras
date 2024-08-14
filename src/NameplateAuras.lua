@@ -398,7 +398,7 @@ do
 		addonTable.ImportNewSpells();
 		-- set texture for interrupt spells
 		for spellID in pairs(addonTable.Interrupts) do
-			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+			SpellTextureByID[spellID] = db.IconGroups[1].InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or C_Spell.GetSpellTexture(spellID); -- // icon of Interrupting Shout
 		end
 		-- //
 		addonTable.GuiOnProfileChanged();

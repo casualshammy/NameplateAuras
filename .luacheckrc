@@ -1,0 +1,31 @@
+-- luacheck: ignore globals
+
+globals = {
+  "date",
+  "LibStub",
+  "C_Spell",
+  "C_AddOns",
+  "C_Timer",
+  "C_UnitAuras",
+  "C_NamePlate",
+  "C_TooltipInfo",
+  "SlashCmdList",
+  "SLASH_NAMEPLATEAURAS1",
+  "CreateFrame",
+  "GetTime",
+  "UnitGUID",
+  "PlaySoundFile",
+  "PlaySound",
+  "wipe",
+  "ceil",
+  "format",
+  "UIParent",
+  "floor",
+  "ceil",
+  "max",
+  "min",
+  "",
+  "",
+  "",
+  ""
+}

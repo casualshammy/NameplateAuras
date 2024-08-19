@@ -6,6 +6,7 @@
 ## X-Curse-Project-ID: 101192
 ## X-Wago-ID: lQNl536e
 ## OptionalDeps: Masque
+## IconTexture: Interface\AddOns\NameplateAuras\media\broker_logo
 
 src\consts.lua
 embeds.xml

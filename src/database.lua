@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals wipe date
+-- luacheck: globals wipe
 
 local _, addonTable = ...;
 

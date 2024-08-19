@@ -1,11 +1,11 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub NAuras_LibButtonGlow strfind format GetTime ceil floor wipe C_NamePlate
--- luacheck: globals UnitReaction UnitGUID UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
--- luacheck: globals UnitIsPlayer C_Timer strsplit CombatLogGetCurrentEventInfo max min
--- luacheck: globals CreateFrame UIParent COMBATLOG_OBJECT_TYPE_PLAYER C_AddOns
+-- luacheck: globals NAuras_LibButtonGlow strfind
+-- luacheck: globals UnitReaction UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
+-- luacheck: globals UnitIsPlayer strsplit CombatLogGetCurrentEventInfo
+-- luacheck: globals UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
--- luacheck: globals IsInInstance PlaySoundFile bit loadstring setfenv GetInstanceInfo GameTooltip UnitName C_TooltipInfo
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert date AuraUtil C_UnitAuras C_Spell
+-- luacheck: globals IsInInstance bit loadstring setfenv GetInstanceInfo GameTooltip UnitName
+-- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil
 
 local _, addonTable = ...;
 
@@ -240,6 +240,7 @@ do
 			},
 			ShowAurasOnEnemyTargetEvenInDisabledAreas = false,
 			ShowAurasOnAlliedTargetEvenInDisabledAreas = false,
+			AttachToAddonFrame = false,
 		};
 	end
 
@@ -339,8 +340,8 @@ do
 		EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		EventFrame:RegisterEvent("UNIT_THREAT_LIST_UPDATE");
 		-- // adding slash command
-		SLASH_NAMEPLATEAURAS1 = '/nauras'; -- luacheck: ignore
-		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand; -- luacheck: ignore
+		SLASH_NAMEPLATEAURAS1 = '/nauras';
+		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand;
 		AceComm:RegisterComm("NameplateAuras", OnAddonMessageReceived);
 		addonTable.OnStartup = nil;
 	end
@@ -421,8 +422,8 @@ do
 	local function CompileCustomSortFunctionForIconGroup(_iconGroupIndex, _iconGroup)
 		local sort_time = AuraSortFunctions[AURA_SORT_MODE_EXPIRETIME][_iconGroupIndex];
 		local sort_size = AuraSortFunctions[AURA_SORT_MODE_ICONSIZE][_iconGroupIndex];
-		local exec_env = setmetatable({}, { __index =
-			function(t, k) -- luacheck: ignore
+		local exec_env = setmetatable({}, {
+			__index = function(_, k)
 				if (k == "sort_time") then
 					return sort_time;
 				elseif (k == "sort_size") then
@@ -716,11 +717,24 @@ do
 	local function CreateIconAnimation(icon)
 		icon.alphaAnimationGroup = icon:CreateAnimationGroup();
 		icon.alphaAnimationGroup:SetLooping("BOUNCE");
-		local animation0 = icon.alphaAnimationGroup:CreateAnimation("Alpha");
-		animation0:SetFromAlpha(1);
-		animation0:SetToAlpha(0);
-		animation0:SetDuration(0.5);
-		animation0:SetOrder(1);
+		local animation = icon.alphaAnimationGroup:CreateAnimation("Alpha");
+		animation:SetFromAlpha(1);
+		animation:SetToAlpha(0);
+		animation:SetDuration(0.5);
+		animation:SetOrder(1);
+	end
+
+	local function GetNameplateAddonFrame(_nameplate, _iconGroup)
+		if (not _iconGroup.AttachToAddonFrame) then
+			return _nameplate;
+		end
+
+		local frame = _nameplate.TPFrame;
+		if (frame ~= nil) then
+			return frame;
+		end
+
+		return _nameplate;
 	end
 
 	local function AllocateIcon(frame, _iconGroupIndex)
@@ -731,10 +745,11 @@ do
 		local iconGroup = db.IconGroups[_iconGroupIndex];
 
 		if (frame.NAurasFrames[_iconGroupIndex] == nil) then
-			frame.NAurasFrames[_iconGroupIndex] = CreateFrame("frame", nil, iconGroup.NameplateIsParent == true and frame or UIParent);
+			local anchorFrame = GetNameplateAddonFrame(frame, iconGroup);
+			frame.NAurasFrames[_iconGroupIndex] = CreateFrame("frame", nil, iconGroup.NameplateIsParent == true and anchorFrame or UIParent);
 			frame.NAurasFrames[_iconGroupIndex]:SetWidth(iconGroup.DefaultIconSizeWidth);
 			frame.NAurasFrames[_iconGroupIndex]:SetHeight(iconGroup.DefaultIconSizeHeight);
-			frame.NAurasFrames[_iconGroupIndex]:SetPoint(iconGroup.FrameAnchor, frame, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
+			frame.NAurasFrames[_iconGroupIndex]:SetPoint(iconGroup.FrameAnchor, anchorFrame, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
 			SetAlphaScaleForNameplate(frame, _iconGroupIndex, iconGroup);
 			frame.NAurasFrames[_iconGroupIndex]:Show();
 		end
@@ -842,9 +857,10 @@ do
 				for frameIndex, frame in pairs(nameplate.NAurasFrames) do
 					local iconGroup = db.IconGroups[frameIndex];
 					if (iconGroup ~= nil) then
+						local anchorFrame = GetNameplateAddonFrame(nameplate, iconGroup);
 						frame:ClearAllPoints();
-						frame:SetPoint(iconGroup.FrameAnchor, nameplate, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
-						frame:SetParent(iconGroup.NameplateIsParent == true and nameplate or UIParent);
+						frame:SetPoint(iconGroup.FrameAnchor, anchorFrame, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
+						frame:SetParent(iconGroup.NameplateIsParent == true and anchorFrame or UIParent);
 						for iconIndex, icon in pairs(nameplate.NAurasIcons[frameIndex]) do
 							if (icon.shown) then
 								local sizeMin = math_min(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);

@@ -1,8 +1,8 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub SOUNDKIT GameTooltip PlaySound BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
--- luacheck: globals UIParent UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
--- luacheck: globals CreateFrame YES NO hooksecurefunc GameFontNormal InCombatLockdown format ceil wipe C_Timer C_Spell
--- luacheck: globals PlaySoundFile
+-- luacheck: globals SOUNDKIT GameTooltip BackdropTemplateMixin UIDropDownMenu_SetWidth gmatch
+-- luacheck: globals UIDropDownMenu_AddButton GameFontHighlightSmall StaticPopupDialogs StaticPopup_Show
+-- luacheck: globals YES NO hooksecurefunc GameFontNormal InCombatLockdown
+-- luacheck: globals UIDropDownMenu_SetText UIDropDownMenu_CreateInfo UIDropDownMenu_Initialize UIDropDownMenu_SetSelectedValue UIDropDownMenu_GetSelectedValue
 
 local addonName, addonTable = ...;
 local VGUI = LibStub("LibRedDropdown-1.0");
@@ -401,7 +401,6 @@ local function GUICategory_1(index)
 		end);
 		table_insert(GUIFrame.Categories[index], checkboxUseDefaultAuraTooltip);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxUseDefaultAuraTooltip:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].UseDefaultAuraTooltip); end);
-		
 	end
 
 	-- // checkboxMasque
@@ -422,7 +421,6 @@ local function GUICategory_1(index)
 		end);
 		table_insert(GUIFrame.Categories[index], checkboxMasque);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxMasque:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].MasqueEnabled); end);
-		
 	end
 
 	-- // zoneTypesArea
@@ -630,7 +628,6 @@ local function GUICategory_1(index)
 		table_insert(GUIFrame.Categories[index], checkboxShowAurasOnAlliedTargetEvenInDisabledAreas);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkboxShowAurasOnAlliedTargetEvenInDisabledAreas:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnAlliedTargetEvenInDisabledAreas); end);
 	end
-	
 
 	-- // buttonNpcBlacklist
 	do
@@ -652,7 +649,7 @@ local function GUICategory_1(index)
 							addonTable.db.IconGroups[CurrentIconGroup].NpcBlacklist[npcName] = nil;
 							addonTable.UpdateAllNameplates(false);
 							-- close and then open list again
-							buttonNpcBlacklist:Click(); 
+							buttonNpcBlacklist:Click();
 							buttonNpcBlacklist:Click();
 						end,
 					});
@@ -2062,7 +2059,7 @@ local function GUICategory_4(index)
 			frame:SetPoint("BOTTOMLEFT", self, "BOTTOMRIGHT", 10, 0);
 			frame:SetShown(not frame:IsVisible());
 		end);
-		batchActionsButton:SetScript("OnHide", function(self)
+		batchActionsButton:SetScript("OnHide", function()
 			frame:Hide();
 		end);
 
@@ -2273,7 +2270,7 @@ local function GUICategory_4(index)
 		editboxText:SetPoint("LEFT", 0, 0);
 		editboxText:SetText(L["options:spells:add-new-spell"]);
 		editboxAddSpell:SetScript("OnEditFocusGained", function() editboxText:Hide(); end);
-		editboxAddSpell:SetScript("OnEditFocusLost", function() 
+		editboxAddSpell:SetScript("OnEditFocusLost", function()
 			local text = editboxAddSpell:GetText();
 			if (text == nil or text == "") then
 				editboxText:Show();
@@ -3412,7 +3409,6 @@ local function GUICategory_4(index)
 
 	-- // editboxSpellTooltip
 	do
-		
 		editboxSpellTooltip = CreateFrame("EditBox", nil, areaTooltip, BackdropTemplateMixin and "BackdropTemplate");
 		editboxSpellTooltip:SetAutoFocus(false);
 		editboxSpellTooltip:SetFontObject(GameFontHighlightSmall);
@@ -3466,20 +3462,20 @@ local function GUICategory_4(index)
 	-- // dropdownIconGroups
 	do
 
-		local function initialize(_self, _level, _menuList)
+		local function initialize()
 			local info = UIDropDownMenu_CreateInfo();
-			for index, igData in pairs(addonTable.db.IconGroups) do
+			for igIndex, igData in pairs(addonTable.db.IconGroups) do
 				info.text = igData.IconGroupName;
-				info.value = index;
-				info.checked = function() 
+				info.value = igIndex;
+				info.checked = function()
 					if (selectedSpell ~= nil and selectedSpell ~= 0) then
-						return addonTable.db.CustomSpells2[selectedSpell].iconGroups[index];
+						return addonTable.db.CustomSpells2[selectedSpell].iconGroups[igIndex];
 					else
 						return false;
 					end
 				end;
 				info.func = function()
-					addonTable.db.CustomSpells2[selectedSpell].iconGroups[index] = not addonTable.db.CustomSpells2[selectedSpell].iconGroups[index];
+					addonTable.db.CustomSpells2[selectedSpell].iconGroups[igIndex] = not addonTable.db.CustomSpells2[selectedSpell].iconGroups[igIndex];
 					addonTable.UpdateAllNameplates(true);
 				end;
 				UIDropDownMenu_AddButton(info);
@@ -3991,7 +3987,7 @@ local function GUICategory_Additions(index)
 end
 
 local function GUICategory_StyleAndPosition(index)
-	local dropdownFrameAnchorToNameplate, dropdownTargetStrata, dropdownNonTargetStrata;
+	local dropdownTargetStrata, dropdownNonTargetStrata;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
 		[frameAnchors[1]] = L["anchor-point:topright"],
@@ -4062,9 +4058,43 @@ local function GUICategory_StyleAndPosition(index)
 		checkboxNameplateIsParent:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 6, -28);
 		table_insert(GUIFrame.Categories[index], checkboxNameplateIsParent);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			local nameplateIsParent = addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent;
 			checkboxNameplateIsParent:SetChecked(nameplateIsParent);
 			onNameplateIsParentChanged();
 		end);
+	end
+
+	-- // checkboxAttachToAddonFrame
+	do
+		local addonNames = {
+			["TidyPlates_ThreatPlates"] = "TidyPlates ThreatPlates"
+		};
+		local nameplateAddonName = nil;
+		for slug, name in pairs(addonNames) do
+			local isLoaded = select(2, C_AddOns.IsAddOnLoaded(slug));
+			if (isLoaded) then
+				nameplateAddonName = name;
+				break;
+			end
+		end
+
+		if (nameplateAddonName ~= nil) then
+			local checkboxAttachToAddonFrame = VGUI.CreateCheckBox();
+			checkboxAttachToAddonFrame:SetText(L["options:size-and-position:attach-to-addon-frame"]:format(nameplateAddonName));
+			VGUI.SetTooltip(checkboxAttachToAddonFrame, L["options:size-and-position:attach-to-addon-frame:tooltip"]);
+			checkboxAttachToAddonFrame:SetOnClickHandler(function(this)
+				addonTable.db.IconGroups[CurrentIconGroup].AttachToAddonFrame = this:GetChecked();
+				addonTable.UpdateAllNameplates(true);
+			end);
+			checkboxAttachToAddonFrame:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AttachToAddonFrame);
+			checkboxAttachToAddonFrame:SetParent(GUIFrame);
+			checkboxAttachToAddonFrame:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", GUIFrame.ControlsFrame:GetWidth()/2, -28);
+			table_insert(GUIFrame.Categories[index], checkboxAttachToAddonFrame);
+			table_insert(GUIFrame.OnDBChangedHandlers, function()
+				local nameplateIsParent = addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent;
+				checkboxAttachToAddonFrame:SetChecked(nameplateIsParent);
+			end);
+		end
 	end
 
 	-- // sliderIconSize
@@ -4347,65 +4377,68 @@ local function GUICategory_StyleAndPosition(index)
 	end
 
 	-- // dropdownFrameAnchorToNameplate
+	local dropdownFrameAnchorToNameplate;
 	do
-		dropdownFrameAnchorToNameplate = CreateFrame("Frame", "NAuras.GUI.SizeAndPosition.dropdownFrameAnchorToNameplate", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownFrameAnchorToNameplate, 220);
-		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, -180);
-		local info = {};
-		dropdownFrameAnchorToNameplate.initialize = function()
-			wipe(info);
-			for _, anchorPoint in pairs(frameAnchors) do
-				info.text = frameAnchorsLocalization[anchorPoint];
-				info.value = anchorPoint;
-				info.func = function(self)
-					addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate = self.value;
-					_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-				end
-				info.checked = anchorPoint == addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate;
-				UIDropDownMenu_AddButton(info);
+		dropdownFrameAnchorToNameplate = CreateFrame("DropdownButton", nil, GUIFrame, "WowStyle1DropdownTemplate");
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 20, -180);
+		dropdownFrameAnchorToNameplate:SetWidth(150);
+		dropdownFrameAnchorToNameplate:SetupMenu(function(_, _rootDescription)
+			_rootDescription:CreateTitle("Anchor point");
+
+			for anchorIndex, anchorPoint in pairs(frameAnchors) do
+				_rootDescription:CreateRadio(
+					frameAnchorsLocalization[anchorPoint],
+					function(_ndx)
+						return frameAnchors[_ndx] == addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate;
+					end,
+					function(_ndx)
+						addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate = frameAnchors[_ndx];
+						addonTable.UpdateAllNameplates(true);
+					end,
+					anchorIndex);
 			end
-		end
-		_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate]);
-		dropdownFrameAnchorToNameplate.text = dropdownFrameAnchorToNameplate:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchorToNameplate.text:SetPoint("LEFT", 20, 20);
-		dropdownFrameAnchorToNameplate.text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
-		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate]);
 		end);
+
+		local text = dropdownFrameAnchorToNameplate:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("LEFT", 0, 20);
+		text:SetText(L["options:size-and-position:anchor-point-to-nameplate"]);
+		table_insert(GUIFrame.Categories[index], dropdownFrameAnchorToNameplate);
+		-- table_insert(GUIFrame.OnDBChangedHandlers, function()
+		-- 	_G[dropdownFrameAnchorToNameplate:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchorToNameplate]);
+		-- end);
 	end
 
 	-- // dropdownFrameAnchor
 	do
-		local dropdownFrameAnchor = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownFrameAnchor", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownFrameAnchor, 220);
-		dropdownFrameAnchor:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -180);
-		local info = {};
-		dropdownFrameAnchor.initialize = function()
-			wipe(info);
-			for _, anchorPoint in pairs(frameAnchors) do
-				info.text = frameAnchorsLocalization[anchorPoint];
-				info.value = anchorPoint;
-				info.func = function(self)
-					addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor = self.value;
-					_G[dropdownFrameAnchor:GetName().."Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-				end
-				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor == anchorPoint);
-				UIDropDownMenu_AddButton(info);
+		local dropdownFrameAnchor = CreateFrame("DropdownButton", nil, GUIFrame, "WowStyle1DropdownTemplate");
+		dropdownFrameAnchor:SetPoint("LEFT", dropdownFrameAnchorToNameplate, "RIGHT", 20, 0);
+		dropdownFrameAnchor:SetWidth(150);
+		dropdownFrameAnchor:SetupMenu(function(_, _rootDescription)
+			_rootDescription:CreateTitle("Anchor point");
+
+			for anchorIndex, anchorPoint in pairs(frameAnchors) do
+				_rootDescription:CreateRadio(
+					frameAnchorsLocalization[anchorPoint],
+					function(_ndx)
+						return frameAnchors[_ndx] == addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor;
+					end,
+					function(_ndx)
+						addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor = frameAnchors[_ndx];
+						addonTable.UpdateAllNameplates(true);
+					end,
+					anchorIndex);
 			end
-		end
-		_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor]);
-		dropdownFrameAnchor.text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
-		dropdownFrameAnchor.text:SetPoint("LEFT", 20, 20);
-		dropdownFrameAnchor.text:SetText(L["options:size-and-position:anchor-point-of-frame"]);
-		VGUI.SetTooltip(dropdownFrameAnchor, L["options:size-and-position:anchor-point-of-frame:tooltip"]);
-		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			_G[dropdownFrameAnchor:GetName().."Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor]);
 		end);
 
+		VGUI.SetTooltip(dropdownFrameAnchor, L["options:size-and-position:anchor-point-of-frame:tooltip"]);
+
+		local text = dropdownFrameAnchor:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall");
+		text:SetPoint("LEFT", 0, 20);
+		text:SetText(L["options:size-and-position:anchor-point-of-frame"]);
+		table_insert(GUIFrame.Categories[index], dropdownFrameAnchor);
+		-- table_insert(GUIFrame.OnDBChangedHandlers, function()
+		-- 	_G[dropdownFrameAnchor:GetName() .. "Text"]:SetText(frameAnchorsLocalization[addonTable.db.IconGroups[CurrentIconGroup].FrameAnchor]);
+		-- end);
 	end
 
 	-- // dropdownIconAnchor
@@ -5251,7 +5284,6 @@ local function GUICategory_IconGroups(_index)
 
 	-- // editboxAddIconGroup
 	do
-		
 		local overlayText;
 
 		editboxAddIconGroup = CreateFrame("EditBox", nil, controlArea, BackdropTemplateMixin and "BackdropTemplate");
@@ -5300,7 +5332,7 @@ local function GUICategory_IconGroups(_index)
 	-- // dropdownIconGroups
 	do
 
-		local function initialize(_self, _level, _menuList)
+		local function initialize()
 			local info = UIDropDownMenu_CreateInfo();
 			for index, igData in pairs(addonTable.db.IconGroups) do
 				info.text = igData.IconGroupName;
@@ -5347,8 +5379,8 @@ local function GUICategory_IconGroups(_index)
 				CurrentIconGroup = 1;
 			end
 			addonTable.array_delete_and_shift(addonTable.db.IconGroups, igIndex);
-			
-			for _index, spellData in pairs(addonTable.db.CustomSpells2) do
+
+			for _, spellData in pairs(addonTable.db.CustomSpells2) do
 				addonTable.array_delete_and_shift(spellData.iconGroups, igIndex);
 			end
 			_G[addonTable.GuiSpellsDropdownIconGroups].Reinitialize();
@@ -5589,7 +5621,7 @@ local function InitializeGUI()
 				for key, value in pairs(deserialized) do
 					addonTable.db[key] = value;
 				end
-				for key, value in pairs(addonTable.db) do
+				for key in pairs(addonTable.db) do
 					if (deserialized[key] == nil) then
 						addonTable.db[key] = nil;
 					end
@@ -5627,7 +5659,7 @@ local function InitializeGUI()
 
 	-- IconGroupsList
 	do
-		local function initialize(_self, _level, _menuList)
+		local function initialize()
 			local info = UIDropDownMenu_CreateInfo();
 			for index, igData in pairs(addonTable.db.IconGroups) do
 				info.text = igData.IconGroupName;

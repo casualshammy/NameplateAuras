@@ -245,8 +245,7 @@ L["options:general:instance-types"] = [=[Set the visibility of auras on enemy HP
 in different location types]=]
 L["options:general:show-on-enemy-target-even-in-disabled-area-types"] = "Show auras on enemy target's nameplate even in disabled types of zones"
 L["options:general:show-on-ally-target-even-in-disabled-area-types"] = "Show auras on allied target's nameplate even in disabled types of zones"
-
 L["options:size-and-position:attach-to-addon-frame"] = "Attach to [%s]"
-L["options:size-and-position:attach-to-addon-frame:tooltip"] = "Attach to third-party nameplate addon's nameplates instead of Blizzard's"
+L["options:size-and-position:attach-to-addon-frame:tooltip"] = "Attach to third-party nameplate addon's nameplates instead of standard nameplate frames"
 
 --@end-debug@

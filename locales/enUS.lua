@@ -29,7 +29,6 @@ L["Delete spell"] = "Delete aura"
 L["Disabled"] = "Disabled"
 L["Disease"] = "Disease"
 L["Display auras on player's nameplate"] = "Display auras on player's nameplate"
-L["Do you really want to delete ALL spells?"] = "Do you really want to delete ALL spells?"
 L["Font"] = "Font"
 L["Font scale"] = "Font scale"
 L["Font size"] = "Font size"
@@ -97,8 +96,6 @@ L["options:glow-type:GLOW_TYPE_ACTIONBUTTON"] = "Action button";
 L["options:glow-type:GLOW_TYPE_AUTOUSE"] = "Auto-use button";
 L["options:glow-type:GLOW_TYPE_PIXEL"] = "Pixel";
 L["options:glow-type:GLOW_TYPE_ACTIONBUTTON_DIM"] = "Action button (dim)";
-L["options:size-and-position:anchor-point-to-nameplate"] = "Anchor point to nameplate";
-L["options:size-and-position:anchor-point-of-frame"] = "Anchor point to group of icons";
 L["options:size-and-position:anchor-point-of-frame:tooltip"] = [['Group of icons' is collection of icons per nameplate]];
 L["options:size-and-position:icon-align"] = "Alignment of icons";
 L["options:general:icon-grow-direction"] = "Icon growing direction";
@@ -134,8 +131,6 @@ L["options:spells:icon-animation-threshold"] = "Show animation if aura's remaini
 L["options:spells:icon-animation-always"] = "Show animation all the time";
 L["options:spells:animation-type"] = "Animation type";
 L["options:animation-type:ICON_ANIMATION_TYPE_ALPHA"] = "Alpha";
-L["options:size-and-position:target-strata"] = "Layer of icons on target nameplate"
-L["options:size-and-position:non-target-strata"] = "Layer of icons on non-target nameplates"
 L["options:borders:border-file-path"] = "Border texture file path (starts with 'Interface\\')";
 L["options:borders:border-type"] = "Border type";
 L["options:borders:BORDER_TYPE_BUILTIN"] = "Built-in";
@@ -220,7 +215,6 @@ L["options:icon-groups:editbox-add-text"] = "Enter name and hit Enter key to add
 L["options:icon-groups:dropdown-list"] = "Icon groups"
 L["options:category:icon-groups"] = "Icon groups"
 L["options:icon-groups:remove"] = "Delete"
-L["options:general:current-icon-group"] = "Current icon group"
 L["options:icon-groups:description"] = [=[
 An icon group is a set of icons with independent settings. For example, you can create a separate icon group for debuffs, a separate icon group for interrupts, and a separate icon group for important boss buffs. Then you can place these icon groups around the nameplate independently. FYI addons can't distinguish buffs and debuffs, so populating groups with spells is, unfortunately, your responsibility. :)
 The drop-down menu in the upper left corner of this window displays the icon group that you're currently editing.
@@ -247,5 +241,17 @@ L["options:general:show-on-enemy-target-even-in-disabled-area-types"] = "Show au
 L["options:general:show-on-ally-target-even-in-disabled-area-types"] = "Show auras on allied target's nameplate even in disabled types of zones"
 L["options:size-and-position:attach-to-addon-frame"] = "Attach to [%s]"
 L["options:size-and-position:attach-to-addon-frame:tooltip"] = "Attach to third-party nameplate addon's nameplates instead of standard nameplate frames"
+L["options:size-and-position:anchor-point-to-nameplate"] = "Anchor to nameplate";
+L["options:size-and-position:anchor-point-of-frame"] = "Anchor to group of icons";
+L["options:size-and-position:target-strata"] = "Frame strata on target"
+L["options:size-and-position:non-target-strata"] = "Frame strata on non-target"
+L["options:general:current-icon-group"] = "Current icon group"
+L["options:spells:filter-tooltip"] = [[You can use filters:
+
+#group:[group index]
+#enabled
+#disabled
+#buff
+#debuff]]
 
 --@end-debug@

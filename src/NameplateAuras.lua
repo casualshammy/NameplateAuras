@@ -5,7 +5,7 @@
 -- luacheck: globals UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance bit loadstring setfenv GetInstanceInfo GameTooltip UnitName
--- luacheck: globals TooltipUtil PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil
+-- luacheck: globals PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil
 
 local _, addonTable = ...;
 
@@ -29,7 +29,6 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
 local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
 local UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo;
-local TooltipUtil_SurfaceArgs = TooltipUtil.SurfaceArgs;
 local C_TooltipInfo_GetUnitBuffByAuraInstanceID = C_TooltipInfo.GetUnitBuffByAuraInstanceID;
 local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffByAuraInstanceID;
 local UnitIsUnit, AuraUtil_ForEachAura = UnitIsUnit, AuraUtil.ForEachAura;
@@ -396,11 +395,6 @@ do
 
 		if (data == nil) then
 			return nil;
-		end
-
-		TooltipUtil_SurfaceArgs(data);
-		for _, line in ipairs(data.lines) do
-			TooltipUtil_SurfaceArgs(line);
 		end
 
 		local tooltip = data.lines[2].leftText;

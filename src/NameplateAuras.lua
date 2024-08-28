@@ -13,6 +13,7 @@ local buildTimestamp = "DEVELOPER COPY";
 --[===[@non-debug@
 buildTimestamp = "@project-version@";
 --@end-non-debug@]===]
+local DEBUG = buildTimestamp == "DEVELOPER COPY"; -- luacheck: ignore DEBUG
 
 local LBG_ShowOverlayGlow, LBG_HideOverlayGlow = NAuras_LibButtonGlow.ShowOverlayGlow, NAuras_LibButtonGlow.HideOverlayGlow;
 local SML = LibStub("LibSharedMedia-3.0");
@@ -69,6 +70,7 @@ do
 	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
 	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
 end
+local ATTACH_TYPE_NAMEPLATE, ATTACH_TYPE_HEALTHBAR, ATTACH_TYPE_TPTP = addonTable.ATTACH_TYPE_NAMEPLATE, addonTable.ATTACH_TYPE_HEALTHBAR, addonTable.ATTACH_TYPE_TPTP;
 
 -- // utilities
 local Print, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.SpellTextureByID, addonTable.SpellNameByID;
@@ -239,7 +241,7 @@ do
 			},
 			ShowAurasOnEnemyTargetEvenInDisabledAreas = false,
 			ShowAurasOnAlliedTargetEvenInDisabledAreas = false,
-			AttachToAddonFrame = false,
+			AttachType = ATTACH_TYPE_NAMEPLATE,
 		};
 	end
 
@@ -719,17 +721,36 @@ do
 	end
 
 	local function GetNameplateAddonFrame(_nameplate, _iconGroup)
-		if (not _iconGroup.AttachToAddonFrame) then
+		local attachType = _iconGroup.AttachType;
+
+		if (attachType == ATTACH_TYPE_NAMEPLATE) then
 			return _nameplate;
 		end
 
-		local frame = _nameplate.TPFrame;
-		if (frame ~= nil) then
-			return frame;
+		if (attachType == ATTACH_TYPE_HEALTHBAR) then
+			if (_nameplate.UnitFrame == nil) then
+				if (DEBUG) then
+					addonTable.Print(string_format("Nameplate %s doesn't have 'UnitFrame'", _nameplate:GetName()));
+				end
+			elseif (_nameplate.UnitFrame.HealthBarsContainer == nil) then
+				if (DEBUG) then
+					addonTable.Print(string_format("Nameplate %s doesn't have 'HealthBarsContainer'", _nameplate:GetName()));
+				end
+			else
+				return _nameplate.UnitFrame.HealthBarsContainer;
+			end
+		end
+
+		if (attachType == ATTACH_TYPE_TPTP) then
+			local frame = _nameplate.TPFrame;
+			if (frame ~= nil) then
+				return frame;
+			end
 		end
 
 		return _nameplate;
 	end
+	addonTable.GetNameplateAddonFrame = GetNameplateAddonFrame;
 
 	local function AllocateIcon(frame, _iconGroupIndex)
 		if (not frame.NAurasFrames) then
@@ -1577,9 +1598,16 @@ do
 					end
 				end
 			end
+
 			SetAlphaScaleForNameplate(nameplate, iconGroupIndex, iconGroup);
-			if (nameplate.NAurasFrames[iconGroupIndex] ~= nil) then
-				nameplate.NAurasFrames[iconGroupIndex]:Show();
+
+			local iconGroupFrame = nameplate.NAurasFrames[iconGroupIndex];
+			if (iconGroupFrame ~= nil) then
+				local anchorFrame = addonTable.GetNameplateAddonFrame(nameplate, iconGroup);
+				iconGroupFrame:ClearAllPoints();
+				iconGroupFrame:SetPoint(iconGroup.FrameAnchor, anchorFrame, iconGroup.FrameAnchorToNameplate, iconGroup.IconXOffset, iconGroup.IconYOffset);
+				iconGroupFrame:SetParent(iconGroup.NameplateIsParent == true and anchorFrame or UIParent);
+				iconGroupFrame:Show();
 			end
 		end
 

@@ -241,8 +241,6 @@ L["options:general:show-on-enemy-target-even-in-disabled-area-types"] = "Show au
 L["options:general:show-on-ally-target-even-in-disabled-area-types"] = "Show auras on allied target's nameplate even in disabled types of zones"
 L["options:size-and-position:attach-to-addon-frame"] = "Attach to [%s]"
 L["options:size-and-position:attach-to-addon-frame:tooltip"] = "Attach to third-party nameplate addon's nameplates instead of standard nameplate frames"
-L["options:size-and-position:anchor-point-to-nameplate"] = "Anchor to nameplate";
-L["options:size-and-position:anchor-point-of-frame"] = "Anchor to group of icons";
 L["options:size-and-position:target-strata"] = "Frame strata on target"
 L["options:size-and-position:non-target-strata"] = "Frame strata on non-target"
 L["options:general:current-icon-group"] = "Current icon group"
@@ -253,5 +251,11 @@ L["options:spells:filter-tooltip"] = [[You can use filters:
 #disabled
 #buff
 #debuff]]
+L["options:size-and-position:anchor-frame"] = "Anchor frame";
+L["options:size-and-position:anchor-frame:tooltip"] = "Icons group will be placed relative to this frame";
+L["options:size-and-position:anchor-frame:nameplate"] = "The whole nameplate frame";
+L["options:size-and-position:anchor-frame:healthbar"] = "Healthbar";
+L["options:size-and-position:anchor-point-to-nameplate"] = "Anchor point";
+L["options:size-and-position:anchor-point-of-frame"] = "Anchor point of icons group";
 
 --@end-debug@

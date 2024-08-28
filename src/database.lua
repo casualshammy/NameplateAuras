@@ -524,6 +524,17 @@ local migrations = {
             igData.ShowAurasOnAlliedTargetEvenInDisabledAreas = false;
         end
     end,
+    [31] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.AttachToAddonFrame == true) then
+                igData.AttachType = addonTable.ATTACH_TYPE_TPTP;
+            else
+                igData.AttachType = addonTable.ATTACH_TYPE_NAMEPLATE;
+            end
+            igData.AttachToAddonFrame = nil;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

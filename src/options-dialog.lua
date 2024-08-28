@@ -4133,39 +4133,6 @@ local function GUICategory_StyleAndPosition(index)
 		end);
 	end
 
-	-- // checkboxAttachToAddonFrame
-	do
-		local addonNames = {
-			["TidyPlates_ThreatPlates"] = "TidyPlates ThreatPlates"
-		};
-		local nameplateAddonName = nil;
-		for slug, name in pairs(addonNames) do
-			local isLoaded = select(2, C_AddOns.IsAddOnLoaded(slug));
-			if (isLoaded) then
-				nameplateAddonName = name;
-				break;
-			end
-		end
-
-		if (nameplateAddonName ~= nil) then
-			local checkboxAttachToAddonFrame = VGUI.CreateCheckBox();
-			checkboxAttachToAddonFrame:SetText(L["options:size-and-position:attach-to-addon-frame"]:format(nameplateAddonName));
-			VGUI.SetTooltip(checkboxAttachToAddonFrame, L["options:size-and-position:attach-to-addon-frame:tooltip"]);
-			checkboxAttachToAddonFrame:SetOnClickHandler(function(this)
-				addonTable.db.IconGroups[CurrentIconGroup].AttachToAddonFrame = this:GetChecked();
-				addonTable.UpdateAllNameplates(true);
-			end);
-			checkboxAttachToAddonFrame:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AttachToAddonFrame);
-			checkboxAttachToAddonFrame:SetParent(GUIFrame);
-			checkboxAttachToAddonFrame:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", GUIFrame.ControlsFrame:GetWidth()/2, -28);
-			table_insert(GUIFrame.Categories[index], checkboxAttachToAddonFrame);
-			table_insert(GUIFrame.OnDBChangedHandlers, function()
-				local enabled = addonTable.db.IconGroups[CurrentIconGroup].AttachToAddonFrame;
-				checkboxAttachToAddonFrame:SetChecked(enabled);
-			end);
-		end
-	end
-
 	-- slidersArea
 	local slidersArea;
 	do
@@ -4482,15 +4449,60 @@ local function GUICategory_StyleAndPosition(index)
 		anchorsArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		anchorsArea:SetPoint("TOPLEFT", slidersArea, "BOTTOMLEFT", 0, 0);
 		anchorsArea:SetWidth(170);
-		anchorsArea:SetHeight(105);
+		anchorsArea:SetHeight(155);
 		table_insert(GUIFrame.Categories[index], anchorsArea);
+	end
+
+	-- dropdownAttachType
+	local dropdownAttachType;
+	do
+		local attachTypes = {
+			[addonTable.ATTACH_TYPE_NAMEPLATE] = {
+				["name"] = L["options:size-and-position:anchor-frame:nameplate"],
+				["addonName"] = nil,
+			},
+			[addonTable.ATTACH_TYPE_HEALTHBAR] = {
+				["name"] = L["options:size-and-position:anchor-frame:healthbar"],
+				["addonName"] = nil
+			},
+			[addonTable.ATTACH_TYPE_TPTP] = {
+				["name"] = "ThreatPlates",
+				["addonName"] = "TidyPlates_ThreatPlates",
+			}
+		};
+
+		dropdownAttachType = CreateFrame("DropdownButton", nil, anchorsArea, "WowStyle1DropdownTemplate");
+		dropdownAttachType:SetPoint("TOPLEFT", anchorsArea, "TOPLEFT", 10, -25);
+		dropdownAttachType:SetWidth(150);
+		dropdownAttachType:SetupMenu(function(_, _rootDescription)
+			_rootDescription:CreateTitle(L["options:size-and-position:anchor-frame"]);
+
+			for attachIndex, attachInfo in pairs(attachTypes) do
+				local radioBtn = _rootDescription:CreateRadio(
+					attachInfo.name,
+					function(_ndx)
+						return _ndx == addonTable.db.IconGroups[CurrentIconGroup].AttachType;
+					end,
+					function(_ndx)
+						addonTable.db.IconGroups[CurrentIconGroup].AttachType = _ndx;
+						addonTable.UpdateAllNameplates(true);
+					end,
+					attachIndex);
+
+				radioBtn:SetEnabled(attachInfo.addonName == nil or select(2, C_AddOns.IsAddOnLoaded(attachInfo.addonName)) == true);
+			end
+		end);
+
+		CreateDropdownLabel(dropdownAttachType, L["options:size-and-position:anchor-frame"]);
+		VGUI.SetTooltip(dropdownAttachType, L["options:size-and-position:anchor-frame:tooltip"])
+		table_insert(GUIFrame.Categories[index], dropdownAttachType);
 	end
 
 	-- // dropdownFrameAnchorToNameplate
 	local dropdownFrameAnchorToNameplate;
 	do
 		dropdownFrameAnchorToNameplate = CreateFrame("DropdownButton", nil, anchorsArea, "WowStyle1DropdownTemplate");
-		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", anchorsArea, "TOPLEFT", 10, -25);
+		dropdownFrameAnchorToNameplate:SetPoint("TOPLEFT", dropdownAttachType, "BOTTOMLEFT", 0, -20);
 		dropdownFrameAnchorToNameplate:SetWidth(150);
 		dropdownFrameAnchorToNameplate:SetupMenu(function(_, _rootDescription)
 			_rootDescription:CreateTitle("Anchor point");
@@ -4557,7 +4569,7 @@ local function GUICategory_StyleAndPosition(index)
 		growArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
 		growArea:SetPoint("TOPLEFT", anchorsArea, "TOPRIGHT", 0, 0);
 		growArea:SetWidth(170);
-		growArea:SetHeight(105);
+		growArea:SetHeight(155);
 		table_insert(GUIFrame.Categories[index], growArea);
 	end
 
@@ -4596,6 +4608,7 @@ local function GUICategory_StyleAndPosition(index)
 	end
 
 	-- // dropdownIconGrowDirection
+	local dropdownIconGrowDirection;
 	do
 		local growDirections = { addonTable.ICON_GROW_DIRECTION_RIGHT, addonTable.ICON_GROW_DIRECTION_LEFT,
 			addonTable.ICON_GROW_DIRECTION_UP, addonTable.ICON_GROW_DIRECTION_DOWN };
@@ -4606,7 +4619,7 @@ local function GUICategory_StyleAndPosition(index)
 			[growDirections[4]] = L["icon-grow-direction:down"],
 		};
 
-		local dropdownIconGrowDirection = CreateFrame("DropdownButton", nil, growArea, "WowStyle1DropdownTemplate");
+		dropdownIconGrowDirection = CreateFrame("DropdownButton", nil, growArea, "WowStyle1DropdownTemplate");
 		dropdownIconGrowDirection:SetPoint("TOPLEFT", dropdownIconAlign, "BOTTOMLEFT", 0, -20);
 		dropdownIconGrowDirection:SetWidth(150);
 		dropdownIconGrowDirection:SetupMenu(function(_, _rootDescription)
@@ -4628,6 +4641,101 @@ local function GUICategory_StyleAndPosition(index)
 
 		CreateDropdownLabel(dropdownIconGrowDirection, L["options:general:icon-grow-direction"]);
 		table_insert(GUIFrame.Categories[index], dropdownIconGrowDirection);
+	end
+
+	-- // dropdownSortMode
+	local dropdownSortMode;
+	do
+		local buttonCustomSortFunction;
+
+		local sortModesLocalization = {
+			[AURA_SORT_MODE_NONE] =								L["icon-sort-mode:none"],
+			[AURA_SORT_MODE_EXPIRETIME] =					L["icon-sort-mode:by-expire-time"],
+			[AURA_SORT_MODE_ICONSIZE] =						L["icon-sort-mode:by-icon-size"],
+			[AURA_SORT_MODE_AURATYPE_EXPIRE] =		L["icon-sort-mode:by-aura-type+by-expire-time"],
+			[addonTable.AURA_SORT_MODE_CUSTOM] =	L["icon-sort-mode:custom"],
+		};
+
+		local function updateButton()
+			if (addonTable.db.IconGroups[CurrentIconGroup].SortMode == addonTable.AURA_SORT_MODE_CUSTOM) then
+				buttonCustomSortFunction:Show();
+				growArea:SetHeight(180);
+			else
+				buttonCustomSortFunction:Hide();
+				growArea:SetHeight(155);
+			end
+		end
+
+		dropdownSortMode = CreateFrame("DropdownButton", nil, growArea, "WowStyle1DropdownTemplate");
+		dropdownSortMode:SetPoint("TOPLEFT", dropdownIconGrowDirection, "BOTTOMLEFT", 0, -20);
+		dropdownSortMode:SetWidth(150);
+		dropdownSortMode:SetupMenu(function(_, _rootDescription)
+			_rootDescription:CreateTitle(L["Sort mode:"]);
+
+			for sortModeIndex in pairs(sortModesLocalization) do
+				_rootDescription:CreateRadio(
+					sortModesLocalization[sortModeIndex],
+					function(_ndx)
+						return _ndx == addonTable.db.IconGroups[CurrentIconGroup].SortMode;
+					end,
+					function(_ndx)
+						addonTable.db.IconGroups[CurrentIconGroup].SortMode = _ndx;
+						addonTable.UpdateAllNameplates(true);
+						updateButton();
+					end,
+					sortModeIndex);
+			end
+		end);
+
+		CreateDropdownLabel(dropdownSortMode, L["Sort mode:"]);
+		table_insert(GUIFrame.Categories[index], dropdownSortMode);
+
+		local LuaEditor = VGUI.CreateLuaEditor();
+		LuaEditor:SetOnAcceptHandler(function(self)
+			addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod = self:GetText();
+			addonTable.RebuildAuraSortFunctions();
+			addonTable.UpdateAllNameplates(true);
+		end);
+		LuaEditor:SetOnTextChangedHandler(function(self)
+			local script = self:GetText();
+			script = "return " .. script;
+			local func, errorMsg = loadstring(script);
+			if (func ~= nil) then
+				self:SetStatusText("");
+			else
+				self:SetStatusText(errorMsg);
+			end
+		end);
+
+		local LuaEditorTooltip = VGUI.CreateTooltip();
+		LuaEditorTooltip:SetParent(LuaEditor);
+		LuaEditorTooltip:SetPoint("TOPLEFT", LuaEditor, "BOTTOMLEFT", 0, 0);
+		LuaEditorTooltip:SetPoint("TOPRIGHT", LuaEditor, "BOTTOMRIGHT", 0, 0);
+		LuaEditorTooltip:GetTextObject():SetFontObject(GameFontNormal);
+		LuaEditorTooltip:GetTextObject():SetJustifyH("LEFT");
+		LuaEditorTooltip:SetText(L["options:size-and-position:custom-sorting:tooltip"]);
+		LuaEditor:SetInfoButton(true, function()
+			if (LuaEditorTooltip:IsShown()) then
+				LuaEditorTooltip:Hide();
+			else
+				LuaEditorTooltip:Show();
+			end
+		end);
+
+		buttonCustomSortFunction = VGUI.CreateButton();
+		buttonCustomSortFunction:SetParent(dropdownSortMode);
+		buttonCustomSortFunction:SetText("Lua -->>");
+		buttonCustomSortFunction:SetWidth(60);
+		buttonCustomSortFunction:SetHeight(22);
+		buttonCustomSortFunction:SetPoint("TOP", dropdownSortMode, "BOTTOM", 0, -5);
+		buttonCustomSortFunction:SetScript("OnClick", function()
+			LuaEditor:SetText(addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod);
+			LuaEditor:Show();
+		end);
+		updateButton();
+		table_insert(GUIFrame.OnDBChangedHandlers, function()
+			updateButton();
+		end);
 	end
 
 	-- frameStrataArea
@@ -4715,99 +4823,6 @@ local function GUICategory_StyleAndPosition(index)
 		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
-	local dropdownSortMode, buttonCustomSortFunction;
-	do
-		local SortModesLocalization = {
-			[AURA_SORT_MODE_NONE] =					L["icon-sort-mode:none"],
-			[AURA_SORT_MODE_EXPIRETIME] =			L["icon-sort-mode:by-expire-time"],
-			[AURA_SORT_MODE_ICONSIZE] =				L["icon-sort-mode:by-icon-size"],
-			[AURA_SORT_MODE_AURATYPE_EXPIRE] =		L["icon-sort-mode:by-aura-type+by-expire-time"],
-			[addonTable.AURA_SORT_MODE_CUSTOM] =	L["icon-sort-mode:custom"],
-		};
-
-		local function UpdateButton()
-			if (addonTable.db.IconGroups[CurrentIconGroup].SortMode == addonTable.AURA_SORT_MODE_CUSTOM) then
-				buttonCustomSortFunction:Show();
-			else
-				buttonCustomSortFunction:Hide();
-			end
-		end
-
-		dropdownSortMode = CreateFrame("Frame", "NAuras.GUI.Cat1.DropdownSortMode", GUIFrame, "UIDropDownMenuTemplate");
-		UIDropDownMenu_SetWidth(dropdownSortMode, 300);
-		dropdownSortMode:SetPoint("TOP", GUIFrame.ControlsFrame, "TOP", 0, -310);
-		local info = {};
-		dropdownSortMode.initialize = function()
-			wipe(info);
-			for sortMode, sortModeL in pairs(SortModesLocalization) do
-				info.text = sortModeL;
-				info.value = sortMode;
-				info.func = function(self)
-					addonTable.db.IconGroups[CurrentIconGroup].SortMode = self.value;
-					_G[dropdownSortMode:GetName().."Text"]:SetText(self:GetText());
-					addonTable.UpdateAllNameplates(true);
-					UpdateButton();
-				end
-				info.checked = (addonTable.db.IconGroups[CurrentIconGroup].SortMode == info.value);
-				UIDropDownMenu_AddButton(info);
-			end
-		end
-		_G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.IconGroups[CurrentIconGroup].SortMode]);
-		dropdownSortMode.text = dropdownSortMode:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-		dropdownSortMode.text:SetPoint("LEFT", 20, 20);
-		dropdownSortMode.text:SetText(L["Sort mode:"]);
-		table_insert(GUIFrame.Categories[index], dropdownSortMode);
-		table_insert(GUIFrame.OnDBChangedHandlers, function() _G[dropdownSortMode:GetName().."Text"]:SetText(SortModesLocalization[addonTable.db.IconGroups[CurrentIconGroup].SortMode]); end);
-
-		local LuaEditor = VGUI.CreateLuaEditor();
-		LuaEditor:SetOnAcceptHandler(function(self)
-			addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod = self:GetText();
-			addonTable.RebuildAuraSortFunctions();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		LuaEditor:SetOnTextChangedHandler(function(self)
-			local script = self:GetText();
-			script = "return " .. script;
-			local func, errorMsg = loadstring(script);
-			if (func ~= nil) then
-				self:SetStatusText("");
-			else
-				self:SetStatusText(errorMsg);
-			end
-		end);
-
-		local LuaEditorTooltip = VGUI.CreateTooltip();
-		LuaEditorTooltip:SetParent(LuaEditor);
-		LuaEditorTooltip:SetPoint("TOPLEFT", LuaEditor, "BOTTOMLEFT", 0, 0);
-		LuaEditorTooltip:SetPoint("TOPRIGHT", LuaEditor, "BOTTOMRIGHT", 0, 0);
-		LuaEditorTooltip:GetTextObject():SetFontObject(GameFontNormal);
-		LuaEditorTooltip:GetTextObject():SetJustifyH("LEFT");
-		LuaEditorTooltip:SetText(L["options:size-and-position:custom-sorting:tooltip"]);
-		LuaEditor:SetInfoButton(true, function()
-			if (LuaEditorTooltip:IsShown()) then
-				LuaEditorTooltip:Hide();
-			else
-				LuaEditorTooltip:Show();
-			end
-		end);
-
-		buttonCustomSortFunction = VGUI.CreateButton();
-		buttonCustomSortFunction:SetParent(dropdownSortMode);
-		buttonCustomSortFunction:SetText("Lua -->>");
-		buttonCustomSortFunction:SetWidth(60);
-		buttonCustomSortFunction:SetHeight(22);
-		buttonCustomSortFunction:SetPoint("LEFT", dropdownSortMode, "RIGHT", 0, 3);
-		buttonCustomSortFunction:SetScript("OnClick", function()
-			LuaEditor:SetText(addonTable.db.IconGroups[CurrentIconGroup].CustomSortMethod);
-			LuaEditor:Show();
-		end);
-		UpdateButton();
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			UpdateButton();
-		end);
-
-	end
-
 	local scaleArea, sliderScaleTarget;
 
 	-- // scaleArea
@@ -4824,7 +4839,7 @@ local function GUICategory_StyleAndPosition(index)
 		});
 		scaleArea:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		scaleArea:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		scaleArea:SetPoint("TOP", dropdownSortMode, "BOTTOM", 0, 0);
+		scaleArea:SetPoint("TOP", growArea, "BOTTOM", 0, 0);
 		scaleArea:SetWidth(360);
 		scaleArea:SetHeight(70);
 		table_insert(GUIFrame.Categories[index], scaleArea);

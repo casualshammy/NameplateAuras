@@ -91,3 +91,7 @@ addonTable.EPIC_BG_ZONE_IDS = {
 	[2118] = true, -- Battle for Wintergrasp
 	[2197] = true, -- Korrak's Revenge
 };
+
+addonTable.ATTACH_TYPE_NAMEPLATE = 1;
+addonTable.ATTACH_TYPE_HEALTHBAR = 2;
+addonTable.ATTACH_TYPE_TPTP = 3;

@@ -4056,7 +4056,7 @@ local function GUICategory_Additions(index)
 end
 
 local function GUICategory_StyleAndPosition(index)
-	local dropdownTargetStrata, dropdownNonTargetStrata;
+	local frameStrataArea;
 	local frameAnchors = { "TOPRIGHT", "RIGHT", "BOTTOMRIGHT", "TOP", "CENTER", "BOTTOM", "TOPLEFT", "LEFT", "BOTTOMLEFT" };
 	local frameAnchorsLocalization = {
 		[frameAnchors[1]] = L["anchor-point:topright"],
@@ -4072,8 +4072,7 @@ local function GUICategory_StyleAndPosition(index)
 
 	local function onNameplateIsParentChanged()
 		local nameplateIsParent = addonTable.db.IconGroups[CurrentIconGroup].NameplateIsParent;
-		dropdownTargetStrata:SetShown(not nameplateIsParent);
-		dropdownNonTargetStrata:SetShown(not nameplateIsParent);
+		frameStrataArea:SetShown(not nameplateIsParent);
 	end
 
 	-- // checkboxKeepAspectRatio
@@ -4739,7 +4738,6 @@ local function GUICategory_StyleAndPosition(index)
 	end
 
 	-- frameStrataArea
-	local frameStrataArea;
 	do
 		frameStrataArea = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
 		frameStrataArea:SetBackdrop({
@@ -4756,6 +4754,7 @@ local function GUICategory_StyleAndPosition(index)
 		frameStrataArea:SetPoint("TOPRIGHT", GUIFrame.ControlsFrame, "TOPRIGHT", 0, -50);
 		frameStrataArea:SetHeight(105);
 		table_insert(GUIFrame.Categories[index], frameStrataArea);
+		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
 	local frameStratas = {
@@ -4770,6 +4769,7 @@ local function GUICategory_StyleAndPosition(index)
 	};
 
 	-- // dropdownTargetStrata
+	local dropdownTargetStrata;
 	do
 		dropdownTargetStrata = CreateFrame("DropdownButton", nil, frameStrataArea, "WowStyle1DropdownTemplate");
 		dropdownTargetStrata:SetPoint("TOPLEFT", frameStrataArea, "TOPLEFT", 10, -25);
@@ -4792,13 +4792,11 @@ local function GUICategory_StyleAndPosition(index)
 		end);
 
 		CreateDropdownLabel(dropdownTargetStrata, L["options:size-and-position:target-strata"]);
-		table_insert(GUIFrame.Categories[index], dropdownTargetStrata);
-		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
 	-- // dropdownNonTargetStrata
 	do
-		dropdownNonTargetStrata = CreateFrame("DropdownButton", nil, frameStrataArea, "WowStyle1DropdownTemplate");
+		local dropdownNonTargetStrata = CreateFrame("DropdownButton", nil, frameStrataArea, "WowStyle1DropdownTemplate");
 		dropdownNonTargetStrata:SetPoint("TOPLEFT", dropdownTargetStrata, "BOTTOMLEFT", 0, -20);
 		dropdownNonTargetStrata:SetWidth(frameStrataArea:GetWidth() - 10*2);
 		dropdownNonTargetStrata:SetupMenu(function(_, _rootDescription)
@@ -4819,8 +4817,6 @@ local function GUICategory_StyleAndPosition(index)
 		end);
 
 		CreateDropdownLabel(dropdownNonTargetStrata, L["options:size-and-position:non-target-strata"]);
-		table_insert(GUIFrame.Categories[index], dropdownNonTargetStrata);
-		table_insert(GUIFrame.OnCategoryShowHandlers[index], function() onNameplateIsParentChanged(); end);
 	end
 
 	local scaleArea, sliderScaleTarget;

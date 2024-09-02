@@ -1,5 +1,5 @@
 -- luacheck: no max line length
-
+-- GAME_LOCALE = "ruRU";
 local L = LibStub("AceLocale-3.0"):NewLocale("NameplateAuras", "enUS", true);
 L = L or {}
 --[===[@non-debug@

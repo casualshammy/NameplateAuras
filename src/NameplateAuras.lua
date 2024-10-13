@@ -76,10 +76,7 @@ local ATTACH_TYPE_NAMEPLATE, ATTACH_TYPE_HEALTHBAR, ATTACH_TYPE_TPTP = addonTabl
 local Print, SpellTextureByID, SpellNameByID = addonTable.Print, addonTable.SpellTextureByID, addonTable.SpellNameByID;
 
 local UpdateUnitAurasFull, UpdateUnitAurasIncremental;
--- /dump NAuras_Full, NAuras_Inc
 do
-	NAuras_Full = 0;
-	NAuras_Inc = 0;
 	local p_updateAurasCurrentUnit = nil;
 
 	local function UpdateUnitAuras_HandleAura(_unitAuraInfo)
@@ -103,8 +100,6 @@ do
 		AuraUtil_ForEachAura(_unitId, "HARMFUL", nil, UpdateUnitAuras_HandleAura, true);
 
 		p_updateAurasCurrentUnit = nil;
-
-		NAuras_Full = NAuras_Full + 1;
 	end
 
 	function UpdateUnitAurasIncremental(_unitId, _unitGuid, _unitAuraUpdateInfo)
@@ -125,8 +120,6 @@ do
 				PlayerAurasPerGuid[_unitGuid][auraInstanceID] = nil;
 			end
 		end
-
-		NAuras_Inc = NAuras_Inc + 1;
 	end
 end
 
@@ -184,6 +177,16 @@ do
 			Additions_ExplosiveOrbs = true,
 			ShowAuraTooltip = false,
 			Additions_DispellableSpells = false,
+			Additions_Dispel_InstanceTypes = {
+				[addonTable.INSTANCE_TYPE_NONE] =					true,
+				[addonTable.INSTANCE_TYPE_UNKNOWN] = 			true,
+				[addonTable.INSTANCE_TYPE_PVP] = 					true,
+				[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = true,
+				[addonTable.INSTANCE_TYPE_ARENA] = 				true,
+				[addonTable.INSTANCE_TYPE_PARTY] = 				true,
+				[addonTable.INSTANCE_TYPE_RAID] = 				true,
+				[addonTable.INSTANCE_TYPE_SCENARIO] =			true,
+			},
 			Additions_DispellableSpells_Blacklist = {},
 			DispelIconSizeWidth = 45,
 			DispelIconSizeHeight = 45,
@@ -1078,7 +1081,7 @@ do
 					};
 					tSize = tSize + 1;
 				end
-				if (iconGroup.Additions_DispellableSpells and not unitIsFriend and _auraData.isStealable) then
+				if (iconGroup.Additions_DispellableSpells and not unitIsFriend and _auraData.isStealable and iconGroup.Additions_Dispel_InstanceTypes[InstanceType]) then
 					if (iconGroup.Additions_DispellableSpells_Blacklist[auraName] == nil) then
 						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
 							["duration"] = _auraData.duration,

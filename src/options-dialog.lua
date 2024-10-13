@@ -370,7 +370,7 @@ local function GUICategory_1(index)
 		checkboxAuraTooltip:SetOnClickHandler(function(this)
 			addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip = this:GetChecked();
 			for _, icon in pairs(addonTable.AllAuraIconFrames) do
-				addonTable.AllocateIcon_SetAuraTooltip(icon);
+				addonTable.AllocateIcon_SetAuraTooltip(icon, addonTable.db.IconGroups[CurrentIconGroup]);
 			end
 			GameTooltip:Hide();
 			if (addonTable.db.IconGroups[CurrentIconGroup].ShowAuraTooltip) then
@@ -394,7 +394,7 @@ local function GUICategory_1(index)
 		checkboxUseDefaultAuraTooltip:SetOnClickHandler(function(this)
 			addonTable.db.IconGroups[CurrentIconGroup].UseDefaultAuraTooltip = this:GetChecked();
 			for _, icon in pairs(addonTable.AllAuraIconFrames) do
-				addonTable.AllocateIcon_SetAuraTooltip(icon);
+				addonTable.AllocateIcon_SetAuraTooltip(icon, addonTable.db.IconGroups[CurrentIconGroup]);
 			end
 			GameTooltip:Hide();
 		end);
@@ -5040,6 +5040,7 @@ end
 local function GUICategory_Dispel(index)
 	local checkBoxDispellableSpells, dispellableSpellsBlacklist, addButton, editboxAddSpell, dropdownGlowType, controlArea, sizeArea, sliderDispelIconSizeHeight, sliderDispelIconSizeWidth;
 	local dispellableSpellsBlacklistMenu = VGUI.CreateDropdownMenu();
+	local buttonInstanceTypes;
 
 	-- // checkBoxDispellableSpells
 	do
@@ -5049,13 +5050,17 @@ local function GUICategory_Dispel(index)
 		checkBoxDispellableSpells:SetOnClickHandler(function(this)
 			addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells = this:GetChecked();
 			if (not addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells) then
-				addonTable.UpdateAllNameplates(true);
 				controlArea:Hide();
 			else
 				controlArea:Show();
 			end
+			addonTable.UpdateAllNameplates();
 		end);
-		checkBoxDispellableSpells:HookScript("OnShow", function() if (addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells) then controlArea:Show(); end end);
+		checkBoxDispellableSpells:HookScript("OnShow", function()
+			if (addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells) then
+				controlArea:Show();
+			end
+		end);
 		checkBoxDispellableSpells:HookScript("OnHide", function() controlArea:Hide(); end);
 		checkBoxDispellableSpells:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells);
 		checkBoxDispellableSpells:SetParent(GUIFrame);
@@ -5362,6 +5367,77 @@ local function GUICategory_Dispel(index)
 		dispellableSpellsBlacklistMenu.Border:SetColorTexture(0.1, 0.1, 0.1, 1);
 		dispellableSpellsBlacklistMenu:ClearAllPoints();
 		dispellableSpellsBlacklistMenu:SetPoint("TOPLEFT", dispellableSpellsBlacklist, "TOPRIGHT", 5, 0);
+	end
+
+	-- // buttonInstances
+	do
+		local zoneTypes = {
+			[addonTable.INSTANCE_TYPE_NONE] = 				L["instance-type:none"],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 			L["instance-type:unknown"],
+			[addonTable.INSTANCE_TYPE_PVP] = 					L["instance-type:pvp"],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = L["instance-type:pvp_bg_40ppl"],
+			[addonTable.INSTANCE_TYPE_ARENA] = 				L["instance-type:arena"],
+			[addonTable.INSTANCE_TYPE_PARTY] = 				L["instance-type:party"],
+			[addonTable.INSTANCE_TYPE_RAID] = 				L["instance-type:raid"],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =			L["instance-type:scenario"],
+		};
+		local zoneIcons = {
+			[addonTable.INSTANCE_TYPE_NONE] = 				SpellTextureByID[6711],
+			[addonTable.INSTANCE_TYPE_UNKNOWN] = 			SpellTextureByID[175697],
+			[addonTable.INSTANCE_TYPE_PVP] = 					SpellTextureByID[232352],
+			[addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 132485,
+			[addonTable.INSTANCE_TYPE_ARENA] = 				SpellTextureByID[270697],
+			[addonTable.INSTANCE_TYPE_PARTY] = 				SpellTextureByID[77629],
+			[addonTable.INSTANCE_TYPE_RAID] = 				SpellTextureByID[3363],
+			[addonTable.INSTANCE_TYPE_SCENARIO] =			SpellTextureByID[77628],
+		};
+
+		local dropdownInstanceTypes = VGUI.CreateDropdownMenu();
+		dropdownInstanceTypes:SetHeight(230);
+		buttonInstanceTypes = VGUI.CreateButton();
+		buttonInstanceTypes:SetParent(controlArea);
+		buttonInstanceTypes:SetText(L["options:apps:dispellable-spells:instance-types"]);
+
+		local function setEntries()
+			local entries = { };
+			for instanceType, instanceLocalizatedName in pairs(zoneTypes) do
+				table_insert(entries, {
+					["text"] = instanceLocalizatedName,
+					["icon"] = zoneIcons[instanceType],
+					["func"] = function(info)
+						local btn = dropdownInstanceTypes:GetButtonByText(info.text);
+						if (btn) then
+							info.disabled = not info.disabled;
+							btn:SetGray(info.disabled);
+							addonTable.db.IconGroups[CurrentIconGroup].Additions_Dispel_InstanceTypes[info.instanceType] = not info.disabled;
+						end
+						addonTable.UpdateAllNameplates();
+					end,
+					["disabled"] = not addonTable.db.IconGroups[CurrentIconGroup].Additions_Dispel_InstanceTypes[instanceType],
+					["dontCloseOnClick"] = true,
+					["instanceType"] = instanceType,
+				});
+			end
+			table_sort(entries, function(item1, item2) return item1.instanceType < item2.instanceType; end);
+			return entries;
+		end
+
+		buttonInstanceTypes:SetPoint("TOPLEFT", dispellableSpellsBlacklist, "BOTTOMLEFT", 0, -10);
+		buttonInstanceTypes:SetPoint("TOPRIGHT", dispellableSpellsBlacklist, "BOTTOMRIGHT", 0, -10);
+		buttonInstanceTypes:SetHeight(40);
+		buttonInstanceTypes:SetScript("OnClick", function(self)
+			if (dropdownInstanceTypes:IsVisible()) then
+				dropdownInstanceTypes:Hide();
+			else
+				dropdownInstanceTypes:SetList(setEntries());
+				dropdownInstanceTypes:SetParent(self);
+				dropdownInstanceTypes:ClearAllPoints();
+				dropdownInstanceTypes:SetPoint("TOP", self, "BOTTOM", 0, 0);
+				dropdownInstanceTypes:Show();
+			end
+		end);
+		buttonInstanceTypes:SetScript("OnHide", function() dropdownInstanceTypes:Hide() end);
+
 	end
 
 end

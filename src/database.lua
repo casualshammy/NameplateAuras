@@ -535,6 +535,23 @@ local migrations = {
             igData.AttachToAddonFrame = nil;
         end
     end,
+    [32] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.Additions_Dispel_InstanceTypes == nil) then
+                igData.Additions_Dispel_InstanceTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			true,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			true,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			true,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			true,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			true,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+                }
+            end
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()

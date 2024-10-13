@@ -257,5 +257,6 @@ L["options:size-and-position:anchor-frame:nameplate"] = "The whole nameplate fra
 L["options:size-and-position:anchor-frame:healthbar"] = "Healthbar";
 L["options:size-and-position:anchor-point-to-nameplate"] = "Anchor point";
 L["options:size-and-position:anchor-point-of-frame"] = "Anchor point of icons group";
+L["options:apps:dispellable-spells:instance-types"] = "Set the instance types in which dispelable auras will be displayed";
 
 --@end-debug@

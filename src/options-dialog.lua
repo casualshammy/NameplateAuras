@@ -2566,11 +2566,23 @@ local function GUICategory_4(index)
 							if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
 								local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
 								local counter = 0;
-								for id, icon in pairs(allSpellIDs) do
-									descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
-									counter = counter + 1;
-									if (counter >= 20) then break end
+
+								local spellIds = {};
+								for id in pairs(allSpellIDs) do
+									table_insert(spellIds, id);
 								end
+								table_sort(spellIds);
+								for _, id in ipairs(spellIds) do
+									if (counter < 20) then
+										local icon = allSpellIDs[id];
+										descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
+									end
+									counter = counter + 1;
+								end
+								if (counter > 20) then
+									descText = string_format("%s\n... +%s", descText, (counter - 20));
+								end
+
 								GameTooltip:AddLine(descText);
 							end
 							GameTooltip:Show();

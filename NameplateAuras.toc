@@ -1,4 +1,4 @@
-## Interface: 40400
+## Interface: 40401
 ## Title: NameplateAuras [Cata]
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB

@@ -5648,9 +5648,19 @@ local function GUICategory_IconGroups(_index)
 end
 
 local function DeleteUnexistantSpells()
-    local db = addonTable.db;
+	local db = addonTable.db;
 	for index, spellInfo in pairs(db.CustomSpells2) do
-		if (AllSpellIDsAndIconsByName[spellInfo.spellName] == nil) then
+		local spellID = next(spellInfo.checkSpellID);
+		local APIspellInfo = spellID ~= nil and C_Spell.GetSpellInfo(spellID) or nil;
+		local spellName = APIspellInfo ~= nil and APIspellInfo.name or nil;
+		if (spellName == spellInfo.spellName) then
+			return;
+		end
+		if (APIspellInfo and spellName ~= spellInfo.spellName) then
+			addonTable.Print(("Spell with name '%s' renamed to '%s'"):format(spellInfo.spellName, spellName));
+			spellInfo.spellName = spellName;
+			addonTable.RebuildSpellCache();
+		else
 			addonTable.Print(("Spell with name '%s' is not found (deleted from game?)"):format(spellInfo.spellName));
 			db.CustomSpells2[index] = nil;
 			addonTable.RebuildSpellCache();

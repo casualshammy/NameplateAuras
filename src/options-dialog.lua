@@ -4195,11 +4195,6 @@ local function GUICategory_StyleAndPosition(index)
 		sliderIconSize.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconSize.editbox:SetText(tostring(valueNum));
-			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
-				if (spellInfo.iconSizeWidth == addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth) then
-					spellInfo.iconSizeWidth = valueNum;
-				end
-			end
 			addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeWidth = valueNum;
 			addonTable.UpdateAllNameplates(true);
 		end);
@@ -4246,11 +4241,6 @@ local function GUICategory_StyleAndPosition(index)
 		sliderIconHeight.slider:SetScript("OnValueChanged", function(_, value)
 			local valueNum = math_ceil(value);
 			sliderIconHeight.editbox:SetText(tostring(valueNum));
-			for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
-				if (spellInfo.iconSizeHeight == addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight) then
-					spellInfo.iconSizeHeight = valueNum;
-				end
-			end
 			addonTable.db.IconGroups[CurrentIconGroup].DefaultIconSizeHeight = valueNum;
 			addonTable.UpdateAllNameplates(true);
 		end);

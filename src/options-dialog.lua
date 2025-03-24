@@ -5649,34 +5649,64 @@ local function DeleteUnexistantSpells()
 end
 
 local function InitializeGUI_CreateSpellInfoCaches()
+	local frame = CreateFrame("frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
+	frame:SetBackdrop({
+		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = 1,
+		tileSize = 16,
+		edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 }
+	});
+	frame:SetBackdropColor(0.1, 0.1, 0.2, 1);
+	frame:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
+	frame:SetPoint("TOP", GUIFrame, "BOTTOM", 0, 0);
+	frame:SetWidth(GUIFrame:GetWidth()/2);
+	frame:SetHeight(40);
+	frame.text = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal");
+	frame.text:SetPoint("CENTER", frame, "CENTER", 5, 0);
+	frame:Hide();
+
 	GUIFrame:HookScript("OnShow", function()
+		frame:Show();
+		frame.text:SetText("Loading spells info...\nSome functions may not work");
 		local scanAllSpells = coroutine.create(function()
-			local misses = 0;
+			--local misses = 0;
 			local id = 0;
-			while (misses < 1000) do
+			local maxId = 2*1000*1000;
+			while (id < maxId) do
 				id = id + 1;
 				local spellInfo = GetSpellInfo(id);
 				local name = spellInfo ~= nil and spellInfo.name or nil;
 				local icon = spellInfo ~= nil and spellInfo.iconID or nil;
-				if (icon == 136243) then -- 136243 is the a gear icon
-					misses = 0;
-				elseif (name and name ~= "") then
-					misses = 0;
+				-- if (icon == 136243) then -- 136243 is the a gear icon
+				-- 	misses = 0;
+				-- elseif (name and name ~= "") then
+				-- 	misses = 0;
+				-- 	if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
+				-- 	AllSpellIDsAndIconsByName[name][id] = icon;
+				-- else
+				-- 	misses = misses + 1;
+				-- end
+				if (name and name ~= "") then
 					if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
 					AllSpellIDsAndIconsByName[name][id] = icon;
-				else
-					misses = misses + 1;
+				end
+				if (id % (maxId/100) == 0) then
+					frame.text:SetText(string_format("Loading spells info (%s%%)...\nSome functions may not work", math_ceil(id*100/maxId)));
 				end
 				coroutine.yield();
 			end
 			DeleteUnexistantSpells();
 			addonTable.OnSpellInfoCachesReady();
+			frame:Hide();
 		end);
 		CoroutineProcessor:Queue("scanAllSpells", scanAllSpells);
 	end);
 	GUIFrame:HookScript("OnHide", function()
 		CoroutineProcessor:DeleteFromQueue("scanAllSpells");
 		wipe(AllSpellIDsAndIconsByName);
+		frame:Hide();
 	end);
 end
 

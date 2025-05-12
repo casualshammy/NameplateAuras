@@ -5671,7 +5671,6 @@ local function InitializeGUI_CreateSpellInfoCaches()
 		frame:Show();
 		frame.text:SetText("Loading spells info...\nSome functions may not work");
 		local scanAllSpells = coroutine.create(function()
-			--local misses = 0;
 			local id = 0;
 			local maxId = 2*1000*1000;
 			while (id < maxId) do
@@ -5679,15 +5678,6 @@ local function InitializeGUI_CreateSpellInfoCaches()
 				local spellInfo = GetSpellInfo(id);
 				local name = spellInfo ~= nil and spellInfo.name or nil;
 				local icon = spellInfo ~= nil and spellInfo.iconID or nil;
-				-- if (icon == 136243) then -- 136243 is the a gear icon
-				-- 	misses = 0;
-				-- elseif (name and name ~= "") then
-				-- 	misses = 0;
-				-- 	if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
-				-- 	AllSpellIDsAndIconsByName[name][id] = icon;
-				-- else
-				-- 	misses = misses + 1;
-				-- end
 				if (name and name ~= "") then
 					if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
 					AllSpellIDsAndIconsByName[name][id] = icon;

@@ -1,4 +1,4 @@
-## Interface: 110105
+## Interface: 110107
 ## Title: NameplateAuras
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB

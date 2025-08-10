@@ -5,7 +5,7 @@
 -- luacheck: globals UIParent COMBATLOG_OBJECT_TYPE_PLAYER
 -- luacheck: globals GetNumGroupMembers IsPartyLFG GetNumSubgroupMembers IsPartyLFG UnitDetailedThreatSituation PlaySound
 -- luacheck: globals IsInInstance bit loadstring setfenv GetInstanceInfo GameTooltip UnitName
--- luacheck: globals PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil
+-- luacheck: globals PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil UnitAura UnitBuff UnitDebuff
 
 local _, addonTable = ...;
 
@@ -28,19 +28,16 @@ local 	_G, pairs, string_find,string_format, 	GetTime, math_ceil, math_floor, wi
 			UnitReaction, UnitGUID,  table_sort, CTimerAfter,	bit_band, CTimerNewTimer,   strsplit, CombatLogGetCurrentEventInfo, math_max, math_min =
 		_G, pairs, 			strfind, 	format,			GetTime, ceil,		floor,		wipe, C_NamePlate.GetNamePlateForUnit, UnitIsPlayer,
 			UnitReaction, UnitGUID,  table.sort, C_Timer.After,	bit.band, C_Timer.NewTimer, strsplit, CombatLogGetCurrentEventInfo, max,	  min;
-local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers, PlaySound, PlaySoundFile;
-local UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo = UnitDetailedThreatSituation, GetInstanceInfo, C_TooltipInfo;
-local C_TooltipInfo_GetUnitBuffByAuraInstanceID = C_TooltipInfo.GetUnitBuffByAuraInstanceID;
-local C_TooltipInfo_GetUnitDebuffByAuraInstanceID = C_TooltipInfo.GetUnitDebuffByAuraInstanceID;
-local UnitIsUnit, AuraUtil_ForEachAura = UnitIsUnit, AuraUtil.ForEachAura;
-local C_UnitAuras_GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID;
+local GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers = GetNumGroupMembers, IsPartyLFG, GetNumSubgroupMembers;
+local GetInstanceInfo = GetInstanceInfo;
+local UnitBuff, UnitDebuff = UnitBuff, UnitDebuff;
 local table_insert, table_remove = table.insert, table.remove;
 local GetSpellTexture = C_Spell.GetSpellTexture;
 
 -- // variables
-local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType, BuffFrameHookedNameplates;
+local AurasPerNameplate, InterruptsPerUnitGUID, Nameplates, NameplatesVisible, NameplatesVisibleGuid, DRResetTime, InstanceType;
 local EventFrame, db, aceDB, LocalPlayerGUID, ProcessAurasForNameplate, UpdateNameplate, SetAlphaScaleForNameplate, DRDataPerGUID, TargetGUID;
-local SpitefulMobs, PlayerAurasPerGuid;
+local PlayerAurasPerGuid;
 do
 	AurasPerNameplate 						= { };
 	InterruptsPerUnitGUID					= { };
@@ -50,23 +47,20 @@ do
 	addonTable.AllAuraIconFrames			= { };
 	DRDataPerGUID							= { };
 	DRResetTime								= DRList:GetResetTime();
-	SpitefulMobs							= { };
 	InstanceType							= addonTable.INSTANCE_TYPE_NONE;
-	BuffFrameHookedNameplates				= { };
 	PlayerAurasPerGuid 						= { };
 end
 
 -- // consts
 local CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_MYAURAS, AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY, AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE,
 	AURA_SORT_MODE_AURATYPE_EXPIRE,
-	GLOW_TIME_INFINITE, EXPLOSIVE_ORB_SPELL_ID, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
+	GLOW_TIME_INFINITE, VERY_LONG_COOLDOWN_DURATION, BORDER_TEXTURES;
 do
 	CONST_SPELL_MODE_DISABLED, CONST_SPELL_MODE_MYAURAS = addonTable.CONST_SPELL_MODE_DISABLED, addonTable.CONST_SPELL_MODE_MYAURAS;
 	AURA_TYPE_BUFF, AURA_TYPE_DEBUFF, AURA_TYPE_ANY = addonTable.AURA_TYPE_BUFF, addonTable.AURA_TYPE_DEBUFF, addonTable.AURA_TYPE_ANY;
 	AURA_SORT_MODE_NONE, AURA_SORT_MODE_EXPIRETIME, AURA_SORT_MODE_ICONSIZE, AURA_SORT_MODE_AURATYPE_EXPIRE =
 		addonTable.AURA_SORT_MODE_NONE, addonTable.AURA_SORT_MODE_EXPIRETIME, addonTable.AURA_SORT_MODE_ICONSIZE, addonTable.AURA_SORT_MODE_AURATYPE_EXPIRE;
 	GLOW_TIME_INFINITE = addonTable.GLOW_TIME_INFINITE; -- // 30 days
-	EXPLOSIVE_ORB_SPELL_ID = addonTable.EXPLOSIVE_ORB_SPELL_ID;
 	VERY_LONG_COOLDOWN_DURATION = addonTable.VERY_LONG_COOLDOWN_DURATION; -- // 30 days
 	BORDER_TEXTURES = addonTable.BORDER_TEXTURES;
 end
@@ -76,16 +70,23 @@ local UNIT_TYPE_PLAYER, UNIT_TYPE_NPC, UNIT_TYPE_PET = addonTable.UNIT_TYPE_PLAY
 -- // utilities
 local Print, SpellTextureByID, SpellNameByID, GetUnitTypeByGuid = addonTable.Print, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.GetUnitTypeByGuid;
 
-local UpdateUnitAurasFull, UpdateUnitAurasIncremental;
+local UpdateUnitAurasFull;
 do
 	local p_updateAurasCurrentUnit = nil;
 
-	local function UpdateUnitAuras_HandleAura(_unitAuraInfo)
-		if (_unitAuraInfo == nil) then
-			return;
-		end
-
-		PlayerAurasPerGuid[p_updateAurasCurrentUnit][_unitAuraInfo.auraInstanceID] = _unitAuraInfo;
+	local function CreateAuraEntry(_isHarmful, _name, _sourceUnit, _spellId, _duration, _expirationTime, _applications, _dispelName, _isStealable)
+		local entry = {
+			isHarmful = _isHarmful,
+			name = _name,
+			sourceUnit = _sourceUnit,
+			spellId = _spellId,
+			duration = _duration,
+			expirationTime = _expirationTime,
+			applications = _applications,
+			dispelName = _dispelName,
+			isStealable = _isStealable,
+		};
+		return entry;
 	end
 
 	function UpdateUnitAurasFull(_unitId, _unitGuid)
@@ -97,31 +98,32 @@ do
 
 		p_updateAurasCurrentUnit = _unitGuid;
 
-		AuraUtil_ForEachAura(_unitId, "HELPFUL", nil, UpdateUnitAuras_HandleAura, true);
-		AuraUtil_ForEachAura(_unitId, "HARMFUL", nil, UpdateUnitAuras_HandleAura, true);
+		local counter = 0;
+		for i = 1, 40 do
+			local buffName, _, buffStack, _, buffDuration, buffExpires, buffCaster, buffIsStealable, _, buffSpellID = UnitBuff(_unitId, i);
+			if (buffName ~= nil) then
+				counter = counter + 1;
+				local auraEntry = CreateAuraEntry(false, buffName, buffCaster, buffSpellID, buffDuration, buffExpires, buffStack, nil, buffIsStealable);
+				PlayerAurasPerGuid[p_updateAurasCurrentUnit][counter] = auraEntry;
+			else
+				break;
+			end
+		end
+
+		for i = 1, 40 do
+			local debuffName, _, debuffStack, debuffDispelType, debuffDuration, debuffExpires, debuffCaster, _, _, debuffSpellID = UnitDebuff(_unitId, i);
+			if (debuffName ~= nil) then
+				counter = counter + 1;
+				local auraEntry = CreateAuraEntry(true, debuffName, debuffCaster, debuffSpellID, debuffDuration, debuffExpires, debuffStack, debuffDispelType, nil);
+				PlayerAurasPerGuid[p_updateAurasCurrentUnit][counter] = auraEntry;
+			else
+				break;
+			end
+		end
 
 		p_updateAurasCurrentUnit = nil;
 	end
 
-	function UpdateUnitAurasIncremental(_unitId, _unitGuid, _unitAuraUpdateInfo)
-		if (_unitAuraUpdateInfo.addedAuras ~= nil) then
-			for _, aura in pairs(_unitAuraUpdateInfo.addedAuras) do
-				PlayerAurasPerGuid[_unitGuid][aura.auraInstanceID] = aura;
-			end
-		end
-
-		if (_unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil) then
-			for _, auraInstanceID in pairs(_unitAuraUpdateInfo.updatedAuraInstanceIDs) do
-				PlayerAurasPerGuid[_unitGuid][auraInstanceID] = C_UnitAuras_GetAuraDataByAuraInstanceID(_unitId, auraInstanceID);
-			end
-		end
-
-		if (_unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil) then
-			for _, auraInstanceID in pairs(_unitAuraUpdateInfo.removedAuraInstanceIDs) do
-				PlayerAurasPerGuid[_unitGuid][auraInstanceID] = nil;
-			end
-		end
-	end
 end
 
 --------------------------------------------------------------------------------------------------
@@ -175,7 +177,6 @@ do
 			InterruptsGlowType = addonTable.GLOW_TYPE_ACTIONBUTTON_DIM,
 			InterruptsUseSharedIconTexture = false,
 			InterruptsShowOnlyOnPlayers = true,
-			Additions_ExplosiveOrbs = true,
 			ShowAuraTooltip = false,
 			Additions_DispellableSpells = false,
 			Additions_Dispel_InstanceTypes = {
@@ -211,8 +212,6 @@ do
 			Additions_DRPvE = false,
 			ShowOnlyOnTarget = false,
 			UseTargetAlphaIfNotTargetSelected = false,
-			AffixSpiteful = true,
-			AffixSpitefulSound = 5274,
 			AlwaysShowMyAurasBlacklist = {},
 			NpcBlacklist = {},
 			TimerTextUseRelativeColor = false,
@@ -343,7 +342,6 @@ do
 		EventFrame:RegisterEvent("UNIT_AURA");
 		EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED");
 		EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-		EventFrame:RegisterEvent("UNIT_THREAT_LIST_UPDATE");
 		-- // adding slash command
 		SLASH_NAMEPLATEAURAS1 = '/nauras';
 		SlashCmdList["NAMEPLATEAURAS"] = OnChatCommand;
@@ -375,7 +373,6 @@ end
 ----- Nameplates
 --------------------------------------------------------------------------------------------------
 do
-	local EXPLOSIVE_ORB_NPC_ID_AS_STRING = addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING;
 	local GLOW_TYPE_NONE, GLOW_TYPE_ACTIONBUTTON, GLOW_TYPE_AUTOUSE, GLOW_TYPE_PIXEL, GLOW_TYPE_ACTIONBUTTON_DIM =
 		addonTable.GLOW_TYPE_NONE, addonTable.GLOW_TYPE_ACTIONBUTTON, addonTable.GLOW_TYPE_AUTOUSE, addonTable.GLOW_TYPE_PIXEL, addonTable.GLOW_TYPE_ACTIONBUTTON_DIM;
 	local AURA_SORT_MODE_CUSTOM = addonTable.AURA_SORT_MODE_CUSTOM;
@@ -389,23 +386,6 @@ do
 		[AURA_SORT_MODE_AURATYPE_EXPIRE] = {},
 		[AURA_SORT_MODE_CUSTOM] = {},
 	};
-
-	local function GetAuraTextFromUnitAura(_unit, _auraData)
-		local data;
-		if (_auraData.isHarmful) then
-			data = C_TooltipInfo_GetUnitDebuffByAuraInstanceID(_unit, _auraData.auraInstanceID);
-		else
-			data = C_TooltipInfo_GetUnitBuffByAuraInstanceID(_unit, _auraData.auraInstanceID);
-		end
-
-		if (data == nil) then
-			return nil;
-		end
-
-		local tooltip = data.lines[2].leftText;
-
-		return tooltip;
-	end
 
 	local spellCache = { };
 	function addonTable.RebuildSpellCache()
@@ -926,7 +906,7 @@ do
 	end
 	addonTable.UpdateAllNameplates = UpdateAllNameplates;
 
-	local function ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, _unitType, unitId, _iconGroupIndex)
+	local function ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, _unitType, _iconGroupIndex)
 		if (dbEntry == nil) then
 			return false;
 		end
@@ -965,56 +945,7 @@ do
 			return false;
 		end
 
-		if (dbEntry.spellTooltip ~= nil) then
-			local tooltip = GetAuraTextFromUnitAura(unitId, _auraData);
-			if (not string_find(tooltip, dbEntry.spellTooltip, 1, true)) then
-				return false;
-			end
-		end
-
 		return true;
-	end
-
-	local function ProcAurasForNmplt_Additions(unitGUID, frame, _iconGroupsToUpdate)
-		if (unitGUID ~= nil) then
-			for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
-				local _, _, _, _, _, npcID = strsplit("-", unitGUID);
-				if (iconGroup.Additions_ExplosiveOrbs and npcID == EXPLOSIVE_ORB_NPC_ID_AS_STRING) then
-					local tSize = #AurasPerNameplate[frame][iconGroupIndex];
-					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
-						["duration"] = 0,
-						["expires"] = 0,
-						["stacks"] = 1,
-						["spellID"] = EXPLOSIVE_ORB_SPELL_ID,
-						["type"] = AURA_TYPE_DEBUFF,
-						["spellName"] = SpellNameByID[EXPLOSIVE_ORB_SPELL_ID],
-						["dbEntry"] = {
-							["showGlow"] = GLOW_TIME_INFINITE,
-							["glowType"] = GLOW_TYPE_ACTIONBUTTON,
-						},
-					};
-				end
-				if (iconGroup.AffixSpiteful and npcID == addonTable.SPITEFUL_NPC_ID_STRING and SpitefulMobs[unitGUID]) then
-					local tSize = #AurasPerNameplate[frame][iconGroupIndex];
-					local iconSize = math_max(iconGroup.DefaultIconSizeWidth, iconGroup.DefaultIconSizeHeight);
-					AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
-						["duration"] = 0,
-						["expires"] = 0,
-						["stacks"] = 1,
-						["spellID"] = addonTable.SPITEFUL_SPELL_ID,
-						["type"] = AURA_TYPE_DEBUFF,
-						["spellName"] = SpellNameByID[addonTable.SPITEFUL_SPELL_ID],
-						["dbEntry"] = {
-							["showGlow"] = GLOW_TIME_INFINITE,
-							["glowType"] = GLOW_TYPE_ACTIONBUTTON,
-							["iconSizeWidth"] = iconSize,
-							["iconSizeHeight"] = iconSize,
-							["overrideSize"] = true,
-						},
-					};
-				end
-			end
-		end
 	end
 
 	local function ProcAurasForNmplt_DR(unitGUID, frame, _iconGroupsToUpdate)
@@ -1052,7 +983,7 @@ do
 		end
 	end
 
-	local function ProcAurasForNmplt_OnNewAuraEx(_auraData, unitIsFriend, frame, _unitType, unitId, _iconGroupsToUpdate)
+	local function ProcAurasForNmplt_OnNewAuraEx(_auraData, unitIsFriend, frame, _unitType, _iconGroupsToUpdate)
 		local auraType = _auraData.isHarmful and AURA_TYPE_DEBUFF or AURA_TYPE_BUFF;
 		local auraName = _auraData.name;
 		for iconGroupIndex, iconGroup in pairs(_iconGroupsToUpdate) do
@@ -1061,7 +992,7 @@ do
 			local cache = spellCache[auraName];
 			if (cache ~= nil) then
 				for _, dbEntry in pairs(cache) do
-					if (ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, _unitType, unitId, iconGroupIndex)) then
+					if (ProcAurasForNmplt_Filter(auraType, _auraData, unitIsFriend, dbEntry, _unitType, iconGroupIndex)) then
 						AurasPerNameplate[frame][iconGroupIndex][tSize+1] = {
 							["duration"] = _auraData.duration,
 							["expires"] = _auraData.expirationTime,
@@ -1199,14 +1130,13 @@ do
 			local auras = PlayerAurasPerGuid[unitGUID];
 			if (auras ~= nil) then
 				for _, auraData in pairs(auras) do
-					ProcAurasForNmplt_OnNewAuraEx(auraData, unitIsFriend, frame, unitType, unitID, iconGroupsToUpdate);
+					ProcAurasForNmplt_OnNewAuraEx(auraData, unitIsFriend, frame, unitType, iconGroupsToUpdate);
 				end
 			end
 
 			ProcAurasForNmplt_Merge(frame, iconGroupsToUpdate);
 
 			ProcAurasForNmplt_Interrupts(unitGUID, frame, iconGroupsToUpdate);
-			ProcAurasForNmplt_Additions(unitGUID, frame, iconGroupsToUpdate);
 			ProcAurasForNmplt_DR(unitGUID, frame, iconGroupsToUpdate);
 		end
 
@@ -1543,35 +1473,6 @@ do
 	end
 	CTimerAfter(2, UpdateZoneType);
 
-	local function HideBuffFrame(_frame)
-		if (_frame == nil) then
-			return;
-		end
-
-		local unitId = _frame.unit;
-		if (unitId == nil) then
-			return;
-		end
-
-		if (UnitIsUnit(unitId, "player")) then
-			_frame:SetShown(not db.HidePlayerBlizzardFrame);
-		else
-			_frame:SetShown(not db.HideBlizzardFrames);
-		end
-
-		-- friendly buff frame may appear on non-player nameplate if this nameplate is "reused player nameplate"
-		-- thus we need to workaround this cases
-		if (PersonalFriendlyBuffFrame ~= nil) then
-			local parentNameplate = PersonalFriendlyBuffFrame:GetParent();
-			if (parentNameplate ~= nil and parentNameplate.UnitFrame ~= nil and not UnitIsUnit(parentNameplate.UnitFrame.unit, "player")) then
-				--addonTable.Print("PersonalFriendlyBuffFrame is attached to wrong nameplate, fixing...");
-				PersonalFriendlyBuffFrame:Hide();
-			else
-				PersonalFriendlyBuffFrame:SetShown(not db.HidePlayerBlizzardFrame);
-			end
-		end
-	end
-
 	function EventFrame.PLAYER_ENTERING_WORLD()
 		if (addonTable.OnStartup) then
 			addonTable.OnStartup();
@@ -1579,7 +1480,6 @@ do
 		for nameplate in pairs(AurasPerNameplate) do
 			wipe(AurasPerNameplate[nameplate]);
 		end
-		wipe(SpitefulMobs);
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_ADDED(unitID)
@@ -1623,18 +1523,6 @@ do
 				iconGroupFrame:Show();
 			end
 		end
-
-		EventFrame.UNIT_THREAT_LIST_UPDATE(unitID);
-
-		if (not BuffFrameHookedNameplates[nameplate]) then
-			if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
-				nameplate.UnitFrame.BuffFrame:HookScript("OnShow", HideBuffFrame);
-				HideBuffFrame(nameplate.UnitFrame.BuffFrame);
-				BuffFrameHookedNameplates[nameplate] = true;
-			else
-				error("Nameplate " .. nameplate:GetName() .. " doesn't have buff frame!");
-			end
-		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)
@@ -1657,41 +1545,13 @@ do
 		end
 	end
 
-	function EventFrame.UNIT_AURA(unitID, _unitAuraUpdateInfo)
+	function EventFrame.UNIT_AURA(unitID)
 		local nameplate = C_NamePlate_GetNamePlateForUnit(unitID);
 		if (nameplate ~= nil and AurasPerNameplate[nameplate] ~= nil) then
 			local unitGuid = UnitGUID(unitID);
-			if (_unitAuraUpdateInfo == nil or _unitAuraUpdateInfo.isFullUpdate or PlayerAurasPerGuid[unitGuid] == nil) then
-				UpdateUnitAurasFull(unitID, unitGuid);
-			else
-				UpdateUnitAurasIncremental(unitID, unitGuid, _unitAuraUpdateInfo);
-			end
+			UpdateUnitAurasFull(unitID, unitGuid);
 
 			ProcessAurasForNameplate(nameplate, unitID);
-		end
-	end
-
-	function EventFrame.UNIT_THREAT_LIST_UPDATE(unitID)
-		for _, iconGroup in pairs(db.IconGroups) do
-			if (iconGroup.AffixSpiteful) then
-				local unitGUID = UnitGUID(unitID);
-				if (unitGUID ~= nil) then
-					local _, _, _, _, _, npcID = strsplit("-", unitGUID);
-					if (not SpitefulMobs[unitGUID] and npcID == addonTable.SPITEFUL_NPC_ID_STRING) then
-						local _, _, threatPct = UnitDetailedThreatSituation("player", unitID);
-						if (threatPct == 100) then
-							if (type(iconGroup.AffixSpitefulSound) == "number") then
-								PlaySound(iconGroup.AffixSpitefulSound, "Master");
-							else
-								PlaySoundFile(SML:Fetch(SML.MediaType.SOUND, iconGroup.AffixSpitefulSound), "Master");
-							end
-							SpitefulMobs[unitGUID] = true;
-							EventFrame.UNIT_AURA(unitID);
-							return;
-						end
-					end
-				end
-			end
 		end
 	end
 

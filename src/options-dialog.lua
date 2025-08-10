@@ -1970,7 +1970,7 @@ local function GUICategory_4(index)
 	local spellArea, editboxAddSpell, buttonAddSpell, sliderSpellIconSizeWidth, dropdownSpellShowType, editboxSpellID, buttonDeleteSpell, checkboxShowOnFriends, checkboxAnimationRelative,
 		checkboxShowOnEnemies, checkboxEnabled, checkboxGlow, areaGlow, sliderGlowThreshold, areaIconSize, areaAuraType, areaIDs, checkboxGlowRelative,
 		dropdownGlowType, areaAnimation, checkboxAnimation, dropdownAnimationType, sliderAnimationThreshold, sliderSpellIconSizeHeight;
-	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell, areaTooltip, editboxSpellTooltip;
+	local areaCustomBorder, checkboxCustomBorder, textboxCustomBorderPath, sliderCustomBorderSize, colorPickerCustomBorderColor, buttonExportSpell;
 	local areaIconGroups, dropdownIconGroups, checkboxConsolidate, checkboxOverrideSize, currentSpellTitle;
 	local checkboxPlayers, checkboxNpcs, checkboxPets;
 
@@ -2044,7 +2044,6 @@ local function GUICategory_4(index)
 		else
 			editboxSpellID:SetText("");
 		end
-		editboxSpellTooltip:SetText(spellInfo.spellTooltip or "");
 		checkboxShowOnFriends:SetChecked(spellInfo.showOnFriends);
 		checkboxShowOnEnemies:SetChecked(spellInfo.showOnEnemies);
 		checkboxConsolidate:SetChecked(spellInfo.consolidate);
@@ -3487,58 +3486,6 @@ local function GUICategory_4(index)
 
 	end
 
-	-- // areaTooltip
-	do
-
-		areaTooltip = CreateFrame("Frame", nil, spellArea.controlsFrame, BackdropTemplateMixin and "BackdropTemplate");
-		areaTooltip:SetBackdrop({
-			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = 1,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		areaTooltip:SetBackdropColor(0.1, 0.1, 0.2, 1);
-		areaTooltip:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaTooltip:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 0, 0);
-		areaTooltip:SetWidth(500);
-		areaTooltip:SetHeight(40);
-		table_insert(controls, areaTooltip);
-
-	end
-
-	-- // editboxSpellTooltip
-	do
-		editboxSpellTooltip = CreateFrame("EditBox", nil, areaTooltip, BackdropTemplateMixin and "BackdropTemplate");
-		editboxSpellTooltip:SetAutoFocus(false);
-		editboxSpellTooltip:SetFontObject(GameFontHighlightSmall);
-		editboxSpellTooltip.text = editboxSpellTooltip:CreateFontString(nil, "ARTWORK", "GameFontNormal");
-		editboxSpellTooltip.text:SetPoint("TOPLEFT", areaTooltip, "TOPLEFT", 10, -10);
-		editboxSpellTooltip.text:SetText(L["options:spells:spell-tooltip"]);
-		editboxSpellTooltip:SetPoint("LEFT", editboxSpellTooltip.text, "RIGHT", 5, 0);
-		editboxSpellTooltip:SetPoint("RIGHT", areaTooltip, "RIGHT", -15, 0);
-		editboxSpellTooltip:SetHeight(20);
-		editboxSpellTooltip:SetJustifyH("LEFT");
-		editboxSpellTooltip:EnableMouse(true);
-		editboxSpellTooltip:SetBackdrop({
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			tile = true, edgeSize = 1, tileSize = 5,
-		});
-		editboxSpellTooltip:SetBackdropColor(0, 0, 0, 0.5);
-		editboxSpellTooltip:SetBackdropBorderColor(0.3, 0.3, 0.30, 0.80);
-		editboxSpellTooltip:SetScript("OnEscapePressed", function() editboxSpellTooltip:ClearFocus(); end);
-		editboxSpellTooltip:SetScript("OnEnterPressed", function(self)
-			local text = self:GetText();
-			addonTable.db.CustomSpells2[selectedSpell].spellTooltip = (text ~= "") and text or nil;
-			addonTable.UpdateAllNameplates(true);
-			self:ClearFocus();
-		end);
-		table_insert(controls, editboxSpellTooltip);
-
-	end
-
 	-- // areaIconGroups
 	do
 
@@ -3553,7 +3500,7 @@ local function GUICategory_4(index)
 		});
 		areaIconGroups:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		areaIconGroups:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		areaIconGroups:SetPoint("TOPLEFT", areaTooltip, "BOTTOMLEFT", 0, 0);
+		areaIconGroups:SetPoint("TOPLEFT", areaIDs, "BOTTOMLEFT", 0, 0);
 		areaIconGroups:SetWidth(500);
 		areaIconGroups:SetHeight(40);
 		table_insert(controls, areaIconGroups);
@@ -3895,50 +3842,7 @@ local function GUICategory_Interrupts(index)
 end
 
 local function GUICategory_Additions(index)
-	local area1, checkBoxExplosiveOrbs, area2, checkBoxDRPvP, area3;
-
-	-- // area1
-	do
-
-		area1 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
-		area1:SetBackdrop({
-			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = 1,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		area1:SetBackdropColor(0.1, 0.1, 0.2, 1);
-		area1:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area1:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, 0);
-		area1:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
-		area1:SetHeight(80);
-		table_insert(GUIFrame.Categories[index], area1);
-
-	end
-
-	-- // checkBoxExplosiveOrbs
-	do
-		checkBoxExplosiveOrbs = VGUI.CreateCheckBox();
-		checkBoxExplosiveOrbs:SetText(L["options:apps:explosive-orbs:tooltip"]);
-		checkBoxExplosiveOrbs.Text:SetPoint("TOPLEFT");
-		checkBoxExplosiveOrbs.Text:SetPoint("TOPRIGHT");
-		checkBoxExplosiveOrbs.Text:SetJustifyH("CENTER");
-		checkBoxExplosiveOrbs:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].Additions_ExplosiveOrbs = this:GetChecked();
-			if (not addonTable.db.IconGroups[CurrentIconGroup].Additions_ExplosiveOrbs) then
-				addonTable.UpdateAllNameplates(true);
-			end
-		end);
-		checkBoxExplosiveOrbs:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_ExplosiveOrbs);
-		checkBoxExplosiveOrbs:SetParent(GUIFrame);
-		checkBoxExplosiveOrbs:SetPoint("LEFT", area1, "LEFT", 10, 0);
-		table_insert(GUIFrame.Categories[index], checkBoxExplosiveOrbs);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxExplosiveOrbs:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_ExplosiveOrbs);
-		end);
-	end
+	local area2, checkBoxDRPvP;
 
 	-- area2
 	do
@@ -3953,8 +3857,8 @@ local function GUICategory_Additions(index)
 		});
 		area2:SetBackdropColor(0.1, 0.1, 0.2, 1);
 		area2:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area2:SetPoint("TOPLEFT", area1, "BOTTOMLEFT", 0, 0);
-		area2:SetPoint("TOPRIGHT", area1, "BOTTOMRIGHT", 0, 0);
+		area2:SetPoint("TOPLEFT", GUIFrame.ControlsFrame, "TOPLEFT", 0, 0);
+		area2:SetPoint("RIGHT", GUIFrame.ControlsFrame, "RIGHT", -10, 0);
 		area2:SetHeight(85);
 		table_insert(GUIFrame.Categories[index], area2);
 	end
@@ -4001,84 +3905,6 @@ local function GUICategory_Additions(index)
 		table_insert(GUIFrame.Categories[index], checkBoxDRPvE);
 		table_insert(GUIFrame.OnDBChangedHandlers, function()
 			checkBoxDRPvE:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].Additions_DRPvE);
-		end);
-	end
-
-	-- // area3
-	do
-		area3 = CreateFrame("Frame", nil, GUIFrame, BackdropTemplateMixin and "BackdropTemplate");
-		area3:SetBackdrop({
-			bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = 1,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = { left = 4, right = 4, top = 4, bottom = 4 }
-		});
-		area3:SetBackdropColor(0.1, 0.1, 0.2, 1);
-		area3:SetBackdropBorderColor(0.8, 0.8, 0.9, 0.4);
-		area3:SetPoint("TOPLEFT", area2, "BOTTOMLEFT", 0, 0);
-		area3:SetPoint("TOPRIGHT", area2, "BOTTOMRIGHT", 0, 0);
-		area3:SetHeight(80);
-		table_insert(GUIFrame.Categories[index], area3);
-	end
-
-	local checkBoxAffixSpiteful;
-	do
-		checkBoxAffixSpiteful = VGUI.CreateCheckBox();
-		checkBoxAffixSpiteful:SetText(L["options:apps:spiteful"]);
-		checkBoxAffixSpiteful.Text:SetPoint("LEFT");
-		checkBoxAffixSpiteful.Text:SetPoint("RIGHT");
-		checkBoxAffixSpiteful.Text:SetJustifyH("CENTER");
-		checkBoxAffixSpiteful:SetOnClickHandler(function(this)
-			addonTable.db.IconGroups[CurrentIconGroup].AffixSpiteful = this:GetChecked();
-			addonTable.UpdateAllNameplates(true);
-		end);
-		checkBoxAffixSpiteful:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AffixSpiteful);
-		checkBoxAffixSpiteful:SetParent(GUIFrame);
-		checkBoxAffixSpiteful:SetPoint("TOPLEFT", area3, "TOPLEFT", 10, -10);
-		table_insert(GUIFrame.Categories[index], checkBoxAffixSpiteful);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			checkBoxAffixSpiteful:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].AffixSpiteful);
-		end);
-	end
-
-	-- // dropdownSound
-	local dropdownMenuSound = VGUI.CreateDropdownMenu();
-	do
-		local sounds = { };
-		local buttonSound = VGUI.CreateButton();
-		buttonSound:SetParent(area3);
-		buttonSound:SetText(L["options:apps:spiteful:sound"] .. ": " .. tostring(addonTable.db.IconGroups[CurrentIconGroup].AffixSpitefulSound));
-		table_insert(GUIFrame.Categories[index], buttonSound);
-
-		for _, sound in next, SML:List(SML.MediaType.SOUND) do
-			table_insert(sounds, {
-				["text"] = sound,
-				-- ["icon"] = [[Interface\AddOns\NameplateAuras\media\font.tga]],
-				["func"] = function(info)
-					buttonSound.Text:SetText(L["options:apps:spiteful:sound"]  .. ": " .. info.text);
-					addonTable.db.IconGroups[CurrentIconGroup].AffixSpitefulSound = info.text;
-					PlaySoundFile(SML:Fetch(SML.MediaType.SOUND, info.text), "Master");
-				end,
-				--["font"] = SML:Fetch(SML.MediaType.SOUND, font),
-			});
-		end
-		table_sort(sounds, function(item1, item2) return item1.text < item2.text; end);
-
-		buttonSound:SetHeight(24);
-		buttonSound:SetPoint("TOPLEFT", checkBoxAffixSpiteful, "BOTTOMLEFT", 0, -10);
-		buttonSound:SetPoint("RIGHT", area3, "RIGHT", -30, 0);
-		buttonSound:SetScript("OnClick", function(self)
-			if (dropdownMenuSound:IsVisible()) then
-				dropdownMenuSound:Hide();
-			else
-				dropdownMenuSound:SetList(sounds);
-				dropdownMenuSound:SetParent(self);
-				dropdownMenuSound:ClearAllPoints();
-				dropdownMenuSound:SetPoint("TOP", self, "BOTTOM", 0, 0);
-				dropdownMenuSound:Show();
-			end
 		end);
 	end
 

@@ -36,8 +36,6 @@ L["General"] = "General"
 L["Icon borders"] = "Icon borders"
 L["Magic"] = "Magic"
 L["Options are not available in combat!"] = "Options are not available in combat!"
-L["options:apps:explosive-orbs:tooltip"] = [=[Show special aura above Fel Explosive's nameplates (M+ Explosive Affix)
-This aura have a bright glow and default size]=]
 L["options:auras:enabled-state:tooltip"] =
 [=[%s: aura will not be shown
 
@@ -180,7 +178,6 @@ L["options:apps:dr:pvp"] = "PvP"
 L["options:apps:dr:pve"] = "PvE (stun only)"
 L["options:general:show-on-target-only"] = "Show auras on target's nameplate only"
 L["options:alpha:use-target-alpha-if-not-target-selected"] = "Display auras with target's alpha if no target selected"
-L["options:apps:spiteful"] = "Highlight Spiteful Shade (Spiteful M+ affix)";
 L["instance-type:arena"] = "Arenas"
 L["instance-type:none"] = "Open World"
 L["instance-type:party"] = "5ppl dungeons"
@@ -189,7 +186,6 @@ L["instance-type:pvp_bg_40ppl"] = "Epic Battlegrounds"
 L["instance-type:raid"] = "Raid dungeons"
 L["instance-type:scenario"] = "Scenarios"
 L["instance-type:unknown"] = "Unknown dungeons (some quest scenarios)"
-L["options:apps:spiteful:sound"] = "Sound"
 L["options:spells:icon-border:custom"] = "Border: Custom"
 L["options:spells:icon-border:builtin"] = "Border: Built-in"
 L["options:spells:icon-border:disabled"] = "Border: Disabled"
@@ -206,8 +202,6 @@ L["options:general:npc-blacklist-editbox-add"] = "Please enter NPC name here"
 L["options:timer-text:relative-color"] = "Use gradient color"
 L["options:timer-text:relative-color:tooltip"] = [=[Timer text's color will be calculated dynamically,
 based on aura's duration and remaining time.]=]
-L["options:spells:spell-tooltip"] = [=[Spell tooltip
-must contain text]=]
 L["options:icon-groups:editbox-add-text"] = "Enter name and hit Enter key to add new icon group"
 L["options:icon-groups:dropdown-list"] = "Icon groups"
 L["options:category:icon-groups"] = "Icon groups"

@@ -1,5 +1,5 @@
-## Interface: 110107
-## Title: NameplateAuras
+## Interface: 50500
+## Title: NameplateAuras [Classic MoP]
 ## Notes: Displays people's buffs/debuffs above their nameplates
 ## SavedVariables: NameplateAurasAceDB
 ## Version: @project-version@

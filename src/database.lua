@@ -340,7 +340,6 @@ local migrations = {
             "InterruptsGlowType",
             "InterruptsUseSharedIconTexture",
             "InterruptsShowOnlyOnPlayers",
-            "Additions_ExplosiveOrbs",
             "ShowAuraTooltip",
             "Additions_DispellableSpells",
             "Additions_DispellableSpells_Blacklist",
@@ -366,8 +365,6 @@ local migrations = {
             "Additions_DRPvE",
             "ShowOnlyOnTarget",
             "UseTargetAlphaIfNotTargetSelected",
-            "AffixSpiteful",
-            "AffixSpitefulSound",
             "EnabledZoneTypes",
             "MaxAuras",
             "ShowAurasOnTargetEvenInDisabledAreas",
@@ -582,7 +579,6 @@ local function FillInMissingEntriesIsSpells()
             -- useRelativeAnimationTimer may be nil
             -- checkSpellID may be nil
             -- showGlow may be nil
-            -- spellTooltip may be nil
             -- spellInfo.customBorderPath may be nil
             -- consolidate may be nil
             -- overrideSize may be nil

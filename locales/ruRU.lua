@@ -73,10 +73,6 @@ L["options:apps:dispellable-spells:tooltip"] = "Показывать ауры, �
 L["options:apps:dr"] = "Включить отображение diminishing returns (бета)"
 L["options:apps:dr:pve"] = "ПВЕ (только оглушение)"
 L["options:apps:dr:pvp"] = "ПВП"
-L["options:apps:explosive-orbs:tooltip"] = [=[Показывать специальную иконку над неймлэйтами Взрывных Сфер (М+ Взрывной)
-Эта иконка будет иметь размер по умолчанию и будет подсвечена]=]
-L["options:apps:spiteful"] = "Подсветить Злопамятную тень (Злопамятный М+ модификатор)"
-L["options:apps:spiteful:sound"] = "Звук"
 L["options:auras:enabled-state:tooltip"] = [=[%s: аура не будет показываться
 
 %s: аура будет показываться только если вы применили ее

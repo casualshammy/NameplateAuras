@@ -16,13 +16,9 @@ addonTable.AURA_SORT_MODE_CUSTOM = 7;
 
 addonTable.GLOW_TIME_INFINITE = 30*24*60*60; -- // 30 days
 
-addonTable.EXPLOSIVE_ORB_SPELL_ID = 240446;
-
 addonTable.VERY_LONG_COOLDOWN_DURATION = 30*24*60*60; -- // 30 days
 
 addonTable.MAX_AURA_ICON_SIZE = 75;
-
-addonTable.EXPLOSIVE_ORB_NPC_ID_AS_STRING = "120651";
 
 addonTable.BORDER_TEXTURES = {
 	"Interface\\AddOns\\NameplateAuras\\media\\icon-border-1px.tga",
@@ -66,9 +62,6 @@ addonTable.DR_TEXTURES = {
 	["disarm"] = [[Interface\AddOns\NameplateAuras\media\square-yellow.tga]],
 	["taunt"] = [[Interface\AddOns\NameplateAuras\media\square-red.tga]],
 };
-
-addonTable.SPITEFUL_NPC_ID_STRING = "174773";
-addonTable.SPITEFUL_SPELL_ID = 69861;
 
 addonTable.INSTANCE_TYPE_NONE = "none";
 addonTable.INSTANCE_TYPE_UNKNOWN = "unknown";

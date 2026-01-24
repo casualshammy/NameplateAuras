@@ -1,4 +1,8 @@
-### ***This repository does not contain required libs (e.g. Ace3)! Either download release here on github or get the latest release [here](https://www.curseforge.com/wow/addons/nameplateauras/files)***
+## ⚠️ Important Notice ⚠️
+
+This addon cannot be adapted to the API changes that came with the pre-patch for the Midnight expansion for World of Warcraft.  
+Therefore, development has been discontinued.  
+Thank you to everyone who used this addon. Special thanks to those who participated in development by suggesting ideas and reporting bugs. I hope my addon made your game a little more interesting and convenient.
 
 ## About
 

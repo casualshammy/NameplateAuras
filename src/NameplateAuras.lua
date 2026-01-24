@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals NAuras_LibButtonGlow strfind
+-- luacheck: globals NAuras_LibButtonGlow strfind GetBuildInfo
 -- luacheck: globals UnitReaction UnitIsFriend IsInGroup LE_PARTY_CATEGORY_INSTANCE IsInRaid
 -- luacheck: globals UnitIsPlayer strsplit CombatLogGetCurrentEventInfo
 -- luacheck: globals UIParent COMBATLOG_OBJECT_TYPE_PLAYER
@@ -8,6 +8,14 @@
 -- luacheck: globals PersonalFriendlyBuffFrame UnitIsUnit tinsert AuraUtil
 
 local _, addonTable = ...;
+
+local apiVersion = select(4, GetBuildInfo());
+if (apiVersion >= 120000) then
+	addonTable.Print([[This addon cannot be adapted to the API changes that came with the pre-patch for the Midnight expansion for World of Warcraft.
+Therefore, development has been discontinued.
+Please uninstall this addon to avoid unnecessary errors.]]);
+  return;
+end
 
 local buildTimestamp = "DEVELOPER COPY";
 --[===[@non-debug@

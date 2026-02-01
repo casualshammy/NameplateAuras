@@ -37,6 +37,40 @@ end
 
 local CurrentIconGroup = 1;
 local IconGroupsList;
+local GetSpellInfoCompat = addonTable.GetSpellInfoCompat or GetSpellInfo;
+
+local function EnsureSpellInCacheByName(spellName)
+	if (spellName == nil or spellName == "") then
+		return nil;
+	end
+	if (AllSpellIDsAndIconsByName[spellName] ~= nil) then
+		return AllSpellIDsAndIconsByName[spellName];
+	end
+	local name, _, icon, _, _, _, spellID = GetSpellInfoCompat(spellName);
+	if (name and icon) then
+		if (AllSpellIDsAndIconsByName[name] == nil) then
+			AllSpellIDsAndIconsByName[name] = { };
+		end
+		AllSpellIDsAndIconsByName[name][spellID or 0] = icon;
+		return AllSpellIDsAndIconsByName[name];
+	end
+	return nil;
+end
+
+local function GetFirstSpellIdAndIconFromCache(cache)
+	if (cache == nil) then
+		return nil, nil;
+	end
+	for id, icon in pairs(cache) do
+		if (id ~= 0) then
+			return id, icon;
+		end
+	end
+	for _, icon in pairs(cache) do
+		return nil, icon;
+	end
+	return nil, nil;
+end
 
 function addonTable.OnSpellInfoCachesReady()
 
@@ -2007,13 +2041,17 @@ local function GUICategory_4(index)
 		local spellID, textureID;
 		if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
 			spellID = next(spellInfo.checkSpellID);
-			textureID = SpellTextureByID[spellID];
-		else
-			spellID = next(AllSpellIDsAndIconsByName[spellInfo.spellName] or {261});
 			if (spellID ~= nil) then
 				textureID = SpellTextureByID[spellID];
+			end
+		else
+			local cache = EnsureSpellInCacheByName(spellInfo.spellName);
+			local cachedID, cachedIcon = GetFirstSpellIdAndIconFromCache(cache);
+			if (cachedID ~= nil) then
+				spellID = cachedID;
+				textureID = SpellTextureByID[cachedID] or cachedIcon;
 			else
-				textureID = 136243;
+				textureID = cachedIcon or 136243;
 			end
 		end
 		return spellID, textureID;
@@ -2132,13 +2170,8 @@ local function GUICategory_4(index)
 	function addonTable.GetCurrentlyEditingSpell()
 		if (spellArea:IsVisible()) then
 			if (selectedSpell ~= nil and selectedSpell > 0) then
-				local spellID;
 				local spell = addonTable.db.CustomSpells2[selectedSpell];
-				if (spell.checkSpellID ~= nil and #spell.checkSpellID > 0) then
-					spellID = next(spell.checkSpellID);
-				else
-					spellID = next(AllSpellIDsAndIconsByName[spell.spellName]);
-				end
+				local spellID = select(1, GetIDAndTextureForSpell(spell));
 				return spell, spellID;
 			else
 				return nil;
@@ -2466,6 +2499,13 @@ local function GUICategory_4(index)
 						end
 					end
 				end
+				if (AllSpellIDsAndIconsByName[text] == nil) then
+					local name = GetSpellInfoCompat(text);
+					if (name ~= nil and name ~= "") then
+						text = name;
+						EnsureSpellInCacheByName(text);
+					end
+				end
 			end
 
 			editboxAddSpell:ClearFocus();
@@ -2561,7 +2601,12 @@ local function GUICategory_4(index)
 						indexInDB = spellIndex,
 						onEnter = function(self)
 							GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-							GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
+							local spellID = select(1, GetIDAndTextureForSpell(spellInfo));
+							if (spellID ~= nil) then
+								GameTooltip:SetSpellByID(spellID);
+							else
+								GameTooltip:SetText(spellInfo.spellName or "");
+							end
 							local allSpellIDs = AllSpellIDsAndIconsByName[spellInfo.spellName];
 							if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
 								local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
@@ -2573,11 +2618,13 @@ local function GUICategory_4(index)
 								end
 								table_sort(spellIds);
 								for _, id in ipairs(spellIds) do
-									if (counter < 20) then
-										local icon = allSpellIDs[id];
-										descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
+									if (id ~= 0) then
+										if (counter < 20) then
+											local icon = allSpellIDs[id];
+											descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
+										end
+										counter = counter + 1;
 									end
-									counter = counter + 1;
 								end
 								if (counter > 20) then
 									descText = string_format("%s\n... +%s", descText, (counter - 20));
@@ -2667,18 +2714,23 @@ local function GUICategory_4(index)
 		currentSpellTitle.SetSpell = function(_self, _spellInfo)
 			local spellId, textureId = GetIDAndTextureForSpell(_spellInfo);
 			icon:SetTexture(textureId);
+			local displayName = SpellNameByID[spellId] or _spellInfo.spellName or "";
 
 			if (_spellInfo.checkSpellID ~= nil and table_count(_spellInfo.checkSpellID) > 0) then
-				text:SetText(string_format("%s (id: %s)", SpellNameByID[spellId], next(_spellInfo.checkSpellID)));
+				text:SetText(string_format("%s (id: %s)", displayName, next(_spellInfo.checkSpellID)));
 			else
-				text:SetText(SpellNameByID[spellId]);
+				text:SetText(displayName);
 			end
 
 			_self:SetWidth(max(text:GetWidth() + icon:GetWidth() + 80, 200));
 
 			_self:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
-				GameTooltip:SetSpellByID(spellId);
+				if (spellId ~= nil) then
+					GameTooltip:SetSpellByID(spellId);
+				else
+					GameTooltip:SetText(displayName);
+				end
 				GameTooltip:Show();
 			end);
 			_self:SetScript("OnLeave", function() GameTooltip:Hide(); end);
@@ -5285,9 +5337,11 @@ local function GUICategory_Dispel(index)
 			else
 				local t = { };
 				for spellName in pairs(addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_Blacklist) do
+					local cache = EnsureSpellInCacheByName(spellName);
+					local _, icon = GetFirstSpellIdAndIconFromCache(cache);
 					table_insert(t, {
 						text = spellName,
-						icon = AllSpellIDsAndIconsByName[spellName] ~= nil and SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])] or 136243,
+						icon = icon or 136243,
 						onCloseButtonClick = function()
 							addonTable.db.IconGroups[CurrentIconGroup].Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
@@ -5321,7 +5375,7 @@ local function GUICategory_Dispel(index)
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
 				local spellExist = false;
-				if (AllSpellIDsAndIconsByName[text]) then
+				if (EnsureSpellInCacheByName(text)) then
 					spellExist = true;
 				else
 					for _spellName in pairs(AllSpellIDsAndIconsByName) do
@@ -5329,6 +5383,14 @@ local function GUICategory_Dispel(index)
 							text = _spellName;
 							spellExist = true;
 							break;
+						end
+					end
+					if (not spellExist) then
+						local name = GetSpellInfoCompat(text);
+						if (name ~= nil and name ~= "") then
+							text = name;
+							EnsureSpellInCacheByName(text);
+							spellExist = true;
 						end
 					end
 				end
@@ -5670,14 +5732,31 @@ local function InitializeGUI_CreateSpellInfoCaches()
 	GUIFrame:HookScript("OnShow", function()
 		frame:Show();
 		frame.text:SetText("Loading spells info...\nSome functions may not work");
+		for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
+			if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
+				for spellID in pairs(spellInfo.checkSpellID) do
+					local name, _, icon = GetSpellInfoCompat(spellID);
+					if (name and icon) then
+						if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
+						AllSpellIDsAndIconsByName[name][spellID] = icon;
+					end
+				end
+			else
+				EnsureSpellInCacheByName(spellInfo.spellName);
+			end
+		end
+		for _, iconGroup in pairs(addonTable.db.IconGroups) do
+			for spellName in pairs(iconGroup.Additions_DispellableSpells_Blacklist) do
+				EnsureSpellInCacheByName(spellName);
+			end
+		end
+		addonTable.OnSpellInfoCachesReady();
 		local scanAllSpells = coroutine.create(function()
 			local id = 0;
 			local maxId = 2*1000*1000;
 			while (id < maxId) do
 				id = id + 1;
-				local spellInfo = GetSpellInfo(id);
-				local name = spellInfo ~= nil and spellInfo.name or nil;
-				local icon = spellInfo ~= nil and spellInfo.iconID or nil;
+				local name, _, icon = GetSpellInfoCompat(id);
 				if (name and name ~= "") then
 					if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
 					AllSpellIDsAndIconsByName[name][id] = icon;

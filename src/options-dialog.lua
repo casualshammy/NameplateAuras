@@ -33,39 +33,6 @@ end
 
 local GetSpellInfoCompat = addonTable.GetSpellInfoCompat or GetSpellInfo;
 
-local function EnsureSpellInCacheByName(spellName)
-	if (spellName == nil or spellName == "") then
-		return nil;
-	end
-	if (AllSpellIDsAndIconsByName[spellName] ~= nil) then
-		return AllSpellIDsAndIconsByName[spellName];
-	end
-	local name, _, icon, _, _, _, spellID = GetSpellInfoCompat(spellName);
-	if (name and icon) then
-		if (AllSpellIDsAndIconsByName[name] == nil) then
-			AllSpellIDsAndIconsByName[name] = { };
-		end
-		AllSpellIDsAndIconsByName[name][spellID or 0] = icon;
-		return AllSpellIDsAndIconsByName[name];
-	end
-	return nil;
-end
-
-local function GetFirstSpellIdAndIconFromCache(cache)
-	if (cache == nil) then
-		return nil, nil;
-	end
-	for id, icon in pairs(cache) do
-		if (id ~= 0) then
-			return id, icon;
-		end
-	end
-	for _, icon in pairs(cache) do
-		return nil, icon;
-	end
-	return nil, nil;
-end
-
 
 function addonTable.OnSpellInfoCachesReady()
 
@@ -1512,18 +1479,10 @@ local function GUICategory_4(index)
 		local spellID, textureID;
 		if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
 			spellID = next(spellInfo.checkSpellID);
-			if (spellID ~= nil) then
-				textureID = SpellTextureByID[spellID];
-			end
+			textureID = SpellTextureByID[spellID];
 		else
-			local cache = EnsureSpellInCacheByName(spellInfo.spellName);
-			local cachedID, cachedIcon = GetFirstSpellIdAndIconFromCache(cache);
-			if (cachedID ~= nil) then
-				spellID = cachedID;
-				textureID = SpellTextureByID[cachedID] or cachedIcon;
-			else
-				textureID = cachedIcon or 136243;
-			end
+			spellID = next(AllSpellIDsAndIconsByName[spellInfo.spellName]);
+			textureID = SpellTextureByID[spellID];
 		end
 		return spellID, textureID;
 	end
@@ -1755,13 +1714,6 @@ local function GUICategory_4(index)
 						end
 					end
 				end
-				if (AllSpellIDsAndIconsByName[text] == nil) then
-					local name = GetSpellInfoCompat(text);
-					if (name ~= nil and name ~= "") then
-						text = name;
-						EnsureSpellInCacheByName(text);
-					end
-				end
 			end
 			if (text ~= nil and AllSpellIDsAndIconsByName[text] ~= nil) then
 				local spellName = text;
@@ -1790,7 +1742,6 @@ local function GUICategory_4(index)
 
 		local function OnSpellSelected(buttonInfo)
 			local spellInfo = buttonInfo.info;
-		local selectedSpellID, selectedSpellTexture = GetIDAndTextureForSpell(spellInfo);
 			for _, control in pairs(controls) do
 				control:Show();
 			end
@@ -1798,15 +1749,11 @@ local function GUICategory_4(index)
 			selectSpell.Text:SetText(buttonInfo.text);
 			selectSpell:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
-			if (selectedSpellID ~= nil) then
-				GameTooltip:SetSpellByID(selectedSpellID);
-			else
-				GameTooltip:SetText(spellInfo.spellName or "");
-			end
+			GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
 				GameTooltip:Show();
 			end);
 			selectSpell:SetScript("OnLeave", function() GameTooltip:Hide(); end);
-		selectSpell.icon:SetTexture(selectedSpellTexture);
+		selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
 			selectSpell.icon:Show();
 			sliderSpellIconSizeWidth.slider:SetValue(spellInfo.iconSizeWidth);
 			sliderSpellIconSizeWidth.editbox:SetText(tostring(spellInfo.iconSizeWidth));
@@ -1923,9 +1870,7 @@ local function GUICategory_4(index)
 						if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
 							local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
 							for id, icon in pairs(allSpellIDs) do
-								if (id ~= 0) then
-									descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
-								end
+								descText = string_format("%s\n|T%d:0|t: %d", descText, icon, id);
 							end
 							GameTooltip:AddLine(descText);
 						end
@@ -4017,11 +3962,9 @@ local function GUICategory_Dispel(index)
 			else
 				local t = { };
 				for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
-					local cache = EnsureSpellInCacheByName(spellName);
-					local _, icon = GetFirstSpellIdAndIconFromCache(cache);
 					table_insert(t, {
 						text = spellName,
-						icon = icon or 136243,
+						icon = SpellTextureByID[next(AllSpellIDsAndIconsByName[spellName])],
 						onCloseButtonClick = function()
 							addonTable.db.Additions_DispellableSpells_Blacklist[spellName] = nil;
 							-- close and then open list again
@@ -4055,7 +3998,7 @@ local function GUICategory_Dispel(index)
 			local text = editboxAddSpell:GetText();
 			if (text ~= nil and text ~= "") then
 				local spellExist = false;
-				if (EnsureSpellInCacheByName(text)) then
+				if (AllSpellIDsAndIconsByName[text]) then
 					spellExist = true;
 				else
 					for _spellName in pairs(AllSpellIDsAndIconsByName) do
@@ -4063,14 +4006,6 @@ local function GUICategory_Dispel(index)
 							text = _spellName;
 							spellExist = true;
 							break;
-						end
-					end
-					if (not spellExist) then
-						local name = GetSpellInfoCompat(text);
-						if (name ~= nil and name ~= "") then
-							text = name;
-							EnsureSpellInCacheByName(text);
-							spellExist = true;
 						end
 					end
 				end
@@ -4145,23 +4080,6 @@ end
 
 local function InitializeGUI_CreateSpellInfoCaches()
 	GUIFrame:HookScript("OnShow", function()
-		for _, spellInfo in pairs(addonTable.db.CustomSpells2) do
-			if (spellInfo.checkSpellID ~= nil and table_count(spellInfo.checkSpellID) > 0) then
-				for spellID in pairs(spellInfo.checkSpellID) do
-					local name, _, icon = GetSpellInfoCompat(spellID);
-					if (name and icon) then
-						if (AllSpellIDsAndIconsByName[name] == nil) then AllSpellIDsAndIconsByName[name] = { }; end
-						AllSpellIDsAndIconsByName[name][spellID] = icon;
-					end
-				end
-			else
-				EnsureSpellInCacheByName(spellInfo.spellName);
-			end
-		end
-		for spellName in pairs(addonTable.db.Additions_DispellableSpells_Blacklist) do
-			EnsureSpellInCacheByName(spellName);
-		end
-		addonTable.OnSpellInfoCachesReady();
 		local scanAllSpells = coroutine.create(function()
 			local misses = 0;
 			local id = 0;

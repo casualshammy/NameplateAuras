@@ -31,6 +31,8 @@ do
 		addonTable.Print, addonTable.msg, addonTable.table_count, addonTable.SpellTextureByID, addonTable.SpellNameByID, addonTable.CoroutineProcessor;
 end
 
+local GetSpellInfoCompat = addonTable.GetSpellInfoCompat or GetSpellInfo;
+
 
 function addonTable.OnSpellInfoCachesReady()
 
@@ -1488,13 +1490,8 @@ local function GUICategory_4(index)
 	function addonTable.GetCurrentlyEditingSpell()
 		if (spellArea:IsVisible()) then
 			if (selectedSpell ~= nil and selectedSpell > 0) then
-				local spellID;
 				local spell = addonTable.db.CustomSpells2[selectedSpell];
-				if (spell.checkSpellID ~= nil and #spell.checkSpellID > 0) then
-					spellID = next(spell.checkSpellID);
-				else
-					spellID = next(AllSpellIDsAndIconsByName[spell.spellName]);
-				end
+				local spellID = select(1, GetIDAndTextureForSpell(spell));
 				return spell, spellID;
 			else
 				return nil;
@@ -1752,11 +1749,11 @@ local function GUICategory_4(index)
 			selectSpell.Text:SetText(buttonInfo.text);
 			selectSpell:SetScript("OnEnter", function(self)
 				GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
-				GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
+			GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
 				GameTooltip:Show();
 			end);
 			selectSpell:SetScript("OnLeave", function() GameTooltip:Hide(); end);
-			selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
+		selectSpell.icon:SetTexture(select(2, GetIDAndTextureForSpell(spellInfo)));
 			selectSpell.icon:Show();
 			sliderSpellIconSizeWidth.slider:SetValue(spellInfo.iconSizeWidth);
 			sliderSpellIconSizeWidth.editbox:SetText(tostring(spellInfo.iconSizeWidth));
@@ -1863,7 +1860,12 @@ local function GUICategory_4(index)
 					indexInDB = spellIndex,
 					onEnter = function(self)
 						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-						GameTooltip:SetSpellByID(GetIDAndTextureForSpell(spellInfo));
+						local spellID = select(1, GetIDAndTextureForSpell(spellInfo));
+						if (spellID ~= nil) then
+							GameTooltip:SetSpellByID(spellID);
+						else
+							GameTooltip:SetText(spellInfo.spellName or "");
+						end
 						local allSpellIDs = AllSpellIDsAndIconsByName[spellInfo.spellName];
 						if (allSpellIDs ~= nil and table_count(allSpellIDs) > 0) then
 							local descText = "\n" .. L["options:spells:appropriate-spell-ids"];
@@ -4083,7 +4085,7 @@ local function InitializeGUI_CreateSpellInfoCaches()
 			local id = 0;
 			while (misses < 400) do
 				id = id + 1;
-				local name, _, icon = GetSpellInfo(id);
+				local name, _, icon = GetSpellInfoCompat(id);
 				if (icon == 136243) then -- 136243 is the a gear icon
 					misses = 0;
 				elseif (name and name ~= "") then

@@ -311,7 +311,7 @@ do
 		addonTable.db = aceDB.profile;
 		-- set texture for interrupt spells
 		for spellID in pairs(addonTable.Interrupts) do
-			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or GetSpellTexture(spellID); -- // icon of Interrupting Shout
+			SpellTextureByID[spellID] = db.InterruptsUseSharedIconTexture and "Interface\\AddOns\\NameplateAuras\\media\\warrior_disruptingshout.tga" or addonTable.GetSpellTextureCompat(spellID); -- // icon of Interrupting Shout
 		end
 		-- // convert values
 		addonTable.MigrateDB();
@@ -1196,6 +1196,13 @@ do
 	local InterruptSpells = addonTable.Interrupts;
 	local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER;
 	local drTimers = { };
+	local InterruptsByName = { };
+	for spellID, duration in pairs(InterruptSpells) do
+		local name = SpellNameByID[spellID];
+		if (name ~= nil) then
+			InterruptsByName[name] = duration;
+		end
+	end
 
 	EventFrame = CreateFrame("Frame");
 	EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -1286,6 +1293,9 @@ do
 			-- SPELL_INTERRUPT is not invoked for some channeled spells - implement later
 			if (event == "SPELL_INTERRUPT") then
 				local spellDuration = InterruptSpells[spellID];
+				if (spellDuration == nil and spellName ~= nil) then
+					spellDuration = InterruptsByName[spellName];
+				end
 				if (spellDuration ~= nil) then
 					if (not db.InterruptsShowOnlyOnPlayers or bit_band(destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0) then
 						InterruptsPerUnitGUID[destGUID] = {

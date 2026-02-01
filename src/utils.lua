@@ -9,13 +9,52 @@ SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\me
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
 local _G, pairs, select, WorldFrame, string_format = _G, pairs, select, WorldFrame, format;
 local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID = GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID;
+local C_Spell_GetSpellInfo = C_Spell and C_Spell.GetSpellInfo or nil;
+local C_Spell_GetSpellTexture = C_Spell and C_Spell.GetSpellTexture or nil;
+
+local function GetSpellInfoCompat(spellIDOrName)
+	local name, rank, icon, castTime, minRange, maxRange, spellID;
+	if (GetSpellInfo ~= nil) then
+		name, rank, icon, castTime, minRange, maxRange, spellID = GetSpellInfo(spellIDOrName);
+	end
+	if (type(name) == "table") then
+		local info = name;
+		return info.name, nil, info.iconID or info.icon, info.castTime, info.minRange, info.maxRange, info.spellID;
+	end
+	if (name ~= nil) then
+		return name, rank, icon, castTime, minRange, maxRange, spellID;
+	end
+	if (C_Spell_GetSpellInfo ~= nil) then
+		local info = C_Spell_GetSpellInfo(spellIDOrName);
+		if (info ~= nil) then
+			return info.name, nil, info.iconID or info.icon, info.castTime, info.minRange, info.maxRange, info.spellID;
+		end
+	end
+	return nil;
+end
+
+local function GetSpellTextureCompat(spellID)
+	if (C_Spell_GetSpellTexture ~= nil) then
+		local texture = C_Spell_GetSpellTexture(spellID);
+		if (texture ~= nil) then
+			return texture;
+		end
+	end
+	if (GetSpellTexture ~= nil) then
+		return GetSpellTexture(spellID);
+	end
+	return nil;
+end
+
+addonTable.GetSpellInfoCompat = GetSpellInfoCompat;
+addonTable.GetSpellTextureCompat = GetSpellTextureCompat;
 
 addonTable.SpellTextureByID = setmetatable({
-	[197690] = GetSpellTexture(71),		-- // override for defensive stance
-	[179057] = GetSpellTexture(183591),	-- // override for Chaos Nova
+	[197690] = GetSpellTextureCompat(71),		-- // override for defensive stance
+	[179057] = GetSpellTextureCompat(183591),	-- // override for Chaos Nova
 }, {
 	__index = function(t, key)
-		local texture = GetSpellTexture(key);
+		local texture = GetSpellTextureCompat(key);
 		rawset(t, key, texture);
 		return texture;
 	end
@@ -23,7 +62,10 @@ addonTable.SpellTextureByID = setmetatable({
 
 addonTable.SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
-		local spellName = GetSpellInfo(key);
+		if (key == nil) then
+			return nil;
+		end
+		local spellName = GetSpellInfoCompat(key);
 		rawset(t, key, spellName);
 		return spellName;
 	end

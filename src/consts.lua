@@ -1,4 +1,3 @@
--- // enums as variables: it's done for better performance
 local _, addonTable = ...;
 
 addonTable.CONST_SPELL_MODE_DISABLED = 1;
@@ -56,6 +55,7 @@ addonTable.ICON_ANIMATION_DISPLAY_MODE_THRESHOLD = 3;
 
 addonTable.BORDER_TYPE_BUILTIN = 1;
 addonTable.BORDER_TYPE_CUSTOM = 2;
+addonTable.BORDER_TYPE_DISABLED = 3;
 
 addonTable.DR_TEXTURES = {
 	["disorient"] = [[Interface\AddOns\NameplateAuras\media\square-violet.tga]],
@@ -67,17 +67,31 @@ addonTable.DR_TEXTURES = {
 	["taunt"] = [[Interface\AddOns\NameplateAuras\media\square-red.tga]],
 };
 
-addonTable.SHOW_ON_PLAYERS_AND_NPC = 1;
-addonTable.SHOW_ON_PLAYERS = 2;
-addonTable.SHOW_ON_NPC = 3;
-
 addonTable.SPITEFUL_NPC_ID_STRING = "174773";
 addonTable.SPITEFUL_SPELL_ID = 69861;
 
 addonTable.INSTANCE_TYPE_NONE = "none";
 addonTable.INSTANCE_TYPE_UNKNOWN = "unknown";
 addonTable.INSTANCE_TYPE_PVP = "pvp";
+addonTable.INSTANCE_TYPE_PVP_BG_40PPL = "pvp_bg_40ppl";
 addonTable.INSTANCE_TYPE_ARENA = "arena";
 addonTable.INSTANCE_TYPE_PARTY = "party";
 addonTable.INSTANCE_TYPE_RAID = "raid";
 addonTable.INSTANCE_TYPE_SCENARIO = "scenario";
+
+addonTable.EPIC_BG_ZONE_IDS = {
+	[30] = true, -- Alterac Valley
+	[628] = true, -- Isle of Conquest
+	[1191] = true, -- Ashran
+	[1280] = true, -- Southshore vs. Tarren Mill
+	[2118] = true, -- Battle for Wintergrasp
+	[2197] = true, -- Korrak's Revenge
+};
+
+addonTable.ATTACH_TYPE_NAMEPLATE = 1;
+addonTable.ATTACH_TYPE_HEALTHBAR = 2;
+addonTable.ATTACH_TYPE_TPTP = 3;
+
+addonTable.UNIT_TYPE_PLAYER = 1;
+addonTable.UNIT_TYPE_NPC = 2;
+addonTable.UNIT_TYPE_PET = 3;

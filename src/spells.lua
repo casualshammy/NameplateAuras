@@ -1,5 +1,5 @@
 -- luacheck: no max line length
--- luacheck: globals GetSpellInfo
+-- luacheck: globals
 
 local _, addonTable = ...;
 
@@ -7,25 +7,26 @@ local _, addonTable = ...;
 local SpellNameByID = addonTable.SpellNameByID;
 
 addonTable.Interrupts = {
-	[1766] = 5,		-- Kick (Rogue)
-	[2139] = 6, 	-- Counterspell (Mage)
-	[6552] = 4, 	-- Pummel (Warrior)
-	[19647] = 6, 	-- Spell Lock (Warlock)
+	[1766] = 3,		-- Kick (Rogue)
+	[2139] = 5, 	-- Counterspell (Mage)
+	[6552] = 3, 	-- Pummel (Warrior)
+	[19647] = 5, 	-- Spell Lock (Warlock)
 	[47528] = 3, 	-- Mind Freeze (Death Knight)
-	[57994] = 3, 	-- Wind Shear (Shaman)
+	[57994] = 2, 	-- Wind Shear (Shaman)
 	[91802] = 2, 	-- Shambling Rush (Death Knight)
-	[93985] = 4,	-- Skull Bash (feral+bear, tested)
-	[96231] = 4, 	-- Rebuke (Paladin)
-	[106839] = 4, 	-- Skull Bash (Feral)
-	[115781] = 6, 	-- Optical Blast (Warlock)
-	[116705] = 4, 	-- Spear Hand Strike (Monk)
-	[132409] = 6, 	-- Spell Lock (Warlock)
+	[93985] = 3,	-- Skull Bash (feral+bear, tested)
+	[96231] = 3, 	-- Rebuke (Paladin)
+	[106839] = 3, 	-- Skull Bash (Feral)
+	[115781] = 5, 	-- Optical Blast (Warlock)
+	[116705] = 3, 	-- Spear Hand Strike (Monk)
+	[132409] = 5, 	-- Spell Lock (Warlock)
 	[147362] = 3, 	-- Countershot (Hunter)
-	[171138] = 6, 	-- Shadow Lock (Warlock)
+	[171138] = 5, 	-- Shadow Lock (Warlock)
 	[183752] = 3, 	-- Consume Magic (Demon Hunter)
 	[187707] = 3,	-- Muzzle (Hunter)
-	[212619] = 6,	-- Call Felhunter (Warlock)
+	[212619] = 5,	-- Call Felhunter (Warlock)
 	[231665] = 3,	-- Avengers Shield (Paladin)
+	[351338] = 4,	-- Quell (Dracthyr)
 };
 
 addonTable.DefaultSpells2 = {
@@ -201,4 +202,18 @@ addonTable.DefaultSpells2 = {
 		[236273] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[236273] },
 		[236320] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[236320] },
 	},
+	[3] = {
+		[343503] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[343503] },
+	},
+	[4] = {
+		[374348] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[374348] },
+		[390386] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[390386] },
+		[357170] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[357170] },
+		[363916] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[363916] },
+		[360806] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[360806] },
+		[378464] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[378464] },
+		[383005] = { ["enabledState"] = 2, ["auraType"] = 2, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[383005] },
+		[378441] = { ["enabledState"] = 2, ["auraType"] = 1, ["iconSizeWidth"] = 45, ["iconSizeHeight"] = 45, ["spellName"] = SpellNameByID[378441] },
+	},
 };
+

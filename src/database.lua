@@ -209,13 +209,13 @@ local migrations = {
     end,
     [12] = function()
         local db = addonTable.db;
-        if (#db.TimerTextSoonToExpireColor == 3) then
+        if (db.TimerTextSoonToExpireColor ~= nil and #db.TimerTextSoonToExpireColor == 3) then
             db.TimerTextSoonToExpireColor[#db.TimerTextSoonToExpireColor+1] = 1;
         end
-        if (#db.TimerTextUnderMinuteColor == 3) then
+        if (db.TimerTextUnderMinuteColor ~= nil and #db.TimerTextUnderMinuteColor == 3) then
             db.TimerTextUnderMinuteColor[#db.TimerTextUnderMinuteColor+1] = 1;
         end
-        if (#db.TimerTextLongerColor == 3) then
+        if (db.TimerTextLongerColor ~= nil and #db.TimerTextLongerColor == 3) then
             db.TimerTextLongerColor[#db.TimerTextLongerColor+1] = 1;
         end
     end,
@@ -257,7 +257,7 @@ local migrations = {
     end,
     [16] = function()
         local db = addonTable.db;
-        if (#db.StacksTextColor == 3) then
+        if (db.StacksTextColor ~= nil and #db.StacksTextColor == 3) then
             db.StacksTextColor[#db.StacksTextColor+1] = 1;
         end
     end,
@@ -265,7 +265,7 @@ local migrations = {
         local db = addonTable.db;
         local values = { "DebuffBordersMagicColor", "DebuffBordersCurseColor", "DebuffBordersDiseaseColor", "DebuffBordersPoisonColor", "DebuffBordersOtherColor", "BuffBordersColor" };
         for _, value in pairs(values) do
-            if (#db[value] == 3) then
+            if (db[value] ~= nil and #db[value] == 3) then
                 db[value][4] = 1;
             end
         end
@@ -276,15 +276,316 @@ local migrations = {
             spellInfo.pvpCombat = nil;
         end
     end,
+    [19] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            spellInfo.customBorderEnabled = nil;
+            spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
+        end
+    end,
+    [20] = function()
+        local db = addonTable.db;
+        if (db.AlwaysShowMyAurasBlacklist == nil) then
+            db.AlwaysShowMyAurasBlacklist = {};
+        end
+    end,
+    [21] = function()
+        local db = addonTable.db;
+        db.MaxAuras = nil;
+    end,
+    [22] = function()
+        local db = addonTable.db;
+        local keys = {
+            "ShowAurasOnPlayerNameplate",
+            "IconXOffset",
+            "IconYOffset",
+            "Font",
+            "SortMode",
+            "FontScale",
+            "TimerTextUseRelativeScale",
+            "TimerTextSize",
+            "TimerTextAnchor",
+            "TimerTextAnchorIcon",
+            "TimerTextXOffset",
+            "TimerTextYOffset",
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksFont",
+            "StacksFontScale",
+            "StacksTextAnchor",
+            "StacksTextAnchorIcon",
+            "StacksTextXOffset",
+            "StacksTextYOffset",
+            "StacksTextColor",
+            "ShowBuffBorders",
+            "BuffBordersColor",
+            "ShowDebuffBorders",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "IconSpacing",
+            "IconAnchor",
+            "AlwaysShowMyAuras",
+            "BorderThickness",
+            "ShowAboveFriendlyUnits",
+            "FrameAnchor",
+            "FrameAnchorToNameplate",
+            "MinTimeToShowTenthsOfSeconds",
+            "InterruptsEnabled",
+            "InterruptsIconSizeWidth",
+            "InterruptsIconSizeHeight",
+            "InterruptsGlowType",
+            "InterruptsUseSharedIconTexture",
+            "InterruptsShowOnlyOnPlayers",
+            "Additions_ExplosiveOrbs",
+            "ShowAuraTooltip",
+            "Additions_DispellableSpells",
+            "Additions_DispellableSpells_Blacklist",
+            "DispelIconSizeWidth",
+            "DispelIconSizeHeight",
+            "Additions_DispellableSpells_GlowType",
+            "IconGrowDirection",
+            "ShowStacks",
+            "ShowCooldownText",
+            "ShowCooldownAnimation",
+            "IconAlpha",
+            "IconAlphaTarget",
+            "IconScaleTarget",
+            "TargetStrata",
+            "NonTargetStrata",
+            "BorderType",
+            "BorderFilePath",
+            "DefaultIconSizeWidth",
+            "DefaultIconSizeHeight",
+            "IconZoom",
+            "CustomSortMethod",
+            "Additions_DRPvP",
+            "Additions_DRPvE",
+            "ShowOnlyOnTarget",
+            "UseTargetAlphaIfNotTargetSelected",
+            "AffixSpiteful",
+            "AffixSpitefulSound",
+            "EnabledZoneTypes",
+            "MaxAuras",
+            "ShowAurasOnTargetEvenInDisabledAreas",
+            "AlwaysShowMyAurasBlacklist",
+            "NpcBlacklist",
+            "TimerTextUseRelativeColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+            "KeepAspectRatio",
+            "UseDefaultAuraTooltip",
+        };
+        if (db.IconGroups == nil or db.IconGroups[1] == nil) then
+            db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions("First Icon Group");
+        end
+        for _, key in pairs(keys) do
+            local value = db[key];
+            if (value ~= nil) then
+                db.IconGroups[1][key] = value;
+                db[key] = nil;
+            end
+        end
+    end,
+    [23] = function()
+        local db = addonTable.db;
+        for igIndex, igData in pairs(db.IconGroups) do
+            if (igData.IconGroupName == nil or igData.IconGroupName == "") then
+                igData.IconGroupName = "[" .. tostring(igIndex) .. "] " .. date("%Y-%m-%d-%H-%M-%S");
+            end
+        end
+    end,
+    [24] = function()
+        local db = addonTable.db;
+        local ref = addonTable.GetIconGroupDefaultOptions();
+        local colorKeys = {
+            "TimerTextSoonToExpireColor",
+            "TimerTextUnderMinuteColor",
+            "TimerTextLongerColor",
+            "StacksTextColor",
+            "BuffBordersColor",
+            "DebuffBordersMagicColor",
+            "DebuffBordersCurseColor",
+            "DebuffBordersDiseaseColor",
+            "DebuffBordersPoisonColor",
+            "DebuffBordersOtherColor",
+            "TimerTextColorZeroPercent",
+            "TimerTextColorHundredPercent",
+        };
+        for _, igData in pairs(db.IconGroups) do
+            for _, key in pairs(colorKeys) do
+                local entry = igData[key];
+                local refEntry = ref[key];
+                if (entry ~= nil and refEntry ~= nil) then
+                    for refKey, refValue in pairs(refEntry) do
+                        if (entry[refKey] == nil) then
+                            entry[refKey] = refValue;
+                        end
+                    end
+                end
+            end
+        end
+    end,
+    [25] = function()
+        local db = addonTable.db;
+        local count = 0;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            if (spellInfo.overrideSize == nil) then
+                local groups = spellInfo.iconGroups;
+                if (groups ~= nil) then
+                    local firstEnabledGroup = 0;
+                    for groupIndex, groupEnabled in pairs(groups) do
+                        if (groupEnabled) then
+                            firstEnabledGroup = groupIndex;
+                            break;
+                        end
+                    end
+                    if (firstEnabledGroup > 0) then
+                        local groupInfo = db.IconGroups[firstEnabledGroup];
+                        if (groupInfo ~= nil) then
+                            if (spellInfo.iconSizeWidth ~= groupInfo.DefaultIconSizeWidth or spellInfo.iconSizeHeight ~= groupInfo.DefaultIconSizeHeight) then
+                                spellInfo.overrideSize = true;
+                                count = count + 1;
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if (count > 0) then
+            addonTable.Print("Total spells with custom size: "..count);
+        end
+    end,
+    [26] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.ShowCooldownSwipeEdge == nil) then
+                igData.ShowCooldownSwipeEdge = true;
+            end
+        end
+    end,
+    [27] = function() -- yes, 27 and 28 should be the same
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.FriendlyUnitsAurasEnabledZoneTypes == nil) then
+                igData.FriendlyUnitsAurasEnabledZoneTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			true,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			true,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			true,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			true,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			true,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+                };
+            end
+        end
+    end,
+    [28] = function() -- yes, 27 and 28 should be the same
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.FriendlyUnitsAurasEnabledZoneTypes == nil) then
+                local enabled = igData.ShowAboveFriendlyUnits;
+
+                igData.FriendlyUnitsAurasEnabledZoneTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			enabled,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		enabled,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	enabled,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			enabled,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		enabled,
+                };
+
+                igData.ShowAboveFriendlyUnits = nil;
+            end
+        end
+    end,
+    [29] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.EnemyUnitsAurasEnabledZoneTypes == nil) then
+                igData.EnemyUnitsAurasEnabledZoneTypes = addonTable.deepcopy(igData.EnabledZoneTypes);
+                igData.EnabledZoneTypes = nil;
+            end
+        end
+    end,
+    [30] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.ShowAurasOnEnemyTargetEvenInDisabledAreas == nil) then
+                igData.ShowAurasOnEnemyTargetEvenInDisabledAreas = igData.ShowAurasOnTargetEvenInDisabledAreas
+                igData.ShowAurasOnTargetEvenInDisabledAreas = nil;
+            end
+            igData.ShowAurasOnAlliedTargetEvenInDisabledAreas = false;
+        end
+    end,
+    [31] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.AttachToAddonFrame == true) then
+                igData.AttachType = addonTable.ATTACH_TYPE_TPTP;
+            else
+                igData.AttachType = addonTable.ATTACH_TYPE_NAMEPLATE;
+            end
+            igData.AttachToAddonFrame = nil;
+        end
+    end,
+    [32] = function()
+        local db = addonTable.db;
+        for _, igData in pairs(db.IconGroups) do
+            if (igData.Additions_Dispel_InstanceTypes == nil) then
+                igData.Additions_Dispel_InstanceTypes = {
+                    [addonTable.INSTANCE_TYPE_NONE] =			true,
+                    [addonTable.INSTANCE_TYPE_UNKNOWN] = 		true,
+                    [addonTable.INSTANCE_TYPE_PVP] = 			true,
+                    [addonTable.INSTANCE_TYPE_PVP_BG_40PPL] = 	true,
+                    [addonTable.INSTANCE_TYPE_ARENA] = 			true,
+                    [addonTable.INSTANCE_TYPE_PARTY] = 			true,
+                    [addonTable.INSTANCE_TYPE_RAID] = 			true,
+                    [addonTable.INSTANCE_TYPE_SCENARIO] =		true,
+                }
+            end
+        end
+    end,
+    [33] = function()
+        local db = addonTable.db;
+        for _, spellInfo in pairs(db.CustomSpells2) do
+            local playerNpcMode = spellInfo.playerNpcMode;
+            if (spellInfo.showOnPlayers == nil) then
+                spellInfo.showOnPlayers = (playerNpcMode == 1 or playerNpcMode == 2); -- SHOW_ON_PLAYERS_AND_NPC or SHOW_ON_PLAYERS
+            end
+            if (spellInfo.showOnNpcs == nil) then
+                spellInfo.showOnNpcs = (playerNpcMode == 1 or playerNpcMode == 3); -- SHOW_ON_PLAYERS_AND_NPC or SHOW_ON_NPC
+            end
+            if (spellInfo.showOnPets == nil) then
+                spellInfo.showOnPets = (playerNpcMode == 1 or playerNpcMode == 3); -- SHOW_ON_PLAYERS_AND_NPC or SHOW_ON_NPC
+            end
+            spellInfo.playerNpcMode = nil;
+        end
+    end,
 };
 
 local function FillInMissingEntriesIsSpells()
     local db = addonTable.db;
+    local ref = addonTable.GetIconGroupDefaultOptions();
     for index, spellInfo in pairs(db.CustomSpells2) do
         if (spellInfo.spellName == nil) then
             -- we don't know what spell it is
             db.CustomSpells2[index] = nil;
         else
+            -- useRelativeGlowTimer may be nil
+            -- useRelativeAnimationTimer may be nil
+            -- checkSpellID may be nil
+            -- showGlow may be nil
+            -- spellTooltip may be nil
+            -- spellInfo.customBorderPath may be nil
+            -- consolidate may be nil
+            -- overrideSize may be nil
             if (spellInfo.enabledState == nil) then
                 spellInfo.enabledState = CONST_SPELL_MODE_ALL;
             end
@@ -294,8 +595,14 @@ local function FillInMissingEntriesIsSpells()
             if (spellInfo.showOnEnemies == nil) then
                 spellInfo.showOnEnemies = true;
             end
-            if (spellInfo.playerNpcMode == nil) then
-                spellInfo.playerNpcMode = addonTable.SHOW_ON_PLAYERS_AND_NPC;
+            if (spellInfo.showOnPlayers == nil) then
+                spellInfo.showOnPlayers = true;
+            end
+            if (spellInfo.showOnNpcs == nil) then
+                spellInfo.showOnNpcs = true;
+            end
+            if (spellInfo.showOnPets == nil) then
+                spellInfo.showOnPets = true;
             end
             if (spellInfo.auraType == nil) then
                 spellInfo.auraType = AURA_TYPE_ANY;
@@ -313,15 +620,24 @@ local function FillInMissingEntriesIsSpells()
                 spellInfo.animationDisplayMode = addonTable.ICON_ANIMATION_DISPLAY_MODE_NONE;
             end
             if (spellInfo.iconSizeWidth == nil) then
-                spellInfo.iconSizeWidth = db.DefaultIconSizeWidth;
+                spellInfo.iconSizeWidth = ref.DefaultIconSizeWidth;
             end
             if (spellInfo.iconSizeHeight == nil) then
-                spellInfo.iconSizeHeight = db.DefaultIconSizeHeight;
+                spellInfo.iconSizeHeight = ref.DefaultIconSizeHeight;
             end
-            -- useRelativeGlowTimer may be nil
-            -- useRelativeAnimationTimer may be nil
-            -- checkSpellID may be nil
-            -- showGlow may be nil
+            if (spellInfo.customBorderType == nil) then
+                spellInfo.customBorderType = addonTable.BORDER_TYPE_DISABLED;
+            end
+            if (spellInfo.customBorderSize == nil) then
+                spellInfo.customBorderSize = ref.BorderThickness;
+            end
+            if (spellInfo.customBorderColor == nil) then
+                spellInfo.customBorderColor = { 1, 0.1, 0.1, 1 };
+            end
+            if (spellInfo.customBorderPath == nil) then
+                spellInfo.customBorderPath = "";
+            end
+
             if (spellInfo.enabledState == "disabled") then
                 spellInfo.enabledState = CONST_SPELL_MODE_DISABLED;
             elseif (spellInfo.enabledState == "all") then
@@ -329,6 +645,7 @@ local function FillInMissingEntriesIsSpells()
             elseif (spellInfo.enabledState == "my") then
                 spellInfo.enabledState = CONST_SPELL_MODE_MYAURAS;
             end
+
             if (spellInfo.auraType == "buff") then
                 spellInfo.auraType = AURA_TYPE_BUFF;
             elseif (spellInfo.auraType == "debuff") then
@@ -336,21 +653,35 @@ local function FillInMissingEntriesIsSpells()
             elseif (spellInfo.auraType == "buff/debuff") then
                 spellInfo.auraType = AURA_TYPE_ANY;
             end
+
+            if (spellInfo.iconGroups == nil or #spellInfo.iconGroups == 0) then
+                spellInfo.iconGroups = { [1] = true };
+            end
         end
     end
 end
 
 function addonTable.MigrateDB()
     for i = addonTable.db.DBVersion, (table_count(migrations)-1) do
-        migrations[i]();
-        addonTable.Print("Converting DB up to version", i);
+        local migration = migrations[i];
+        if (migration ~= nil) then
+            migration();
+        end
+        addonTable.Print("Converted DB up to version", i);
     end
     addonTable.db.DBVersion = table_count(migrations);
     FillInMissingEntriesIsSpells();
+
+    if (#addonTable.db.IconGroups == 0) then
+        addonTable.db.IconGroups[1] = addonTable.GetIconGroupDefaultOptions();
+    end
 end
 
-function addonTable.ImportNewSpells()
+function addonTable.ImportNewSpells(force)
     local db = addonTable.db;
+    if (force == true) then
+        db.DefaultSpellsLastSetImported = 0;
+    end
     if (db.DefaultSpellsLastSetImported < #addonTable.DefaultSpells2) then
         local spellNamesAlreadyInUsersDB = { };
         for _, spellInfo in pairs(db.CustomSpells2) do
@@ -373,11 +704,13 @@ function addonTable.ImportNewSpells()
             end
             FillInMissingEntriesIsSpells();
         else
-            if (table_count(allNewSpells) > 0) then
-                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells?",
+            local allNewSpellsCount = table_count(allNewSpells);
+            if (allNewSpellsCount > 0) then
+                msgWithQuestion("NameplateAuras\n\nDo you want to import new spells? (Total: " .. allNewSpellsCount .. ")",
                     function()
                         for _, spellInfo in pairs(allNewSpells) do
                             table.insert(db.CustomSpells2, spellInfo);
+                            Print("Imported '" .. spellInfo.spellName .. "'");
                         end
                         FillInMissingEntriesIsSpells();
                         Print("Imported successfully");

@@ -1,14 +1,17 @@
 -- luacheck: no max line length
--- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN GetSpellTexture DEFAULT_CHAT_FRAME
--- luacheck: globals OKAY YES NO ReloadUI GetSpellInfo GetPlayerInfoByGUID
+-- luacheck: globals LibStub WorldFrame format StaticPopup_Show StaticPopupDialogs CreateFrame debugprofilestop UIParent UNKNOWN DEFAULT_CHAT_FRAME
+-- luacheck: globals OKAY YES NO ReloadUI GetPlayerInfoByGUID UnitName GetUnitName wipe C_Spell UnitIsPlayer
 
 local _, addonTable = ...;
 local L = LibStub("AceLocale-3.0"):GetLocale("NameplateAuras");
 local SML = LibStub("LibSharedMedia-3.0");
 SML:Register("font", "NAuras_TeenBold", 		"Interface\\AddOns\\NameplateAuras\\media\\teen_bold.ttf", 255);
 SML:Register("font", "NAuras_TexGyreHerosBold", "Interface\\AddOns\\NameplateAuras\\media\\texgyreheros-bold-webfont.ttf", 255);
-local _G, pairs, select, WorldFrame, string_format = _G, pairs, select, WorldFrame, format;
-local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID = GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID;
+local pairs, select, string_format, string_find = pairs, select, format, string.find;
+local GetSpellTexture, GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe, UnitIsPlayer = C_Spell.GetSpellTexture, C_Spell.GetSpellInfo, GetPlayerInfoByGUID, GetUnitName, wipe, UnitIsPlayer;
+local UNIT_TYPE_PLAYER, UNIT_TYPE_NPC, UNIT_TYPE_PET = addonTable.UNIT_TYPE_PLAYER, addonTable.UNIT_TYPE_NPC, addonTable.UNIT_TYPE_PET;
+local p_unitNameByGuid = { };
+local p_unitTypeByGuid = { };
 
 addonTable.SpellTextureByID = setmetatable({
 	[197690] = GetSpellTexture(71),		-- // override for defensive stance
@@ -23,9 +26,14 @@ addonTable.SpellTextureByID = setmetatable({
 
 addonTable.SpellNameByID = setmetatable({}, {
 	__index = function(t, key)
-		local spellName = GetSpellInfo(key);
-		rawset(t, key, spellName);
-		return spellName;
+		if (key == nil) then
+			return nil;
+		end
+
+		local spellInfo = GetSpellInfo(key);
+		local name = spellInfo ~= nil and spellInfo.name or nil;
+		rawset(t, key, name);
+		return name;
 	end
 });
 
@@ -128,8 +136,79 @@ function addonTable.table_count(t)
 	return count;
 end
 
+function addonTable.array_delete_and_shift(_array, _index)
+	_array[_index] = nil;
+	local tmpArray = {};
+	for key, value in pairs(_array) do
+		if (key > _index) then
+			tmpArray[key] = value;
+		end
+	end
+	local lastKey;
+	for key, value in pairs(tmpArray) do
+		_array[key-1] = value;
+		lastKey = key;
+	end
+	if (lastKey ~= nil) then
+		_array[lastKey] = nil;
+	end
+end
+
 function addonTable.ColorizeText(text, r, g, b)
 	return string_format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, text);
+end
+
+function addonTable.GetOrAddUnitNameByGuid(_unitGuid, _unitId)
+	local cachedValue = p_unitNameByGuid[_unitGuid];
+	if (cachedValue ~= nil) then
+		return cachedValue;
+	end
+
+	if (_unitId == nil) then
+		return nil;
+	end
+
+	local unitName = GetUnitName(_unitId);
+	if (unitName ~= nil) then
+		if (addonTable.table_count(p_unitNameByGuid) > 1000) then
+			wipe(p_unitNameByGuid);
+		end
+
+		p_unitNameByGuid[_unitGuid] = unitName;
+		return unitName;
+	end
+end
+
+function addonTable.GetUnitTypeByGuid(_unitGuid, _unitId)
+	local cachedType = p_unitTypeByGuid[_unitGuid];
+	if (cachedType ~= nil) then
+		return cachedType;
+	end
+
+	if (_unitGuid == nil) then
+		if (_unitId == nil) then
+			return UNIT_TYPE_NPC;
+		end
+
+		if (UnitIsPlayer(_unitId)) then
+			return UNIT_TYPE_PLAYER;
+		else
+			return UNIT_TYPE_NPC;
+		end
+	end
+
+	if (string_find(_unitGuid, "Player-") == 1) then
+		p_unitTypeByGuid[_unitGuid] = UNIT_TYPE_PLAYER;
+		return UNIT_TYPE_PLAYER;
+	end
+
+	if (string_find(_unitGuid, "Pet-") == 1) then
+		p_unitTypeByGuid[_unitGuid] = UNIT_TYPE_PET;
+		return UNIT_TYPE_PET;
+	end
+
+	p_unitTypeByGuid[_unitGuid] = UNIT_TYPE_NPC;
+	return UNIT_TYPE_NPC;
 end
 
 -- // CoroutineProcessor
@@ -176,21 +255,4 @@ do
 			end
 		end
 	end);
-end
-
--- // NPC ID
-do
-
-	local DatamineTooltip = CreateFrame("GameTooltip", "NameplateAurasDatamineTooltip", UIParent, "GameTooltipTemplate");
-	DatamineTooltip:SetOwner(WorldFrame, "ANCHOR_NONE");
-
-	addonTable.NPCNameByID = setmetatable({}, {
-		__index = function(t, key)
-			DatamineTooltip:SetHyperlink(("unit:Creature-0-0-0-0-%d"):format(key));
-			local npcName = _G["NameplateAurasDatamineTooltipTextLeft1"]:GetText();
-			if (npcName == "") then npcName = nil; end
-			rawset(t, key, npcName);
-			return npcName or UNKNOWN;
-		end
-	});
 end

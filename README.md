@@ -1,4 +1,4 @@
-## ⚠️ Important Notice ⚠️
+## ⚠️ Important Notice for Midnight ⚠️
 
 This addon cannot be adapted to the API changes that came with the pre-patch for the Midnight expansion for World of Warcraft.  
 Therefore, development has been discontinued.  

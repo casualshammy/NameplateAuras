@@ -132,7 +132,7 @@ end
 
 local function GUICategory_1(index)
 
-	local checkBoxHideBlizzardFrames, checkBoxHidePlayerBlizzardFrame, checkBoxShowAurasOnPlayerNameplate,
+	local checkBoxShowAurasOnPlayerNameplate,
 		checkBoxShowMyAuras, checkboxAuraTooltip, checkboxShowCooldownAnimation,
 		checkboxShowOnlyOnTarget, checkboxShowAurasOnEnemyTargetEvenInDisabledAreas, zoneTypesArea, buttonInstances,
 		buttonAlwaysShowMyAurasBlacklist, buttonAddAlwaysShowMyAurasBlacklist, editboxAddAlwaysShowMyAurasBlacklist,
@@ -140,48 +140,6 @@ local function GUICategory_1(index)
 		checkboxMasque, buttonFriendlyAuras, checkboxShowAurasOnAlliedTargetEvenInDisabledAreas;
 	local dropdownAlwaysShowMyAurasBlacklist = VGUI.CreateDropdownMenu();
 	local dropdownNpcBlacklist = VGUI.CreateDropdownMenu();
-
-	-- checkBoxHideBlizzardFrames
-	do
-		checkBoxHideBlizzardFrames = VGUI.CreateCheckBox();
-		checkBoxHideBlizzardFrames:SetText(L["options:general:hide-blizz-frames"]);
-		checkBoxHideBlizzardFrames:SetOnClickHandler(function(this)
-			addonTable.db.HideBlizzardFrames = this:GetChecked();
-			addonTable.UpdateAllNameplates(false);
-			if (not addonTable.db.HideBlizzardFrames) then
-				addonTable.PopupReloadUI();
-			end
-		end);
-		checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
-		checkBoxHideBlizzardFrames:SetParent(GUIFrame);
-		checkBoxHideBlizzardFrames:SetPoint("TOPLEFT", GUIFrame, 160, -20);
-		table_insert(GUIFrame.Categories[index], checkBoxHideBlizzardFrames);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			addonTable.UpdateAllNameplates(false);
-			checkBoxHideBlizzardFrames:SetChecked(addonTable.db.HideBlizzardFrames);
-		end);
-	end
-
-	-- checkBoxHidePlayerBlizzardFrame
-	do
-		checkBoxHidePlayerBlizzardFrame = VGUI.CreateCheckBox();
-		checkBoxHidePlayerBlizzardFrame:SetText(L["options:general:hide-player-blizz-frame"]);
-		checkBoxHidePlayerBlizzardFrame:SetOnClickHandler(function(this)
-			addonTable.db.HidePlayerBlizzardFrame = this:GetChecked();
-			addonTable.UpdateAllNameplates(false);
-			if (not addonTable.db.HidePlayerBlizzardFrame) then
-				addonTable.PopupReloadUI();
-			end
-		end);
-		checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
-		checkBoxHidePlayerBlizzardFrame:SetParent(GUIFrame);
-		checkBoxHidePlayerBlizzardFrame:SetPoint("TOPLEFT", checkBoxHideBlizzardFrames, "BOTTOMLEFT", 0, 0);
-		table_insert(GUIFrame.Categories[index], checkBoxHidePlayerBlizzardFrame);
-		table_insert(GUIFrame.OnDBChangedHandlers, function()
-			addonTable.UpdateAllNameplates(false);
-			checkBoxHidePlayerBlizzardFrame:SetChecked(addonTable.db.HidePlayerBlizzardFrame);
-		end);
-	end
 
 	-- // checkBoxShowAurasOnPlayerNameplate
 	do
@@ -192,7 +150,7 @@ local function GUICategory_1(index)
 		end);
 		checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnPlayerNameplate);
 		checkBoxShowAurasOnPlayerNameplate:SetParent(GUIFrame);
-		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", checkBoxHidePlayerBlizzardFrame, "BOTTOMLEFT", 0, 0);
+		checkBoxShowAurasOnPlayerNameplate:SetPoint("TOPLEFT", GUIFrame, 160, -20);
 		table_insert(GUIFrame.Categories[index], checkBoxShowAurasOnPlayerNameplate);
 		table_insert(GUIFrame.OnDBChangedHandlers, function() checkBoxShowAurasOnPlayerNameplate:SetChecked(addonTable.db.IconGroups[CurrentIconGroup].ShowAurasOnPlayerNameplate); end);
 

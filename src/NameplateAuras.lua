@@ -279,8 +279,6 @@ do
 				DBVersion = 0,
 				DefaultSpellsLastSetImported = 0,
 				CustomSpells2 = { },
-				HideBlizzardFrames = true,
-				HidePlayerBlizzardFrame = "undefined", -- // don't change: we convert db with that
 				IconGroups = { },
 			},
 		};
@@ -1525,35 +1523,6 @@ do
 	end
 	CTimerAfter(2, UpdateZoneType);
 
-	local function HideBuffFrame(_frame)
-		if (_frame == nil) then
-			return;
-		end
-
-		local unitId = _frame.unit;
-		if (unitId == nil) then
-			return;
-		end
-
-		if (UnitIsUnit(unitId, "player")) then
-			_frame:SetShown(not db.HidePlayerBlizzardFrame);
-		else
-			_frame:SetShown(not db.HideBlizzardFrames);
-		end
-
-		-- friendly buff frame may appear on non-player nameplate if this nameplate is "reused player nameplate"
-		-- thus we need to workaround this cases
-		if (PersonalFriendlyBuffFrame ~= nil) then
-			local parentNameplate = PersonalFriendlyBuffFrame:GetParent();
-			if (parentNameplate ~= nil and parentNameplate.UnitFrame ~= nil and not UnitIsUnit(parentNameplate.UnitFrame.unit, "player")) then
-				--addonTable.Print("PersonalFriendlyBuffFrame is attached to wrong nameplate, fixing...");
-				PersonalFriendlyBuffFrame:Hide();
-			else
-				PersonalFriendlyBuffFrame:SetShown(not db.HidePlayerBlizzardFrame);
-			end
-		end
-	end
-
 	function EventFrame.PLAYER_ENTERING_WORLD()
 		if (addonTable.OnStartup) then
 			addonTable.OnStartup();
@@ -1607,16 +1576,6 @@ do
 		end
 
 		EventFrame.UNIT_THREAT_LIST_UPDATE(unitID);
-
-		if (not BuffFrameHookedNameplates[nameplate]) then
-			if (nameplate.UnitFrame ~= nil and nameplate.UnitFrame.BuffFrame ~= nil) then
-				nameplate.UnitFrame.BuffFrame:HookScript("OnShow", HideBuffFrame);
-				HideBuffFrame(nameplate.UnitFrame.BuffFrame);
-				BuffFrameHookedNameplates[nameplate] = true;
-			-- else
-				-- error("Nameplate " .. nameplate:GetName() .. " doesn't have buff frame!");
-			end
-		end
 	end
 
 	function EventFrame.NAME_PLATE_UNIT_REMOVED(unitID)

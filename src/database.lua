@@ -103,9 +103,6 @@ local migrations = {
                 spellInfo.allowMultipleInstances = nil;
             end
         end
-        if (db.HidePlayerBlizzardFrame == "undefined") then
-            db.HidePlayerBlizzardFrame = db.HideBlizzardFrames;
-        end
     end,
     [1] = function()
         local db = addonTable.db;
